@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(mysql:*)",
+      "Bash(node --version:*)",
+      "Bash(npm:*)",
+      "Bash(sudo systemctl status:*)",
+      "Bash(systemctl status:*)"
+    ]
+  }
+}

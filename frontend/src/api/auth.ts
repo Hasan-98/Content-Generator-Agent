@@ -1,0 +1,12 @@
+import client from './client';
+import { AuthUser } from '../types';
+
+export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
+  const res = await client.post('/auth/login', { email, password });
+  return res.data;
+}
+
+export async function getMe(): Promise<AuthUser> {
+  const res = await client.get('/auth/me');
+  return res.data;
+}
