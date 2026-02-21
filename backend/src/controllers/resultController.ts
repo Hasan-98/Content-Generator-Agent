@@ -9,12 +9,14 @@ const STATUS_CYCLE: Status[] = ['DRAFT', 'READY', 'PROGRESS', 'DONE', 'PUBLISHED
 export async function updateResult(req: AuthRequest, res: Response): Promise<void> {
   const id = String(req.params.id);
   const { title, status } = req.body;
+  console.log(`[results] updateResult → id: ${id}, title: "${title}", status: ${status}`);
 
   const existing = await prisma.generatedResult.findFirst({
     where: { id },
     include: { keyword: { include: { topLevel: true } } },
   });
   if (!existing || existing.keyword.topLevel.userId !== req.user!.id) {
+    console.log(`[results] updateResult failed → not found or unauthorized, id: ${id}`);
     res.status(404).json({ error: 'Not found' });
     return;
   }
@@ -23,6 +25,7 @@ export async function updateResult(req: AuthRequest, res: Response): Promise<voi
   if (status === 'cycle') {
     const currentIndex = STATUS_CYCLE.indexOf(existing.status);
     nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length];
+    console.log(`[results] updateResult → cycling status: ${existing.status} → ${nextStatus}`);
   }
 
   const result = await prisma.generatedResult.update({
@@ -32,21 +35,25 @@ export async function updateResult(req: AuthRequest, res: Response): Promise<voi
       ...(nextStatus !== undefined && { status: nextStatus }),
     },
   });
+  console.log(`[results] updateResult success → id: ${result.id}, status: ${result.status}`);
   res.json(result);
 }
 
 export async function deleteResult(req: AuthRequest, res: Response): Promise<void> {
   const id = String(req.params.id);
+  console.log(`[results] deleteResult → id: ${id}`);
 
   const existing = await prisma.generatedResult.findFirst({
     where: { id },
     include: { keyword: { include: { topLevel: true } } },
   });
   if (!existing || existing.keyword.topLevel.userId !== req.user!.id) {
+    console.log(`[results] deleteResult failed → not found or unauthorized, id: ${id}`);
     res.status(404).json({ error: 'Not found' });
     return;
   }
 
   await prisma.generatedResult.delete({ where: { id } });
+  console.log(`[results] deleteResult success → id: ${id}`);
   res.status(204).send();
 }

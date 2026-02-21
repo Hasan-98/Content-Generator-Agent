@@ -10,7 +10,9 @@
       "Bash(systemctl status:*)",
       "Bash(curl:*)",
       "Bash(ss:*)",
-      "Bash(timeout 10 npx ts-node:*)"
+      "Bash(timeout 10 npx ts-node:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs:*)"
     ]
   }
 }
