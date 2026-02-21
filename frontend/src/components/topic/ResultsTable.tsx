@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GeneratedResult, Status } from '../../types';
+import type { GeneratedResult, Status } from '../../types';
 
 interface Props {
   results: GeneratedResult[];

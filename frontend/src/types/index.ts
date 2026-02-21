@@ -11,6 +11,8 @@ export interface User {
   createdAt?: string;
 }
 
+export type AuthUser = User;
+
 export interface GeneratedResult {
   id: string;
   keywordText: string;
@@ -40,11 +42,4 @@ export interface TopLevel {
   keywords: Keyword[];
   createdAt: string;
   updatedAt: string;
-}
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
 }

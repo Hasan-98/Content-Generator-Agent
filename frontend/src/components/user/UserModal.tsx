@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { User } from '../../types';
+import type { User } from '../../types';
 import { getUsers, createUser, updateUser, deleteUser } from '../../api/users';
 import { useAuth } from '../../context/AuthContext';
 

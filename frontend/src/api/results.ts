@@ -1,5 +1,5 @@
 import client from './client';
-import { GeneratedResult } from '../types';
+import type { GeneratedResult } from '../types';
 
 export async function updateResult(
   id: string,

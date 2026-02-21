@@ -1,5 +1,5 @@
 import client from './client';
-import { Keyword } from '../types';
+import type { Keyword } from '../types';
 
 export async function createKeyword(data: {
   topLevelId: string;

@@ -1,5 +1,5 @@
 import client from './client';
-import { AuthUser } from '../types';
+import type { AuthUser } from '../types';
 
 export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
   const res = await client.post('/auth/login', { email, password });

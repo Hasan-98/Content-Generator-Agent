@@ -1,5 +1,5 @@
 import client from './client';
-import { TopLevel } from '../types';
+import type { TopLevel } from '../types';
 
 export async function getTopLevels(): Promise<TopLevel[]> {
   const res = await client.get('/top-levels');

@@ -7,7 +7,10 @@
       "Bash(node --version:*)",
       "Bash(npm:*)",
       "Bash(sudo systemctl status:*)",
-      "Bash(systemctl status:*)"
+      "Bash(systemctl status:*)",
+      "Bash(curl:*)",
+      "Bash(ss:*)",
+      "Bash(timeout 10 npx ts-node:*)"
     ]
   }
 }

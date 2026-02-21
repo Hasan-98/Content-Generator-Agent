@@ -1,5 +1,5 @@
 import { useState, KeyboardEvent } from 'react';
-import { TopLevel, Keyword } from '../../types';
+import type { TopLevel, Keyword } from '../../types';
 
 interface Props {
   topLevels: TopLevel[];

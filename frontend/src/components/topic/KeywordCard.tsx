@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Keyword } from '../../types';
+import type { Keyword } from '../../types';
 
 interface Props {
   keyword: Keyword;

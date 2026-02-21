@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { TopLevel, Keyword, GeneratedResult } from '../types';
+import type { TopLevel, Keyword, GeneratedResult } from '../types';
 import { getTopLevels, createTopLevel, updateTopLevel, deleteTopLevel } from '../api/topics';
 import { createKeyword, updateKeyword, deleteKeyword } from '../api/keywords';
 import { updateResult, deleteResult } from '../api/results';
