@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import LoginScreen from './components/auth/LoginScreen';
 import Titlebar from './components/layout/Titlebar';
 import ActivityBar from './components/layout/ActivityBar';
@@ -72,7 +73,7 @@ function AppShell() {
         <ActivityBar active={activeTab} onChange={setActiveTab} />
         {renderContent()}
       </div>
-      <Statusbar message={`Logged in as ${user.name} (${user.role})`} />
+      <Statusbar section={activeTab === 'topics' ? 'Topic Creator' : activeTab === 'persona' ? 'Persona Creator' : activeTab === 'structure' ? 'Structure Creator' : activeTab === 'blog' ? 'Blog Creator' : 'Image Creator'} />
       {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} />}
     </div>
   );
@@ -80,19 +81,21 @@ function AppShell() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            background: '#21262d',
-            color: '#e6edf3',
-            border: '1px solid #30363d',
-            fontSize: '13px',
-          },
-        }}
-      />
-      <AppShell />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#21262d',
+              color: '#e6edf3',
+              border: '1px solid #30363d',
+              fontSize: '13px',
+            },
+          }}
+        />
+        <AppShell />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

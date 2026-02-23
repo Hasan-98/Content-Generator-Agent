@@ -19,7 +19,7 @@ export default function ActivityBar({ active, onChange }: Props) {
           key={tab.id}
           onClick={() => onChange(tab.id)}
           title={tab.label}
-          className={`w-10 h-10 rounded flex flex-col items-center justify-center text-lg transition-colors ${
+          className={`w-11 h-11 rounded flex flex-col items-center justify-center text-xl transition-colors ${
             active === tab.id
               ? 'bg-bg2 text-t1'
               : 'text-t2 hover:text-t1 hover:bg-bg2'
