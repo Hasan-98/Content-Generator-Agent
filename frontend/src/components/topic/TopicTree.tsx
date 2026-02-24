@@ -1,4 +1,5 @@
-import { useState, KeyboardEvent } from 'react';
+import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import type { TopLevel, Keyword } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
