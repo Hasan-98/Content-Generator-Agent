@@ -261,7 +261,7 @@ export default function ResultsTable({
           </thead>
           <tbody>
             {filtered.map((result) => {
-              const style = STATUS_STYLE[result.status];
+              const style = STATUS_STYLE[result.status] ?? { bg: 'rgba(139,148,158,.15)', text: '#8b949e' };
               const isSkipped = result.status === 'SKIPPED';
               return (
                 <tr
