@@ -10,8 +10,9 @@ interface Props {
 }
 
 const AVATAR_COLORS = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f778ba', '#39d2c0', '#f85149'];
-const ROLES: Role[] = ['ADMIN', 'EDITOR', 'VIEWER'];
+const ROLES: Role[] = ['SUPERADMIN', 'ADMIN', 'EDITOR', 'VIEWER'];
 const ROLE_COLORS: Record<Role, string> = {
+  SUPERADMIN: 'bg-aR/15 text-aR',
   ADMIN: 'bg-aP/15 text-aP',
   EDITOR: 'bg-aB/15 text-aB',
   VIEWER: 'bg-t2/15 text-t2',
@@ -26,6 +27,7 @@ export default function UserModal({ onClose }: Props) {
 
   const getRoleLabel = (role: Role) => {
     const map: Record<Role, ReturnType<typeof t>> = {
+      SUPERADMIN: t('roleAdmin'),
       ADMIN: t('roleAdmin'),
       EDITOR: t('roleEditor'),
       VIEWER: t('roleViewer'),

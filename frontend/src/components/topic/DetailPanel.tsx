@@ -189,7 +189,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                   key={f.key}
                   label={f.label}
                   fieldKey={f.key}
-                  value={(result as Record<string, unknown>)[f.key] as string | undefined}
+                  value={(result as unknown as Record<string, unknown>)[f.key] as string | undefined}
                   result={result}
                   onUpdate={onUpdate}
                 />
@@ -243,7 +243,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                   key={f.key}
                   label={f.label}
                   fieldKey={f.key}
-                  value={(result as Record<string, unknown>)[f.key] as string | undefined}
+                  value={(result as unknown as Record<string, unknown>)[f.key] as string | undefined}
                   result={result}
                   onUpdate={onUpdate}
                 />

@@ -105,7 +105,7 @@ export default function ReferenceModal({ result, onClose }: Props) {
                   <div key={n} className="bg-bg0 rounded-lg p-3 border border-bd">
                     <div className="text-xs font-semibold text-aO mb-1">デモサイズ{n}</div>
                     <div className="text-xs text-t1">
-                      {(result as Record<string, unknown>)[`demoSize${n}`] as string || <span className="text-tM italic">—</span>}
+                      {(result as unknown as Record<string, unknown>)[`demoSize${n}`] as string || <span className="text-tM italic">—</span>}
                     </div>
                   </div>
                 ))}
