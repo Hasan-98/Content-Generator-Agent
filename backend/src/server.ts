@@ -7,6 +7,9 @@ import topLevelRoutes from './routes/topLevels';
 import keywordRoutes from './routes/keywords';
 import resultRoutes from './routes/results';
 import generateRoutes from './routes/generate';
+import factcheckRoutes from './routes/factcheck';
+import articleRoutes from './routes/articles';
+import publishRoutes from './routes/publish';
 
 dotenv.config();
 
@@ -22,6 +25,9 @@ app.use('/api/top-levels', topLevelRoutes);
 app.use('/api/keywords', keywordRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/generate', generateRoutes);
+app.use('/api/factcheck', factcheckRoutes);
+app.use('/api/articles', articleRoutes);
+app.use('/api/publish', publishRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

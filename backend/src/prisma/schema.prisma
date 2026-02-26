@@ -44,26 +44,134 @@ model Keyword {
 }
 
 model GeneratedResult {
-  id          String   @id @default(cuid())
-  keywordText String
-  title       String
-  status      Status   @default(DRAFT)
-  keywordId   String
-  keyword     Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String       @id @default(cuid())
+  keywordText    String
+  title          String
+  status         ResultStatus @default(DRAFT)
+  previousStatus ResultStatus?
+  keywordId      String
+  keyword        Keyword      @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  // Persona fields
+  demographic  String?  @db.Text
+  persona1     String?  @db.Text
+  persona2     String?  @db.Text
+  persona3     String?  @db.Text
+  demoSize1    String?  @db.Text
+  demoSize2    String?  @db.Text
+  demoSize3    String?  @db.Text
+
+  // Structure fields
+  structIntro   String? @db.Text
+  structNayami  String? @db.Text
+  structP1      String? @db.Text
+  structP2      String? @db.Text
+  structP3      String? @db.Text
+  structCommon  String? @db.Text
+  structCta     String? @db.Text
+  structMatome  String? @db.Text
+  structH2      String? @db.Text
+
+  // Fact check fields
+  factCheck       Json?
+  targetDecision  String? @db.Text
+
+  article   Article?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Article {
+  id         String        @id @default(cuid())
+  status     ArticleStatus @default(READY)
+  platform   String?
+  uploadedAt DateTime?
+  resultId   String        @unique
+  result     GeneratedResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  sections   ArticleSection[]
+  images     ArticleImage[]
+  uploadMeta UploadMeta?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model ArticleSection {
+  id        String  @id @default(cuid())
+  index     Int
+  type      String
+  heading   String
+  content   String  @db.Text
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, index])
+}
+
+model ArticleImage {
+  id        String     @id @default(cuid())
+  index     Int
+  enabled   Boolean    @default(true)
+  taste     ImageTaste @default(PHOTO)
+  prompt    String     @db.Text
+  imageUrl  String?
+  articleId String
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, index])
+}
+
+model UploadMeta {
+  id            String        @id @default(cuid())
+  slug          String
+  excerpt       String        @db.Text
+  tags          String
+  category      String
+  publishStatus PublishStatus @default(DRAFT)
+  scheduleDate  DateTime?
+  articleId     String        @unique
+  article       Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 enum Role {
+  SUPERADMIN
   ADMIN
   EDITOR
   VIEWER
 }
 
-enum Status {
+enum ResultStatus {
   DRAFT
   READY
-  PROGRESS
-  DONE
+  KW_DONE
+  PERSONA_WIP
+  PERSONA_DONE
+  STRUCT_WIP
+  STRUCT_DONE
   PUBLISHED
+  SKIPPED
+}
+
+enum ArticleStatus {
+  READY
+  WRITING
+  ARTICLE_DONE
+  IMAGING
+  IMAGE_DONE
+  UPLOADED
+}
+
+enum ImageTaste {
+  PHOTO
+  TEXT_OVERLAY
+  INFOGRAPHIC
+  ILLUSTRATION
+  CINEMATIC
+}
+
+enum PublishStatus {
+  PUBLISH
+  DRAFT
+  SCHEDULE
 }

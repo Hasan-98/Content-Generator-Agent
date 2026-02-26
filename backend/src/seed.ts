@@ -37,7 +37,7 @@ async function main() {
               create: [
                 { keywordText: 'SEO for beginners', title: '10 SEO Best Practices That Actually Work in 2024', status: 'READY' },
                 { keywordText: 'on-page SEO tips', title: 'The Complete On-Page SEO Checklist', status: 'DRAFT' },
-                { keywordText: 'SEO mistakes to avoid', title: '7 Common SEO Mistakes Killing Your Rankings', status: 'DONE' },
+                { keywordText: 'SEO mistakes to avoid', title: '7 Common SEO Mistakes Killing Your Rankings', status: 'READY' },
               ],
             },
           },
@@ -64,7 +64,7 @@ async function main() {
             audience: 'E-commerce store owners',
             results: {
               create: [
-                { keywordText: 'boost ecommerce sales', title: 'How to Increase Online Sales by 40% This Quarter', status: 'PROGRESS' },
+                { keywordText: 'boost ecommerce sales', title: 'How to Increase Online Sales by 40% This Quarter', status: 'READY' },
               ],
             },
           },
