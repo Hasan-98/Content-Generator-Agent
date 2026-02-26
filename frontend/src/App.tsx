@@ -7,12 +7,12 @@ import Titlebar from './components/layout/Titlebar';
 import ActivityBar from './components/layout/ActivityBar';
 import Statusbar from './components/layout/Statusbar';
 import TopicCreator from './pages/TopicCreator';
-import PlaceholderPage from './pages/PlaceholderPage';
+import ArticleCreator from './pages/ArticleCreator';
 import UserModal from './components/user/UserModal';
 
 function AppShell() {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('topics');
+  const [activeTab, setActiveTab] = useState<'topic' | 'article'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
 
   if (loading) {
@@ -25,55 +25,16 @@ function AppShell() {
 
   if (!user) return <LoginScreen />;
 
-  function renderContent() {
-    switch (activeTab) {
-      case 'topics':
-        return <TopicCreator />;
-      case 'persona':
-        return (
-          <PlaceholderPage
-            icon="👤"
-            title="Persona Creator"
-            description="Define target audience personas per keyword"
-          />
-        );
-      case 'structure':
-        return (
-          <PlaceholderPage
-            icon="🗂"
-            title="Structure Creator"
-            description="Build article outlines and section structure"
-          />
-        );
-      case 'blog':
-        return (
-          <PlaceholderPage
-            icon="✍️"
-            title="Blog Creator"
-            description="Write and manage full blog content"
-          />
-        );
-      case 'image':
-        return (
-          <PlaceholderPage
-            icon="🖼"
-            title="Image Creator"
-            description="Generate and manage images based on blog content"
-          />
-        );
-      default:
-        return null;
-    }
-  }
+  const sectionLabel = activeTab === 'topic' ? 'Topic Creator' : 'Article Creator';
 
   return (
     <div className="flex flex-col h-screen">
       <Titlebar onOpenUsers={() => setUserModalOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
-        <ActivityBar active={activeTab} onChange={setActiveTab} />
-        {renderContent()}
+        <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article')} />
+        {activeTab === 'topic' ? <TopicCreator /> : <ArticleCreator />}
       </div>
-      <Statusbar section={activeTab === 'topics' ? 'Topic Creator' : activeTab === 'persona' ? 'Persona Creator' : activeTab === 'structure' ? 'Structure Creator' : activeTab === 'blog' ? 'Blog Creator' : 'Image Creator'} />
+      <Statusbar section={sectionLabel} />
       {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} />}
     </div>
   );

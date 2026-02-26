@@ -3,6 +3,20 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        indeterminate: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(500%)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.6s infinite linear',
+        indeterminate: 'indeterminate 1.2s ease-in-out infinite',
+      },
       fontFamily: {
         sans: ['"Noto Sans JP"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],

@@ -4,27 +4,46 @@ interface Props {
 }
 
 const tabs = [
-  { id: 'topics', label: 'Topics', icon: '📋' },
-  { id: 'persona', label: 'Persona', icon: '👤' },
-  { id: 'structure', label: 'Structure', icon: '🗂' },
-  { id: 'blog', label: 'Blog', icon: '✍️' },
-  { id: 'image', label: 'Image', icon: '🖼' },
+  {
+    id: 'topic',
+    label: 'Topic Creator',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 7h18M3 12h12M3 17h9" />
+        <circle cx="19" cy="17" r="3" />
+        <path d="M21 19l1.5 1.5" />
+      </svg>
+    ),
+  },
+  {
+    id: 'article',
+    label: 'Article Creator',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function ActivityBar({ active, onChange }: Props) {
   return (
-    <div className="w-14 bg-bg1 border-r border-bd flex flex-col items-center py-2 gap-1 shrink-0">
+    <div className="w-14 bg-bg1 border-r border-bd flex flex-col items-center py-3 gap-1 shrink-0">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
           title={tab.label}
-          className={`w-11 h-11 rounded flex flex-col items-center justify-center text-xl transition-colors ${
+          className={`w-11 h-11 rounded flex items-center justify-center transition-colors relative group ${
             active === tab.id
               ? 'bg-bg2 text-t1'
               : 'text-t2 hover:text-t1 hover:bg-bg2'
           }`}
         >
+          {active === tab.id && (
+            <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-aB rounded-r" />
+          )}
           {tab.icon}
         </button>
       ))}

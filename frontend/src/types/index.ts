@@ -1,5 +1,31 @@
-export type Role = 'ADMIN' | 'EDITOR' | 'VIEWER';
-export type Status = 'DRAFT' | 'READY' | 'PROGRESS' | 'DONE' | 'PUBLISHED';
+export type Role = 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'VIEWER';
+export type ResultStatus =
+  | 'DRAFT'
+  | 'READY'
+  | 'KW_DONE'
+  | 'PERSONA_WIP'
+  | 'PERSONA_DONE'
+  | 'STRUCT_WIP'
+  | 'STRUCT_DONE'
+  | 'PUBLISHED'
+  | 'SKIPPED';
+
+export type ArticleStatus =
+  | 'READY'
+  | 'WRITING'
+  | 'ARTICLE_DONE'
+  | 'IMAGING'
+  | 'IMAGE_DONE'
+  | 'UPLOADED';
+
+export type ImageTaste =
+  | 'PHOTO'
+  | 'TEXT_OVERLAY'
+  | 'INFOGRAPHIC'
+  | 'ILLUSTRATION'
+  | 'CINEMATIC';
+
+export type PublishStatus = 'PUBLISH' | 'DRAFT' | 'SCHEDULE';
 
 export interface User {
   id: string;
@@ -17,8 +43,79 @@ export interface GeneratedResult {
   id: string;
   keywordText: string;
   title: string;
-  status: Status;
+  status: ResultStatus;
+  previousStatus?: ResultStatus;
   keywordId: string;
+  // Persona fields
+  demographic?: string;
+  persona1?: string;
+  persona2?: string;
+  persona3?: string;
+  demoSize1?: string;
+  demoSize2?: string;
+  demoSize3?: string;
+  // Structure fields
+  structIntro?: string;
+  structNayami?: string;
+  structP1?: string;
+  structP2?: string;
+  structP3?: string;
+  structCommon?: string;
+  structCta?: string;
+  structMatome?: string;
+  structH2?: string;
+  // Fact check
+  factCheck?: Record<string, {
+    persona: string;
+    demoSize: string | null;
+    searchResults: { title: string; link: string; snippet: string }[];
+    verified: boolean;
+  }>;
+  targetDecision?: string;
+  article?: Article;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArticleSection {
+  id: string;
+  index: number;
+  type: string;
+  heading: string;
+  content: string;
+  articleId: string;
+}
+
+export interface ArticleImage {
+  id: string;
+  index: number;
+  enabled: boolean;
+  taste: ImageTaste;
+  prompt: string;
+  imageUrl?: string;
+  articleId: string;
+}
+
+export interface UploadMeta {
+  id: string;
+  slug: string;
+  excerpt: string;
+  tags: string;
+  category: string;
+  publishStatus: PublishStatus;
+  scheduleDate?: string;
+  articleId: string;
+}
+
+export interface Article {
+  id: string;
+  status: ArticleStatus;
+  platform?: string;
+  uploadedAt?: string;
+  resultId: string;
+  sections: ArticleSection[];
+  images: ArticleImage[];
+  uploadMeta?: UploadMeta;
   createdAt: string;
   updatedAt: string;
 }

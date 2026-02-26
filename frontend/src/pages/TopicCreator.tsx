@@ -1,160 +1,19 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import type { TopLevel } from '../types';
+import type { TopLevel, GeneratedResult } from '../types';
 import { getTopLevels, createTopLevel, updateTopLevel, deleteTopLevel } from '../api/topics';
 import { createKeyword, updateKeyword, deleteKeyword } from '../api/keywords';
-import { updateResult, deleteResult } from '../api/results';
-import { generateResults } from '../api/generate';
+import { updateResult, deleteResult, skipResult, restoreResult } from '../api/results';
+import { generateResults, generatePersona } from '../api/generate';
+import { runFactCheck } from '../api/factcheck';
 import { useLanguage } from '../context/LanguageContext';
 import TopicTree from '../components/topic/TopicTree';
 import ResultsTable from '../components/topic/ResultsTable';
+import FlowSteps from '../components/topic/FlowSteps';
+import BulkActions from '../components/topic/BulkActions';
+import DetailPanel from '../components/topic/DetailPanel';
 
-// ── Keywords Overview (default center view) ───────────────────────────────────
-function KeywordsOverview({
-  topLevels,
-  onSelectKeyword,
-  onRenameTopLevel,
-}: {
-  topLevels: TopLevel[];
-  onSelectKeyword: (tlId: string, kwId: string) => void;
-  onRenameTopLevel: (id: string, name: string) => void;
-}) {
-  const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
-  const [editTopicName, setEditTopicName] = useState('');
-
-  function startEdit(tl: TopLevel, e: React.MouseEvent) {
-    e.stopPropagation();
-    setEditingTopicId(tl.id);
-    setEditTopicName(tl.name);
-  }
-
-  function commitEdit() {
-    if (editingTopicId && editTopicName.trim()) {
-      onRenameTopLevel(editingTopicId, editTopicName.trim());
-    }
-    setEditingTopicId(null);
-  }
-
-  const allRows = topLevels.flatMap((tl) =>
-    tl.keywords.map((kw) => ({ tl, kw }))
-  );
-
-  const totalKeywords = allRows.length;
-  const drafted = allRows.filter((r) => r.kw.results.length === 0).length;
-  const hasResults = allRows.filter((r) => r.kw.results.length > 0).length;
-
-  if (allRows.length === 0) {
-    return (
-      <div className="text-center py-16 text-tM text-sm">
-        <p>No topics yet.</p>
-        <p className="text-xs mt-1 opacity-50">Add a top-level topic and keywords from the sidebar.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {/* Summary stats */}
-      <div className="flex gap-3">
-        {[
-          { label: 'topics', value: topLevels.length, color: 'text-aB' },
-          { label: 'keywords', value: totalKeywords, color: 'text-aP' },
-          { label: 'with results', value: hasResults, color: 'text-aG' },
-          { label: 'draft', value: drafted, color: 'text-t2' },
-        ].map((s) => (
-          <div key={s.label} className="flex-1 bg-bg1 border border-bd rounded-lg px-4 py-3">
-            <div className="text-tM text-[10px] font-mono uppercase tracking-wider mb-1">{s.label}</div>
-            <div className={`text-[22px] font-bold font-mono ${s.color}`}>{s.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="bg-bg1 border border-bd rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-bg2">
-                <th className="px-4 py-2 text-left font-mono text-[11px] font-semibold uppercase tracking-wider text-tM">Topic</th>
-                <th className="px-4 py-2 text-left font-mono text-[11px] font-semibold uppercase tracking-wider text-tM">Keyword</th>
-                <th className="px-4 py-2 text-left font-mono text-[11px] font-semibold uppercase tracking-wider text-tM">Results</th>
-                <th className="px-4 py-2 text-left font-mono text-[11px] font-semibold uppercase tracking-wider text-tM">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allRows.map(({ tl, kw }) => {
-                const count = kw.results.length;
-                const hasPublished = kw.results.some((r) => r.status === 'PUBLISHED');
-                const hasDone = kw.results.some((r) => r.status === 'DONE');
-                const hasProgress = kw.results.some((r) => r.status === 'PROGRESS');
-                const hasReady = kw.results.some((r) => r.status === 'READY');
-                const statusLabel = count === 0
-                  ? 'draft'
-                  : hasPublished ? 'published'
-                  : hasDone ? 'done'
-                  : hasProgress ? 'in progress'
-                  : hasReady ? 'ready'
-                  : 'draft';
-                const statusStyle = count === 0
-                  ? 'bg-t2/15 text-t2'
-                  : hasPublished ? 'bg-aP/15 text-aP'
-                  : hasDone ? 'bg-aG/15 text-aG'
-                  : hasProgress ? 'bg-aO/15 text-aO'
-                  : hasReady ? 'bg-aB/15 text-aB'
-                  : 'bg-t2/15 text-t2';
-                const dotStyle = count === 0
-                  ? 'bg-t2'
-                  : hasPublished ? 'bg-aP'
-                  : hasDone ? 'bg-aG'
-                  : hasProgress ? 'bg-aO'
-                  : hasReady ? 'bg-aB'
-                  : 'bg-t2';
-
-                return (
-                  <tr
-                    key={kw.id}
-                    onClick={() => onSelectKeyword(tl.id, kw.id)}
-                    className="border-t border-bd/50 hover:bg-aB/[0.04] cursor-pointer transition-colors group"
-                  >
-                    <td
-                      className="px-4 py-2.5 text-aO text-xs font-semibold"
-                      onClick={(e) => e.stopPropagation()}
-                      onDoubleClick={(e) => startEdit(tl, e)}
-                    >
-                      {editingTopicId === tl.id ? (
-                        <input
-                          autoFocus
-                          value={editTopicName}
-                          onChange={(e) => setEditTopicName(e.target.value)}
-                          onBlur={commitEdit}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') commitEdit();
-                            if (e.key === 'Escape') setEditingTopicId(null);
-                          }}
-                          className="bg-bg0 border border-aB rounded px-1.5 py-0.5 text-aO text-xs focus:outline-none w-full"
-                        />
-                      ) : (
-                        <span title="Double-click to rename">{tl.name}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-aC">{kw.keyword}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-t2">{count}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${statusStyle}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${dotStyle}`} />
-                        {statusLabel}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
+type FilterStep = '01' | '02' | '03' | 'all';
 
 export default function TopicCreator() {
   const { lang, t } = useLanguage();
@@ -163,6 +22,10 @@ export default function TopicCreator() {
   const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [filterStep, setFilterStep] = useState<FilterStep>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [detailResult, setDetailResult] = useState<GeneratedResult | null>(null);
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { loadTopLevels(); }, []);
 
@@ -170,7 +33,6 @@ export default function TopicCreator() {
     try {
       const data = await getTopLevels();
       setTopLevels(data);
-      // Auto-select first keyword that has results so the table is immediately visible
       for (const tl of data) {
         for (const kw of tl.keywords) {
           if (kw.results.length > 0) {
@@ -180,7 +42,6 @@ export default function TopicCreator() {
           }
         }
       }
-      // Fallback: select first keyword even if it has no results
       if (data[0]?.keywords[0]) {
         setSelectedTopLevelId(data[0].id);
         setSelectedKeywordId(data[0].keywords[0].id);
@@ -194,6 +55,19 @@ export default function TopicCreator() {
 
   const selectedTopLevel = topLevels.find((tl) => tl.id === selectedTopLevelId) ?? null;
   const selectedKeyword = selectedTopLevel?.keywords.find((kw) => kw.id === selectedKeywordId) ?? null;
+
+  function updateResultInState(updated: GeneratedResult) {
+    setTopLevels((prev) =>
+      prev.map((tl) => ({
+        ...tl,
+        keywords: tl.keywords.map((kw) => ({
+          ...kw,
+          results: kw.results.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)),
+        })),
+      }))
+    );
+    if (detailResult?.id === updated.id) setDetailResult({ ...detailResult, ...updated });
+  }
 
   async function handleAddTopLevel(name: string) {
     try {
@@ -267,18 +141,10 @@ export default function TopicCreator() {
     }
   }
 
-  async function handleUpdateResult(id: string, data: { title?: string; status?: string }) {
+  async function handleUpdateResult(id: string, data: Record<string, unknown>) {
     try {
       const updated = await updateResult(id, data);
-      setTopLevels((prev) =>
-        prev.map((tl) => ({
-          ...tl,
-          keywords: tl.keywords.map((kw) => ({
-            ...kw,
-            results: kw.results.map((r) => (r.id === id ? { ...r, ...updated } : r)),
-          })),
-        }))
-      );
+      updateResultInState(updated);
     } catch {
       toast.error(t('toastUpdateFailed'));
     }
@@ -296,9 +162,64 @@ export default function TopicCreator() {
           })),
         }))
       );
+      if (detailResult?.id === id) setDetailResult(null);
       toast.success(t('toastResultDeleted'));
     } catch {
       toast.error(t('toastDeleteFailed'));
+    }
+  }
+
+  async function handleSkip(id: string) {
+    try {
+      const updated = await skipResult(id);
+      updateResultInState(updated);
+      toast.success(t('toastSkipped'));
+    } catch {
+      toast.error(t('toastSkipFailed'));
+    }
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      const updated = await restoreResult(id);
+      updateResultInState(updated);
+      toast.success(t('toastRestored'));
+    } catch {
+      toast.error(t('toastRestoreFailed'));
+    }
+  }
+
+  async function handleGoStep2(id: string) {
+    setBusyIds((prev) => new Set(prev).add(id));
+    // Optimistically set PERSONA_WIP
+    updateResultInState({ ...(selectedKeyword?.results.find(r => r.id === id) as GeneratedResult), status: 'PERSONA_WIP' });
+    toast.loading(t('toastPersonaGenerating'), { id: `persona-${id}` });
+    try {
+      const updated = await generatePersona(id);
+      updateResultInState(updated);
+      toast.success(t('toastPersonaDone'), { id: `persona-${id}` });
+    } catch {
+      toast.error(t('toastPersonaFailed'), { id: `persona-${id}` });
+      // Rollback on error
+      updateResultInState({ ...(selectedKeyword?.results.find(r => r.id === id) as GeneratedResult), status: 'READY' });
+    } finally {
+      setBusyIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }
+
+  async function handleGoStep3(id: string) {
+    setBusyIds((prev) => new Set(prev).add(id));
+    updateResultInState({ ...(selectedKeyword?.results.find(r => r.id === id) as GeneratedResult), status: 'STRUCT_WIP' });
+    toast.loading(t('toastFactCheckRunning'), { id: `fc-${id}` });
+    try {
+      const updated = await runFactCheck(id);
+      updateResultInState(updated);
+      toast.success(t('toastFactCheckDone'), { id: `fc-${id}` });
+    } catch {
+      toast.error(t('toastFactCheckFailed'), { id: `fc-${id}` });
+      updateResultInState({ ...(selectedKeyword?.results.find(r => r.id === id) as GeneratedResult), status: 'PERSONA_DONE' });
+    } finally {
+      setBusyIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
   }
 
@@ -328,6 +249,64 @@ export default function TopicCreator() {
     }
   }
 
+  // Bulk actions
+  async function handleBulkNextStep() {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      const result = selectedKeyword?.results.find(r => r.id === id);
+      if (result && (result.status === 'READY' || result.status === 'KW_DONE')) {
+        await handleGoStep2(id);
+      }
+    }
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkGeneratePersona() {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await handleGoStep2(id);
+    }
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkFactCheck() {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      const result = selectedKeyword?.results.find(r => r.id === id);
+      if (result?.status === 'PERSONA_DONE') {
+        await handleGoStep3(id);
+      }
+    }
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkDelete() {
+    if (!window.confirm(`${selectedIds.size}件削除しますか？`)) return;
+    for (const id of Array.from(selectedIds)) {
+      await handleDeleteResult(id);
+    }
+    setSelectedIds(new Set());
+  }
+
+  function handleToggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function handleToggleAll(checked: boolean, visibleIds: string[]) {
+    if (checked) setSelectedIds(new Set(visibleIds));
+    else setSelectedIds(new Set());
+  }
+
+  // Stats (scoped to selected keyword)
+  const kwResults = selectedKeyword?.results ?? [];
+  const statsKwDone = kwResults.filter(r => ['KW_DONE', 'PERSONA_WIP', 'PERSONA_DONE', 'STRUCT_WIP', 'STRUCT_DONE', 'PUBLISHED'].includes(r.status)).length;
+  const statsPersonaDone = kwResults.filter(r => ['PERSONA_DONE', 'STRUCT_WIP', 'STRUCT_DONE', 'PUBLISHED'].includes(r.status)).length;
+  const statsStructDone = kwResults.filter(r => r.status === 'STRUCT_DONE' || r.status === 'PUBLISHED').length;
+
   if (loading) {
     return <div className="flex-1 flex items-center justify-center text-t2 text-sm">{t('topicLoading')}</div>;
   }
@@ -356,70 +335,87 @@ export default function TopicCreator() {
           <span>workspace</span>
           <span>›</span>
           <span className="text-t2">{t('topicBreadcrumb')}</span>
-          {selectedTopLevel && (
-            <><span>›</span><span className="text-t2">{selectedTopLevel.name}</span></>
-          )}
-          {selectedKeyword && (
-            <><span>›</span><span className="text-aC">{selectedKeyword.keyword}</span></>
-          )}
+          {selectedTopLevel && <><span>›</span><span className="text-t2">{selectedTopLevel.name}</span></>}
+          {selectedKeyword && <><span>›</span><span className="text-aC">{selectedKeyword.keyword}</span></>}
         </div>
 
-        {/* Generating progress bar */}
-        {generatingId && (
-          <div className="h-0.5 bg-bg2 shrink-0 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-aB to-aP animate-[loading_1.2s_ease-in-out_infinite]" style={{ width: '30%' }} />
+        {/* Progress bar */}
+        {(generatingId || busyIds.size > 0) && (
+          <div className="h-[3px] bg-bg2 shrink-0 overflow-hidden">
+            <div className="h-full w-1/3 bg-gradient-to-r from-aB via-aP to-aB animate-indeterminate" />
           </div>
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* AI Flow */}
-          <div className="bg-bg1 border border-bd rounded-[10px] overflow-hidden">
-            <div className="flex items-center gap-2.5 px-[18px] py-3.5 border-b border-bd">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-aP animate-pulse">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
-              </svg>
-              <h2 className="text-t1 text-[15px] font-semibold">{t('topicAiFlowTitle')}</h2>
-            </div>
-            <div className="flex p-4 gap-2 overflow-x-auto">
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Stats cards */}
+          {selectedKeyword && (
+            <div className="flex gap-2 mb-3">
               {[
-                { step: 'STEP 01', title: t('topicStep1Title'), desc: t('topicStep1Desc'), accent: 'border-t-aB' },
-                { step: 'STEP 02', title: t('topicStep2Title'), desc: t('topicStep2Desc'), accent: 'border-t-aP' },
-                { step: 'STEP 03', title: t('topicStep3Title'), desc: t('topicStep3Desc'), accent: 'border-t-aG' },
-              ].map((s, i) => (
-                <div key={i} className="flex items-center gap-2 flex-1 min-w-[160px]">
-                  <div className={`flex-1 bg-bg0 border border-bd rounded-lg p-3 border-t-2 ${s.accent}`}>
-                    <div className="text-tM font-mono text-[10px] mb-1">{s.step}</div>
-                    <div className="text-t1 text-xs font-semibold mb-1 leading-snug">{s.title}</div>
-                    <div className="text-t2 text-[11px] leading-relaxed">{s.desc}</div>
-                  </div>
-                  {i < 2 && (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-tM shrink-0">
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                  )}
+                { label: t('statsTotal'), value: kwResults.length, color: 'text-t1' },
+                { label: t('statsKwDone'), value: statsKwDone, color: 'text-aG' },
+                { label: t('statsPersonaDone'), value: statsPersonaDone, color: 'text-aC' },
+                { label: t('statsStructDone'), value: statsStructDone, color: 'text-aP' },
+              ].map((s) => (
+                <div key={s.label} className="flex-1 bg-bg1 border border-bd rounded-lg px-3 py-2">
+                  <div className="text-tM text-[10px] font-mono uppercase tracking-wider mb-0.5">{s.label}</div>
+                  <div className={`text-xl font-bold font-mono ${s.color}`}>{s.value}</div>
                 </div>
               ))}
             </div>
-          </div>
+          )}
 
-          {/* Results */}
-          {!selectedKeyword ? (
-            <KeywordsOverview
-              topLevels={topLevels}
-              onSelectKeyword={(tlId: string, kwId: string) => { setSelectedTopLevelId(tlId); setSelectedKeywordId(kwId); }}
-              onRenameTopLevel={handleRenameTopLevel}
+          {selectedKeyword && (
+            <FlowSteps
+              results={selectedKeyword.results}
+              activeStep={filterStep}
+              onStepClick={setFilterStep}
             />
+          )}
+
+          {selectedIds.size > 0 && (
+            <BulkActions
+              selectedCount={selectedIds.size}
+              onNextStep={handleBulkNextStep}
+              onGeneratePersona={handleBulkGeneratePersona}
+              onFactCheck={handleBulkFactCheck}
+              onDelete={handleBulkDelete}
+            />
+          )}
+
+          {!selectedKeyword ? (
+            <div className="text-center py-16 text-tM text-sm">
+              <p>{t('topicSelectKeyword')}</p>
+              <p className="text-xs mt-1 opacity-50">{t('topicSelectHint')}</p>
+            </div>
           ) : (
             <ResultsTable
               results={selectedKeyword.results}
+              isGenerating={generatingId === selectedKeyword.id}
+              filterStep={filterStep}
               onUpdateResult={handleUpdateResult}
               onDeleteResult={handleDeleteResult}
+              onSkip={handleSkip}
+              onRestore={handleRestore}
+              onGoStep2={handleGoStep2}
+              onGoStep3={handleGoStep3}
+              onRowClick={(r) => setDetailResult(r)}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onToggleAll={handleToggleAll}
             />
           )}
         </div>
       </div>
+
+      {/* Detail Panel */}
+      {detailResult && (
+        <DetailPanel
+          result={detailResult}
+          onClose={() => setDetailResult(null)}
+          onUpdate={updateResultInState}
+        />
+      )}
     </div>
   );
 }
