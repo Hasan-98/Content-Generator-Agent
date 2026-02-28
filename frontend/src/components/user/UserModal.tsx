@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import type { User, Role } from '../../types';
 import { getUsers, createUser, updateUser, deleteUser } from '../../api/users';
+import { impersonateUser } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -19,7 +20,7 @@ const ROLE_COLORS: Record<Role, string> = {
 };
 
 export default function UserModal({ onClose }: Props) {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, startImpersonation } = useAuth();
   const { lang, t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +99,17 @@ export default function UserModal({ onClose }: Props) {
       toast.success(lang === 'en' ? `${user.name} deleted` : `${user.name} を削除しました`);
     } catch {
       toast.error(t('toastUsersDeleteFailed'));
+    }
+  }
+
+  async function handleImpersonate(user: User) {
+    try {
+      const { token, user: targetUser } = await impersonateUser(user.id);
+      startImpersonation(token, targetUser);
+      onClose();
+      toast.success(lang === 'en' ? `Now accessing as ${user.name}` : `${user.name} としてアクセス中`);
+    } catch {
+      toast.error(lang === 'en' ? 'Failed to access account' : 'アカウントへのアクセスに失敗しました');
     }
   }
 
@@ -246,6 +258,19 @@ export default function UserModal({ onClose }: Props) {
                       <td className="px-3.5 py-2.5">
                         {u.id !== currentUser?.id && (
                           <div className="flex gap-1">
+                            {currentUser?.role === 'SUPERADMIN' && u.role !== 'SUPERADMIN' && (
+                              <button
+                                onClick={() => handleImpersonate(u)}
+                                title={lang === 'en' ? `Access as ${u.name}` : `${u.name} としてアクセス`}
+                                className="w-[30px] h-[30px] flex items-center justify-center rounded-md text-tM hover:bg-aO/15 hover:text-aO transition-colors border-0 bg-transparent"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[17px] h-[17px]">
+                                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                  <polyline points="10 17 15 12 10 7"/>
+                                  <line x1="15" y1="12" x2="3" y2="12"/>
+                                </svg>
+                              </button>
+                            )}
                             <button
                               onClick={() => handleToggleActive(u)}
                               title={u.active ? t('usersDeactivate') : t('usersActivate')}

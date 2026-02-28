@@ -10,3 +10,8 @@ export async function getMe(): Promise<AuthUser> {
   const res = await client.get('/auth/me');
   return res.data;
 }
+
+export async function impersonateUser(userId: string): Promise<{ token: string; user: AuthUser }> {
+  const res = await client.post(`/auth/impersonate/${userId}`);
+  return res.data;
+}

@@ -62,7 +62,7 @@ export default function Titlebar({ onOpenUsers }: Props) {
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
             <div className="absolute right-0 top-full mt-1 w-[200px] bg-bg1 border border-bd rounded-[10px] py-1.5 shadow-2xl z-50">
-              {user?.role === 'ADMIN' && (
+              {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && (
                 <button
                   onClick={() => { setMenuOpen(false); onOpenUsers(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-t2 text-xs hover:bg-bg2 hover:text-t1 transition-colors"

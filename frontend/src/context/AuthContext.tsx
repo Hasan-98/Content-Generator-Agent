@@ -9,6 +9,9 @@ interface AuthContextValue {
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
   loading: boolean;
+  isImpersonating: boolean;
+  startImpersonation: (token: string, user: AuthUser) => void;
+  returnToAdmin: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -17,11 +20,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isImpersonating, setIsImpersonating] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
+      setIsImpersonating(!!localStorage.getItem('adminToken'));
       getMe()
         .then((u) => setUser(u))
         .catch(() => {
@@ -42,12 +47,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     localStorage.removeItem('token');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
     setToken(null);
     setUser(null);
+    setIsImpersonating(false);
+  }
+
+  function startImpersonation(newToken: string, newUser: AuthUser) {
+    // Save current admin session
+    localStorage.setItem('adminToken', token!);
+    localStorage.setItem('adminUser', JSON.stringify(user));
+    // Switch to target user
+    localStorage.setItem('token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+    setIsImpersonating(true);
+  }
+
+  function returnToAdmin() {
+    const adminToken = localStorage.getItem('adminToken');
+    const adminUserRaw = localStorage.getItem('adminUser');
+    if (!adminToken || !adminUserRaw) return;
+    const adminUser: AuthUser = JSON.parse(adminUserRaw);
+    localStorage.setItem('token', adminToken);
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    setToken(adminToken);
+    setUser(adminUser);
+    setIsImpersonating(false);
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, isImpersonating, startImpersonation, returnToAdmin }}>
       {children}
     </AuthContext.Provider>
   );

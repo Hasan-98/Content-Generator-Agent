@@ -11,7 +11,7 @@ import ArticleCreator from './pages/ArticleCreator';
 import UserModal from './components/user/UserModal';
 
 function AppShell() {
-  const { user, loading } = useAuth();
+  const { user, loading, isImpersonating, returnToAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'topic' | 'article'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
 
@@ -29,6 +29,17 @@ function AppShell() {
 
   return (
     <div className="flex flex-col h-screen">
+      {isImpersonating && (
+        <div className="flex items-center justify-between px-4 py-1.5 bg-aO text-white text-xs font-medium shrink-0 z-50">
+          <span>Accessing as <strong>{user.name}</strong> ({user.email})</span>
+          <button
+            onClick={returnToAdmin}
+            className="ml-4 px-3 py-0.5 bg-white/20 hover:bg-white/30 rounded text-white text-xs font-semibold transition-colors"
+          >
+            Return to Admin
+          </button>
+        </div>
+      )}
       <Titlebar onOpenUsers={() => setUserModalOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
         <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article')} />
