@@ -6,6 +6,7 @@ import { generateArticle } from '../api/generate';
 import { generateImagesBulk } from '../api/generate';
 import { getArticle } from '../api/articles';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import ArticleTree from '../components/article/ArticleTree';
 import ArticleEditor from '../components/article/ArticleEditor';
 import ImageCard from '../components/article/ImageCard';
@@ -17,6 +18,7 @@ type Phase = 'edit' | 'image' | 'upload';
 
 export default function ArticleCreator() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [topLevels, setTopLevels] = useState<TopLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedResult, setSelectedResult] = useState<GeneratedResult | null>(null);
@@ -31,7 +33,7 @@ export default function ArticleCreator() {
       .then(setTopLevels)
       .catch(() => toast.error(t('toastTopicLoadFailed')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   async function handleSelectResult(result: GeneratedResult) {
     setSelectedResult(result);

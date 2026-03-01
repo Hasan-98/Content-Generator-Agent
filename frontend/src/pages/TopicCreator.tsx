@@ -18,7 +18,7 @@ type FilterStep = '01' | '02' | '03' | 'all';
 
 export default function TopicCreator() {
   const { lang, t } = useLanguage();
-  const { isViewingAs } = useAuth();
+  const { isViewingAs, user } = useAuth();
   const [topLevels, setTopLevels] = useState<TopLevel[]>([]);
   const [selectedTopLevelId, setSelectedTopLevelId] = useState<string | null>(null);
   const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export default function TopicCreator() {
     return false;
   }
 
-  useEffect(() => { loadTopLevels(); }, []);
+  useEffect(() => { loadTopLevels(); }, [user?.id]);
 
   async function loadTopLevels() {
     try {
