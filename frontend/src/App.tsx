@@ -11,7 +11,7 @@ import ArticleCreator from './pages/ArticleCreator';
 import UserModal from './components/user/UserModal';
 
 function AppShell() {
-  const { user, loading, isImpersonating, returnToAdmin } = useAuth();
+  const { user, loading, isImpersonating, isViewingAs, returnToAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'topic' | 'article'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
 
@@ -37,6 +37,23 @@ function AppShell() {
             className="ml-4 px-3 py-0.5 bg-white/20 hover:bg-white/30 rounded text-white text-xs font-semibold transition-colors"
           >
             Return to Admin
+          </button>
+        </div>
+      )}
+      {isViewingAs && (
+        <div className="flex items-center justify-between px-4 py-1.5 bg-aC/80 text-bg0 text-xs font-medium shrink-0 z-50">
+          <span className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Viewing <strong className="mx-1">{user.name}</strong>'s dashboard — read-only
+          </span>
+          <button
+            onClick={returnToAdmin}
+            className="ml-4 px-3 py-0.5 bg-bg0/20 hover:bg-bg0/30 rounded text-bg0 text-xs font-semibold transition-colors"
+          >
+            Exit View
           </button>
         </div>
       )}

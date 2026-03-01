@@ -10,7 +10,9 @@ interface AuthContextValue {
   logout: () => void;
   loading: boolean;
   isImpersonating: boolean;
+  isViewingAs: boolean;
   startImpersonation: (token: string, user: AuthUser) => void;
+  startViewAs: (token: string, user: AuthUser) => void;
   returnToAdmin: () => void;
 }
 
@@ -21,12 +23,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
+  const [isViewingAs, setIsViewingAs] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
-      setIsImpersonating(!!localStorage.getItem('adminToken'));
+      const override = localStorage.getItem('sessionOverride');
+      setIsImpersonating(override === 'impersonate');
+      setIsViewingAs(override === 'view');
       getMe()
         .then((u) => setUser(u))
         .catch(() => {
@@ -49,20 +54,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
+    localStorage.removeItem('sessionOverride');
     setToken(null);
     setUser(null);
     setIsImpersonating(false);
+    setIsViewingAs(false);
   }
 
   function startImpersonation(newToken: string, newUser: AuthUser) {
-    // Save current admin session
     localStorage.setItem('adminToken', token!);
     localStorage.setItem('adminUser', JSON.stringify(user));
-    // Switch to target user
+    localStorage.setItem('sessionOverride', 'impersonate');
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(newUser);
     setIsImpersonating(true);
+    setIsViewingAs(false);
+  }
+
+  function startViewAs(newToken: string, newUser: AuthUser) {
+    localStorage.setItem('adminToken', token!);
+    localStorage.setItem('adminUser', JSON.stringify(user));
+    localStorage.setItem('sessionOverride', 'view');
+    localStorage.setItem('token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+    setIsViewingAs(true);
+    setIsImpersonating(false);
   }
 
   function returnToAdmin() {
@@ -73,13 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', adminToken);
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
+    localStorage.removeItem('sessionOverride');
     setToken(adminToken);
     setUser(adminUser);
     setIsImpersonating(false);
+    setIsViewingAs(false);
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, isImpersonating, startImpersonation, returnToAdmin }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, isImpersonating, isViewingAs, startImpersonation, startViewAs, returnToAdmin }}>
       {children}
     </AuthContext.Provider>
   );

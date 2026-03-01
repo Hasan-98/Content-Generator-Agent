@@ -14,6 +14,7 @@ interface Props {
   onDeleteKeyword: (id: string) => void;
   onUpdateKeyword: (id: string, data: { keyword?: string; goal?: string; audience?: string }) => void;
   onGenerate: (keywordId: string) => void;
+  onCancelGenerate: () => void;
   generatingId: string | null;
 }
 
@@ -28,6 +29,7 @@ export default function TopicTree({
   onDeleteKeyword,
   onUpdateKeyword,
   onGenerate,
+  onCancelGenerate,
   generatingId,
 }: Props) {
   const { t } = useLanguage();
@@ -180,6 +182,7 @@ export default function TopicTree({
                     onDelete={() => onDeleteKeyword(kw.id)}
                     onUpdate={(data) => onUpdateKeyword(kw.id, data)}
                     onGenerate={() => onGenerate(kw.id)}
+                    onCancel={onCancelGenerate}
                     onViewResults={() => onSelectKeyword(tl.id, kw.id)}
                   />
                 ))}
@@ -212,6 +215,7 @@ interface KWCardProps {
   onDelete: () => void;
   onUpdate: (data: { keyword?: string; goal?: string; audience?: string }) => void;
   onGenerate: () => void;
+  onCancel: () => void;
   onViewResults: () => void;
 }
 
@@ -224,6 +228,7 @@ function KeywordCard({
   onDelete,
   onUpdate,
   onGenerate,
+  onCancel,
   onViewResults,
 }: KWCardProps) {
   const { t } = useLanguage();
@@ -309,23 +314,34 @@ function KeywordCard({
             />
           </div>
 
-          <button
-            onClick={onGenerate}
-            disabled={isGenerating}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-semibold text-white bg-gradient-to-r from-aB to-aP hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(88,166,255,0.3)] active:translate-y-0"
-          >
-            {isGenerating ? (
-              <><span className="animate-spin inline-block">⟳</span> {t('kwGenerating')}</>
-            ) : (
-              <>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                  <path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
-                </svg>
-                {t('kwGenerate')}
-              </>
+          <div className="flex gap-1.5">
+            <button
+              onClick={onGenerate}
+              disabled={isGenerating}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-semibold text-white bg-gradient-to-r from-aB to-aP hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(88,166,255,0.3)] active:translate-y-0"
+            >
+              {isGenerating ? (
+                <><span className="animate-spin inline-block">⟳</span> {t('kwGenerating')}</>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+                  </svg>
+                  {t('kwGenerate')}
+                </>
+              )}
+            </button>
+            {isGenerating && (
+              <button
+                onClick={onCancel}
+                title="Cancel generation"
+                className="px-2.5 py-1.5 rounded-md text-[11px] font-semibold text-aR bg-aR/10 hover:bg-aR/20 border border-aR/30 transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
             )}
-          </button>
+          </div>
 
           <button
             onClick={onViewResults}

@@ -1,8 +1,8 @@
 import client from './client';
 import type { GeneratedResult, Article, ArticleSection, ArticleImage } from '../types';
 
-export async function generateResults(keywordId: string): Promise<GeneratedResult[]> {
-  const res = await client.post('/generate', { keywordId });
+export async function generateResults(keywordId: string, signal?: AbortSignal): Promise<GeneratedResult[]> {
+  const res = await client.post('/generate', { keywordId }, { signal });
   return res.data;
 }
 

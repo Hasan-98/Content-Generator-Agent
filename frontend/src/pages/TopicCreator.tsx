@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import type { TopLevel, GeneratedResult } from '../types';
 import { getTopLevels, createTopLevel, updateTopLevel, deleteTopLevel } from '../api/topics';
@@ -7,6 +7,7 @@ import { updateResult, deleteResult, skipResult, restoreResult } from '../api/re
 import { generateResults, generatePersona } from '../api/generate';
 import { runFactCheck } from '../api/factcheck';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import TopicTree from '../components/topic/TopicTree';
 import ResultsTable from '../components/topic/ResultsTable';
 import FlowSteps from '../components/topic/FlowSteps';
@@ -17,6 +18,7 @@ type FilterStep = '01' | '02' | '03' | 'all';
 
 export default function TopicCreator() {
   const { lang, t } = useLanguage();
+  const { isViewingAs } = useAuth();
   const [topLevels, setTopLevels] = useState<TopLevel[]>([]);
   const [selectedTopLevelId, setSelectedTopLevelId] = useState<string | null>(null);
   const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
@@ -26,6 +28,15 @@ export default function TopicCreator() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailResult, setDetailResult] = useState<GeneratedResult | null>(null);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const generateAbortRef = useRef<AbortController | null>(null);
+
+  function readOnly() {
+    if (isViewingAs) {
+      toast(lang === 'en' ? 'Read-only view — exit to make changes' : '読み取り専用です。変更するには閲覧を終了してください', { icon: '🔒' });
+      return true;
+    }
+    return false;
+  }
 
   useEffect(() => { loadTopLevels(); }, []);
 
@@ -70,6 +81,7 @@ export default function TopicCreator() {
   }
 
   async function handleAddTopLevel(name: string) {
+    if (readOnly()) return;
     try {
       const tl = await createTopLevel(name);
       setTopLevels((prev) => [...prev, tl]);
@@ -82,6 +94,7 @@ export default function TopicCreator() {
   }
 
   async function handleRenameTopLevel(id: string, name: string) {
+    if (readOnly()) return;
     try {
       const updated = await updateTopLevel(id, name);
       setTopLevels((prev) => prev.map((tl) => (tl.id === id ? { ...tl, ...updated } : tl)));
@@ -91,6 +104,7 @@ export default function TopicCreator() {
   }
 
   async function handleDeleteTopLevel(id: string) {
+    if (readOnly()) return;
     if (!window.confirm(t('toastTopicDeleteConfirm'))) return;
     try {
       await deleteTopLevel(id);
@@ -103,6 +117,7 @@ export default function TopicCreator() {
   }
 
   async function handleAddKeyword(topLevelId: string) {
+    if (readOnly()) return;
     try {
       const kw = await createKeyword({ topLevelId, keyword: t('topicNewKeyword') });
       setTopLevels((prev) =>
@@ -115,6 +130,7 @@ export default function TopicCreator() {
   }
 
   async function handleUpdateKeyword(id: string, data: { keyword?: string; goal?: string; audience?: string }) {
+    if (readOnly()) return;
     try {
       const updated = await updateKeyword(id, data);
       setTopLevels((prev) =>
@@ -129,6 +145,7 @@ export default function TopicCreator() {
   }
 
   async function handleDeleteKeyword(id: string) {
+    if (readOnly()) return;
     try {
       await deleteKeyword(id);
       setTopLevels((prev) =>
@@ -142,6 +159,7 @@ export default function TopicCreator() {
   }
 
   async function handleUpdateResult(id: string, data: Record<string, unknown>) {
+    if (readOnly()) return;
     try {
       const updated = await updateResult(id, data);
       updateResultInState(updated);
@@ -151,6 +169,7 @@ export default function TopicCreator() {
   }
 
   async function handleDeleteResult(id: string) {
+    if (readOnly()) return;
     try {
       await deleteResult(id);
       setTopLevels((prev) =>
@@ -170,6 +189,7 @@ export default function TopicCreator() {
   }
 
   async function handleSkip(id: string) {
+    if (readOnly()) return;
     try {
       const updated = await skipResult(id);
       updateResultInState(updated);
@@ -180,6 +200,7 @@ export default function TopicCreator() {
   }
 
   async function handleRestore(id: string) {
+    if (readOnly()) return;
     try {
       const updated = await restoreResult(id);
       updateResultInState(updated);
@@ -190,6 +211,7 @@ export default function TopicCreator() {
   }
 
   async function handleGoStep2(id: string) {
+    if (readOnly()) return;
     setBusyIds((prev) => new Set(prev).add(id));
     // Optimistically set PERSONA_WIP
     updateResultInState({ ...(selectedKeyword?.results.find(r => r.id === id) as GeneratedResult), status: 'PERSONA_WIP' });
@@ -208,6 +230,7 @@ export default function TopicCreator() {
   }
 
   async function handleGoStep3(id: string) {
+    if (readOnly()) return;
     setBusyIds((prev) => new Set(prev).add(id));
     updateResultInState({ ...(selectedKeyword?.results.find(r => r.id === id) as GeneratedResult), status: 'STRUCT_WIP' });
     toast.loading(t('toastFactCheckRunning'), { id: `fc-${id}` });
@@ -224,11 +247,14 @@ export default function TopicCreator() {
   }
 
   async function handleGenerate(keywordId: string) {
+    if (readOnly()) return;
+    const controller = new AbortController();
+    generateAbortRef.current = controller;
     setGeneratingId(keywordId);
     const tl = topLevels.find((topic) => topic.keywords.some((k) => k.id === keywordId));
     if (tl) { setSelectedTopLevelId(tl.id); setSelectedKeywordId(keywordId); }
     try {
-      const newResults = await generateResults(keywordId);
+      const newResults = await generateResults(keywordId, controller.signal);
       setTopLevels((prev) =>
         prev.map((tl) => ({
           ...tl,
@@ -242,11 +268,20 @@ export default function TopicCreator() {
           ? `${newResults.length} keywords generated`
           : `${newResults.length}件のキーワードを生成しました`
       );
-    } catch {
-      toast.error(t('toastGenerateFailed'));
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'ERR_CANCELED') {
+        toast(lang === 'en' ? 'Generation cancelled' : 'キャンセルしました', { icon: '⛔' });
+      } else {
+        toast.error(t('toastGenerateFailed'));
+      }
     } finally {
+      generateAbortRef.current = null;
       setGeneratingId(null);
     }
+  }
+
+  function handleCancelGenerate() {
+    generateAbortRef.current?.abort();
   }
 
   // Bulk actions
@@ -325,6 +360,7 @@ export default function TopicCreator() {
         onDeleteKeyword={handleDeleteKeyword}
         onUpdateKeyword={handleUpdateKeyword}
         onGenerate={handleGenerate}
+        onCancelGenerate={handleCancelGenerate}
         generatingId={generatingId}
       />
 

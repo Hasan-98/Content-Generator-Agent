@@ -113,10 +113,7 @@ export default function ResultsTable({
         </button>
       );
     }
-    if (s === 'DRAFT') {
-      return <span className="text-xs text-tM">{t('gatePending')}</span>;
-    }
-    if (s === 'READY' || s === 'KW_DONE') {
+    if (s === 'DRAFT' || s === 'READY' || s === 'KW_DONE') {
       return (
         <div className="flex flex-col gap-1">
           <button

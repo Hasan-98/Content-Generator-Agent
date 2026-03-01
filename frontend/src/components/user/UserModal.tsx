@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import type { User, Role } from '../../types';
 import { getUsers, createUser, updateUser, deleteUser } from '../../api/users';
-import { impersonateUser } from '../../api/auth';
+import { impersonateUser, viewAsUser } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -20,7 +20,7 @@ const ROLE_COLORS: Record<Role, string> = {
 };
 
 export default function UserModal({ onClose }: Props) {
-  const { user: currentUser, startImpersonation } = useAuth();
+  const { user: currentUser, startImpersonation, startViewAs } = useAuth();
   const { lang, t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +110,17 @@ export default function UserModal({ onClose }: Props) {
       toast.success(lang === 'en' ? `Now accessing as ${user.name}` : `${user.name} としてアクセス中`);
     } catch {
       toast.error(lang === 'en' ? 'Failed to access account' : 'アカウントへのアクセスに失敗しました');
+    }
+  }
+
+  async function handleViewAs(user: User) {
+    try {
+      const { token, user: targetUser } = await viewAsUser(user.id);
+      startViewAs(token, targetUser);
+      onClose();
+      toast.success(lang === 'en' ? `Viewing ${user.name}'s dashboard (read-only)` : `${user.name} のダッシュボードを閲覧中（読み取り専用）`);
+    } catch {
+      toast.error(lang === 'en' ? 'Failed to view account' : 'アカウントの閲覧に失敗しました');
     }
   }
 
@@ -258,6 +269,22 @@ export default function UserModal({ onClose }: Props) {
                       <td className="px-3.5 py-2.5">
                         {u.id !== currentUser?.id && (
                           <div className="flex gap-1">
+                            {/* View as (read-only) — ADMIN and SUPERADMIN */}
+                            {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') &&
+                              u.role !== 'SUPERADMIN' &&
+                              !(currentUser?.role === 'ADMIN' && u.role === 'ADMIN') && (
+                              <button
+                                onClick={() => handleViewAs(u)}
+                                title={lang === 'en' ? `View ${u.name}'s dashboard` : `${u.name} のダッシュボードを閲覧`}
+                                className="w-[30px] h-[30px] flex items-center justify-center rounded-md text-tM hover:bg-aC/15 hover:text-aC transition-colors border-0 bg-transparent"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[17px] h-[17px]">
+                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                  <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                              </button>
+                            )}
+                            {/* Full access — SUPERADMIN only */}
                             {currentUser?.role === 'SUPERADMIN' && u.role !== 'SUPERADMIN' && (
                               <button
                                 onClick={() => handleImpersonate(u)}

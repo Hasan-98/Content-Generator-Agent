@@ -15,3 +15,8 @@ export async function impersonateUser(userId: string): Promise<{ token: string; 
   const res = await client.post(`/auth/impersonate/${userId}`);
   return res.data;
 }
+
+export async function viewAsUser(userId: string): Promise<{ token: string; user: AuthUser }> {
+  const res = await client.post(`/auth/view-as/${userId}`);
+  return res.data;
+}
