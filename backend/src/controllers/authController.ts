@@ -46,7 +46,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 }
 
 export async function viewAs(req: AuthRequest, res: Response): Promise<void> {
-  const { userId } = req.params;
+  const userId = String(req.params.userId);
   console.log(`[auth] viewAs → caller: ${req.user!.id} (${req.user!.role}) → target: ${userId}`);
 
   const target = await prisma.user.findUnique({
@@ -80,7 +80,7 @@ export async function viewAs(req: AuthRequest, res: Response): Promise<void> {
 }
 
 export async function impersonate(req: AuthRequest, res: Response): Promise<void> {
-  const { userId } = req.params;
+  const userId = String(req.params.userId);
   console.log(`[auth] impersonate → superadmin: ${req.user!.id} → target: ${userId}`);
 
   const target = await prisma.user.findUnique({
