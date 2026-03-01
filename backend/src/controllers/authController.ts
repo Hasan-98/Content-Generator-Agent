@@ -45,6 +45,40 @@ export async function login(req: Request, res: Response): Promise<void> {
   });
 }
 
+export async function viewAs(req: AuthRequest, res: Response): Promise<void> {
+  const { userId } = req.params;
+  console.log(`[auth] viewAs → caller: ${req.user!.id} (${req.user!.role}) → target: ${userId}`);
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, role: true, active: true },
+  });
+
+  if (!target || !target.active) {
+    res.status(404).json({ error: 'User not found or inactive' });
+    return;
+  }
+
+  if (target.role === 'SUPERADMIN') {
+    res.status(403).json({ error: 'Cannot view super admin accounts' });
+    return;
+  }
+
+  if (req.user!.role === 'ADMIN' && target.role === 'ADMIN') {
+    res.status(403).json({ error: 'Admin cannot view other admin accounts' });
+    return;
+  }
+
+  const token = jwt.sign(
+    { id: target.id, email: target.email, role: target.role },
+    process.env.JWT_SECRET || 'secret',
+    { expiresIn: '7d' }
+  );
+
+  console.log(`[auth] viewAs success → viewing ${target.email} (${target.role}) read-only`);
+  res.json({ token, user: { id: target.id, name: target.name, email: target.email, role: target.role } });
+}
+
 export async function impersonate(req: AuthRequest, res: Response): Promise<void> {
   const { userId } = req.params;
   console.log(`[auth] impersonate → superadmin: ${req.user!.id} → target: ${userId}`);
