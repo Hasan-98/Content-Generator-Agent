@@ -44,7 +44,7 @@ export async function generateTitles(
 
   const prompt = `You are an SEO and content marketing expert.
 
-Generate 3 unique keyword + title pairs for a blog.
+Generate 10 unique keyword + title pairs for a blog.
 
 Search keyword: ${keyword}
 Content goal: ${goal || 'Inform and educate readers'}
@@ -57,8 +57,15 @@ Steps:
 2. Select unique keywords aligned with the blog's identity
 3. Create compelling titles that drive clicks
 
-Output ONLY valid JSON array with exactly 3 objects:
+Output ONLY valid JSON array with exactly 10 objects:
 [
+  { "keyword": "...", "title": "..." },
+  { "keyword": "...", "title": "..." },
+  { "keyword": "...", "title": "..." },
+  { "keyword": "...", "title": "..." },
+  { "keyword": "...", "title": "..." },
+  { "keyword": "...", "title": "..." },
+  { "keyword": "...", "title": "..." },
   { "keyword": "...", "title": "..." },
   { "keyword": "...", "title": "..." },
   { "keyword": "...", "title": "..." }
@@ -66,7 +73,7 @@ Output ONLY valid JSON array with exactly 3 objects:
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   });
 

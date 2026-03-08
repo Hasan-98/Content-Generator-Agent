@@ -79,6 +79,40 @@ export async function viewAs(req: AuthRequest, res: Response): Promise<void> {
   res.json({ token, user: { id: target.id, name: target.name, email: target.email, role: target.role } });
 }
 
+export async function editAs(req: AuthRequest, res: Response): Promise<void> {
+  const userId = String(req.params.userId);
+  console.log(`[auth] editAs → caller: ${req.user!.id} (${req.user!.role}) → target: ${userId}`);
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, role: true, active: true },
+  });
+
+  if (!target || !target.active) {
+    res.status(404).json({ error: 'User not found or inactive' });
+    return;
+  }
+
+  if (target.role === 'SUPERADMIN') {
+    res.status(403).json({ error: 'Cannot edit super admin accounts' });
+    return;
+  }
+
+  if (req.user!.role === 'ADMIN' && target.role === 'ADMIN') {
+    res.status(403).json({ error: 'Admin cannot edit other admin accounts' });
+    return;
+  }
+
+  const token = jwt.sign(
+    { id: target.id, email: target.email, role: target.role },
+    process.env.JWT_SECRET || 'secret',
+    { expiresIn: '7d' }
+  );
+
+  console.log(`[auth] editAs success → editing as ${target.email} (${target.role})`);
+  res.json({ token, user: { id: target.id, name: target.name, email: target.email, role: target.role } });
+}
+
 export async function impersonate(req: AuthRequest, res: Response): Promise<void> {
   const userId = String(req.params.userId);
   console.log(`[auth] impersonate → superadmin: ${req.user!.id} → target: ${userId}`);

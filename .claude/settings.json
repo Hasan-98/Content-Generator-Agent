@@ -12,7 +12,8 @@
       "Bash(ss:*)",
       "Bash(timeout 10 npx ts-node:*)",
       "Bash(lsof:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(git -C /home/hasan/Desktop/CallerId show f9274a9 --stat)"
     ]
   }
 }

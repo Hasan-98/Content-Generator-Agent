@@ -1,0 +1,35 @@
+name: content-creator-studio
+region: nyc
+
+services:
+  - name: backend
+    source_dir: backend
+    github:
+      branch: master
+      deploy_on_push: true
+    build_command: npm install && npx prisma generate && npm run build && npx prisma db push
+    run_command: npm start
+    http_port: 3001
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    routes:
+      - path: /
+    envs:
+      - key: DATABASE_URL
+        value: ""          # Set in DO dashboard — mysql://USER:PASS@HOST:25060/DB?ssl-mode=REQUIRED
+        type: SECRET
+      - key: JWT_SECRET
+        value: ""          # Set in DO dashboard — 64-char random string
+        type: SECRET
+      - key: ANTHROPIC_API_KEY
+        value: ""          # Set in DO dashboard
+        type: SECRET
+      - key: VALUESERP_API_KEY
+        value: ""          # Set in DO dashboard
+        type: SECRET
+      - key: FRONTEND_URL
+        value: ""          # Set in DO dashboard — https://your-app.vercel.app
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"

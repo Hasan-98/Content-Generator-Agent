@@ -20,3 +20,8 @@ export async function viewAsUser(userId: string): Promise<{ token: string; user:
   const res = await client.post(`/auth/view-as/${userId}`);
   return res.data;
 }
+
+export async function editAsUser(userId: string): Promise<{ token: string; user: AuthUser }> {
+  const res = await client.post(`/auth/edit-as/${userId}`);
+  return res.data;
+}
