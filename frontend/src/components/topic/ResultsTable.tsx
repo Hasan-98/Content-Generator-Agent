@@ -192,6 +192,10 @@ export default function ResultsTable({
   const allVisibleIds = filtered.map(r => r.id);
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIds.has(id));
 
+  const FC_HIGHLIGHT_INDICES = new Set([8, 9, 10, 11, 12]);
+  const isFcStep = filterStep === '03';
+  const fcCellCls = isFcStep ? 'bg-aP/[0.05]' : '';
+
   return (
     <div className="bg-bg1 border border-bd rounded-lg overflow-hidden">
       {/* Toolbar */}
@@ -249,7 +253,11 @@ export default function ResultsTable({
               ].map((col, i) => (
                 <th
                   key={i}
-                  className="px-3 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-tM whitespace-nowrap"
+                  className={`px-3 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${
+                    isFcStep && FC_HIGHLIGHT_INDICES.has(i)
+                      ? 'bg-aP/20 text-aP border-b-2 border-aP/40'
+                      : 'text-tM'
+                  }`}
                 >
                   {col}
                 </th>
@@ -322,11 +330,11 @@ export default function ResultsTable({
                   <td className="px-3 py-2"><TruncCell value={result.persona1} /></td>
                   <td className="px-3 py-2"><TruncCell value={result.persona2} /></td>
                   <td className="px-3 py-2"><TruncCell value={result.persona3} /></td>
-                  <td className="px-3 py-2"><TruncCell value={result.demoSize1} /></td>
-                  <td className="px-3 py-2"><TruncCell value={result.demoSize2} /></td>
-                  <td className="px-3 py-2"><TruncCell value={result.demoSize3} /></td>
+                  <td className={`px-3 py-2 ${fcCellCls}`}><TruncCell value={result.demoSize1} /></td>
+                  <td className={`px-3 py-2 ${fcCellCls}`}><TruncCell value={result.demoSize2} /></td>
+                  <td className={`px-3 py-2 ${fcCellCls}`}><TruncCell value={result.demoSize3} /></td>
                   {/* Fact check */}
-                  <td className="px-3 py-2">
+                  <td className={`px-3 py-2 ${fcCellCls}`}>
                     {result.factCheck ? (
                       <div className="flex flex-col gap-0.5">
                         {Object.entries(result.factCheck).slice(0, 2).map(([k, v]) => (
@@ -353,7 +361,7 @@ export default function ResultsTable({
                     )}
                   </td>
                   {/* Target decision */}
-                  <td className="px-3 py-2"><TruncCell value={result.targetDecision} /></td>
+                  <td className={`px-3 py-2 ${fcCellCls}`}><TruncCell value={result.targetDecision} /></td>
                   {/* Structure fields */}
                   <td className="px-3 py-2"><TruncCell value={result.structIntro} /></td>
                   <td className="px-3 py-2"><TruncCell value={result.structNayami} /></td>

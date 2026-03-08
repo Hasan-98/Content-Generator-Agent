@@ -70,6 +70,8 @@ export interface GeneratedResult {
     demoSize: string | null;
     searchResults: { title: string; link: string; snippet: string }[];
     verified: boolean;
+    verdict?: 'confirmed' | 'uncertain' | 'incorrect';
+    reason?: string;
   }>;
   targetDecision?: string;
   article?: Article;

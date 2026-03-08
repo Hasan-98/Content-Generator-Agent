@@ -239,6 +239,56 @@ Write all content in Japanese. Each content section should be 150-300 characters
   return JSON.parse(jsonMatch[0]) as ArticleSection[];
 }
 
+export async function verifyDemoSizeEstimate(
+  keyword: string,
+  demographic: string,
+  persona: string,
+  demoSize: string,
+  searchResults: { title: string; link: string; snippet: string }[]
+): Promise<{ verdict: 'confirmed' | 'uncertain' | 'incorrect'; reason: string }> {
+  if (searchResults.length === 0) {
+    return { verdict: 'uncertain', reason: '検索結果がありませんでした。' };
+  }
+
+  const resultsText = searchResults
+    .map((r, i) => `${i + 1}. ${r.title}\n   ${r.snippet}`)
+    .join('\n');
+
+  const prompt = `You are a demographic research expert for the Japanese market.
+
+A blog article targets this keyword: ${keyword}
+Demographic group: ${demographic}
+Persona description: ${persona}
+Estimated population size for this persona: ${demoSize}
+
+Based on the following web search results, assess whether this population size estimate is reasonable for Japan.
+
+Search results:
+${resultsText}
+
+Reply ONLY with valid JSON (no extra text):
+{ "verdict": "confirmed", "reason": "..." }
+
+verdict must be exactly one of: "confirmed", "uncertain", "incorrect"
+reason must be a single sentence in Japanese explaining your assessment.`;
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 256,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : '';
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return { verdict: 'uncertain', reason: '検証結果の解析に失敗しました。' };
+
+  try {
+    return JSON.parse(jsonMatch[0]) as { verdict: 'confirmed' | 'uncertain' | 'incorrect'; reason: string };
+  } catch {
+    return { verdict: 'uncertain', reason: '検証結果の解析に失敗しました。' };
+  }
+}
+
 export async function regenerateSection(
   section: { type: string; heading: string; content: string },
   articleTitle: string,

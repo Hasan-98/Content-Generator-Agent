@@ -18,9 +18,9 @@ const PERSONA_FIELDS = [
   { key: 'persona1', label: 'ペルソナ1' },
   { key: 'persona2', label: 'ペルソナ2' },
   { key: 'persona3', label: 'ペルソナ3' },
-  { key: 'demoSize1', label: 'デモサイズ1' },
-  { key: 'demoSize2', label: 'デモサイズ2' },
-  { key: 'demoSize3', label: 'デモサイズ3' },
+  { key: 'demoSize1', label: 'デモグラ予想サイズ①' },
+  { key: 'demoSize2', label: 'デモグラ予想サイズ②' },
+  { key: 'demoSize3', label: 'デモグラ予想サイズ③' },
 ];
 
 const STRUCT_FIELDS = [
@@ -203,29 +203,43 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
               <div className="text-xs font-semibold text-aG uppercase tracking-wider mb-3">
                 {t('detailFactCheckSection')}
               </div>
-              {Object.entries(result.factCheck).map(([key, val]) => (
-                <div key={key} className="mb-3 p-2 rounded border border-bd bg-bg0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs text-t2 font-medium capitalize">{key}</span>
-                    <span className={`text-xs px-1 rounded ${val.verified ? 'text-aG bg-bg2' : 'text-aO bg-bg2'}`}>
-                      {val.verified ? '✓ Verified' : '? Unverified'}
-                    </span>
+              {Object.entries(result.factCheck).map(([key, val], idx) => {
+                const verdictColor = val.verdict === 'confirmed' ? 'text-aG' : val.verdict === 'incorrect' ? 'text-aR' : 'text-aO';
+                const verdictBg = val.verdict === 'confirmed' ? 'bg-aG/10' : val.verdict === 'incorrect' ? 'bg-aR/10' : 'bg-aO/10';
+                const verdictLabel = val.verdict === 'confirmed' ? '✓ 確認済み' : val.verdict === 'incorrect' ? '✗ 不正確' : '? 不確実';
+                const sizeLabel = ['デモグラ予想サイズ①', 'デモグラ予想サイズ②', 'デモグラ予想サイズ③'][idx] ?? key;
+                return (
+                  <div key={key} className="mb-3 p-2 rounded border border-bd bg-bg0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-xs text-t2 font-medium">{sizeLabel}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${verdictColor} ${verdictBg}`}>
+                        {verdictLabel}
+                      </span>
+                    </div>
+                    {val.demoSize && (
+                      <div className="text-[10px] text-t2 mb-1.5 font-mono">{val.demoSize}</div>
+                    )}
+                    {val.reason && (
+                      <div className="text-[10px] text-t1 bg-bg2 rounded px-2 py-1 mb-1.5 leading-relaxed">
+                        {val.reason}
+                      </div>
+                    )}
+                    {val.searchResults?.slice(0, 2).map((sr, i) => (
+                      <a
+                        key={i}
+                        href={sr.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-[10px] text-aB hover:underline truncate mb-0.5"
+                      >
+                        {sr.title}
+                      </a>
+                    ))}
                   </div>
-                  {val.searchResults?.slice(0, 2).map((sr, i) => (
-                    <a
-                      key={i}
-                      href={sr.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-xs text-aB hover:underline truncate mb-0.5"
-                    >
-                      {sr.title}
-                    </a>
-                  ))}
-                </div>
-              ))}
+                );
+              })}
               {result.targetDecision && (
-                <div className="text-xs text-t1 bg-bg0 rounded p-2 border border-bd mt-2">
+                <div className="text-xs text-t1 bg-aP/10 rounded p-2 border border-aP/30 mt-2 font-medium">
                   {result.targetDecision}
                 </div>
               )}
