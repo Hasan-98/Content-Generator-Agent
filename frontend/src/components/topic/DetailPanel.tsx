@@ -225,15 +225,19 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                       </div>
                     )}
                     {val.searchResults?.slice(0, 2).map((sr, i) => (
-                      <a
-                        key={i}
-                        href={sr.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-[10px] text-aB hover:underline truncate mb-0.5"
-                      >
-                        {sr.title}
-                      </a>
+                      <div key={i} className="mb-1.5">
+                        <a
+                          href={sr.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-[10px] text-aB hover:underline truncate leading-snug"
+                        >
+                          {sr.title}
+                        </a>
+                        <span className="block text-[9px] text-tM truncate font-mono leading-snug">
+                          {sr.link}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 );
