@@ -10,11 +10,13 @@ import TopicCreator from './pages/TopicCreator';
 import ArticleCreator from './pages/ArticleCreator';
 import InstagramPanel from './pages/InstagramPanel';
 import UserModal from './components/user/UserModal';
+import UserSettingsModal from './components/user/UserSettingsModal';
 
 function AppShell() {
   const { user, loading, isImpersonating, isViewingAs, returnToAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'instagram'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   if (loading) {
     return (
@@ -58,13 +60,14 @@ function AppShell() {
           </button>
         </div>
       )}
-      <Titlebar onOpenUsers={() => setUserModalOpen(true)} />
+      <Titlebar onOpenUsers={() => setUserModalOpen(true)} onOpenSettings={() => setSettingsModalOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
         <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'instagram')} />
         {activeTab === 'topic' ? <TopicCreator /> : activeTab === 'article' ? <ArticleCreator /> : <InstagramPanel />}
       </div>
       <Statusbar section={sectionLabel} />
       {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} />}
+      {settingsModalOpen && <UserSettingsModal onClose={() => setSettingsModalOpen(false)} />}
     </div>
   );
 }

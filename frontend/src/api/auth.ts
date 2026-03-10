@@ -25,3 +25,13 @@ export async function editAsUser(userId: string): Promise<{ token: string; user:
   const res = await client.post(`/auth/edit-as/${userId}`);
   return res.data;
 }
+
+export async function updateMe(data: {
+  name?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}): Promise<AuthUser> {
+  const res = await client.patch('/auth/me', data);
+  return res.data;
+}

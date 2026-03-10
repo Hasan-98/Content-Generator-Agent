@@ -4,9 +4,10 @@ import { useLanguage } from '../../context/LanguageContext';
 
 interface Props {
   onOpenUsers: () => void;
+  onOpenSettings: () => void;
 }
 
-export default function Titlebar({ onOpenUsers }: Props) {
+export default function Titlebar({ onOpenUsers, onOpenSettings }: Props) {
   const { user, logout } = useAuth();
   const { lang, toggle, t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -77,7 +78,7 @@ export default function Titlebar({ onOpenUsers }: Props) {
                 </button>
               )}
               <button
-                onClick={() => setMenuOpen(false)}
+                onClick={() => { setMenuOpen(false); onOpenSettings(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-t2 text-xs hover:bg-bg2 hover:text-t1 transition-colors"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[17px] h-[17px] shrink-0">

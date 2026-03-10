@@ -10,7 +10,12 @@ export async function listTopLevels(req: AuthRequest, res: Response): Promise<vo
     where: { userId: req.user!.id },
     include: {
       keywords: {
-        include: { results: { orderBy: { createdAt: 'desc' } } },
+        include: {
+          results: {
+            include: { article: { select: { id: true, status: true } } },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
         orderBy: { createdAt: 'asc' },
       },
     },

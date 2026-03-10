@@ -142,6 +142,39 @@ export async function impersonate(req: AuthRequest, res: Response): Promise<void
   res.json({ token, user: { id: target.id, name: target.name, email: target.email, role: target.role } });
 }
 
+export async function updateMe(req: AuthRequest, res: Response): Promise<void> {
+  const { name, email, currentPassword, newPassword } = req.body;
+  console.log(`[auth] updateMe → userId: ${req.user!.id}`);
+
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (!user) { res.status(404).json({ error: 'User not found' }); return; }
+
+  const data: Record<string, unknown> = {};
+
+  if (name !== undefined) data.name = name;
+
+  if (email !== undefined && email !== user.email) {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) { res.status(409).json({ error: 'Email already in use' }); return; }
+    data.email = email;
+  }
+
+  if (newPassword) {
+    if (!currentPassword) { res.status(400).json({ error: 'Current password is required' }); return; }
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) { res.status(400).json({ error: 'Current password is incorrect' }); return; }
+    data.passwordHash = await bcrypt.hash(newPassword, 10);
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: req.user!.id },
+    data,
+    select: { id: true, name: true, email: true, role: true, active: true },
+  });
+  console.log(`[auth] updateMe success → ${updated.email}`);
+  res.json(updated);
+}
+
 export async function me(req: AuthRequest, res: Response): Promise<void> {
   console.log(`[auth] me → userId: ${req.user!.id}`);
   const user = await prisma.user.findUnique({

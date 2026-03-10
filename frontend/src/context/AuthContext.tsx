@@ -8,6 +8,7 @@ interface AuthContextValue {
   token: string | null;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
+  updateUser: (user: AuthUser) => void;
   loading: boolean;
   isImpersonating: boolean;
   isViewingAs: boolean;
@@ -48,6 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(newUser);
+  }
+
+  function updateUser(updated: AuthUser) {
+    setUser(updated);
   }
 
   function logout() {
@@ -99,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, isImpersonating, isViewingAs, startImpersonation, startViewAs, returnToAdmin }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading, isImpersonating, isViewingAs, startImpersonation, startViewAs, returnToAdmin }}>
       {children}
     </AuthContext.Provider>
   );
