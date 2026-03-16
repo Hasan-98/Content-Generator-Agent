@@ -5,9 +5,10 @@ import { useLanguage } from '../../context/LanguageContext';
 interface Props {
   onOpenUsers: () => void;
   onOpenSettings: () => void;
+  onOpenWpConfig: () => void;
 }
 
-export default function Titlebar({ onOpenUsers, onOpenSettings }: Props) {
+export default function Titlebar({ onOpenUsers, onOpenSettings, onOpenWpConfig }: Props) {
   const { user, logout } = useAuth();
   const { lang, toggle, t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -86,6 +87,18 @@ export default function Titlebar({ onOpenUsers, onOpenSettings }: Props) {
                   <circle cx="12" cy="12" r="3" />
                 </svg>
                 {t('titlebarAccountSettings')}
+              </button>
+              <button
+                onClick={() => { setMenuOpen(false); onOpenWpConfig(); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-t2 text-xs hover:bg-bg2 hover:text-t1 transition-colors"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[17px] h-[17px] shrink-0">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                  <line x1="9" y1="9" x2="9.01" y2="9" />
+                  <line x1="15" y1="9" x2="15.01" y2="9" />
+                </svg>
+                {t('titlebarWpSettings')}
               </button>
               <div className="h-px bg-bd mx-1 my-1" />
               <button

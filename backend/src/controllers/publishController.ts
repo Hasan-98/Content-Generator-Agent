@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { publishToWordpress } from '../services/wordpressService';
 import { publishToShopify } from '../services/shopifyService';
+import { decrypt } from '../services/crypto';
 
 const prisma = new PrismaClient();
 
@@ -50,31 +51,52 @@ export async function publish(req: AuthRequest, res: Response): Promise<void> {
     return;
   }
 
-  const htmlContent = buildHtml(article.result.title, article.sections, article.images);
+  // Use AI-formatted HTML if available, otherwise fall back to simple buildHtml
+  const htmlContent = article.uploadMeta.formattedHtml
+    || buildHtml(article.result.title, article.sections, article.images);
+  const publishTitle = article.uploadMeta.aiTitle || article.result.title;
   let postUrl: string | null = null;
 
   if (platform === 'wordpress') {
+    // Load per-user WordPress credentials
+    const wpConfig = await prisma.wordpressConfig.findUnique({
+      where: { userId: req.user!.id },
+    });
+
+    let credentials;
+    if (wpConfig) {
+      credentials = {
+        wpUrl: wpConfig.wpUrl,
+        wpUser: decrypt(wpConfig.wpUserEncrypted),
+        wpPassword: decrypt(wpConfig.wpPassEncrypted),
+      };
+    }
+    // Falls back to env vars if no per-user config exists
+
     const wpStatus =
       article.uploadMeta.publishStatus === 'PUBLISH' ? 'publish'
       : article.uploadMeta.publishStatus === 'SCHEDULE' ? 'future'
       : 'draft';
 
-    postUrl = await publishToWordpress({
-      title: article.result.title,
-      content: htmlContent,
-      slug: article.uploadMeta.slug,
-      excerpt: article.uploadMeta.excerpt,
-      tags: article.uploadMeta.tags,
-      category: article.uploadMeta.category,
-      publishStatus: wpStatus,
-      scheduleDate: article.uploadMeta.scheduleDate?.toISOString(),
-    });
+    postUrl = await publishToWordpress(
+      {
+        title: publishTitle,
+        content: htmlContent,
+        slug: article.uploadMeta.slug,
+        excerpt: article.uploadMeta.excerpt,
+        tags: article.uploadMeta.tags,
+        category: article.uploadMeta.category,
+        publishStatus: wpStatus,
+        scheduleDate: article.uploadMeta.scheduleDate?.toISOString(),
+      },
+      credentials
+    );
   } else if (platform === 'shopify') {
     const shopifyStatus =
       article.uploadMeta.publishStatus === 'PUBLISH' ? 'published' : 'draft';
 
     postUrl = await publishToShopify({
-      title: article.result.title,
+      title: publishTitle,
       content: htmlContent,
       tags: article.uploadMeta.tags,
       publishStatus: shopifyStatus,

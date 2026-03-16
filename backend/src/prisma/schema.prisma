@@ -17,7 +17,9 @@ model User {
   lastLogin    DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  topLevels    TopLevel[]
+  topLevels       TopLevel[]
+  wordpressConfig WordpressConfig?
+  apiConfig       ApiConfig?
 }
 
 model TopLevel {
@@ -120,18 +122,46 @@ model ArticleImage {
   @@unique([articleId, index])
 }
 
+model WordpressConfig {
+  id              String   @id @default(cuid())
+  wpUrl           String
+  wpUserEncrypted String   @db.Text
+  wpPassEncrypted String   @db.Text
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model UploadMeta {
   id            String        @id @default(cuid())
   slug          String
   excerpt       String        @db.Text
   tags          String
   category      String
+  formattedHtml String?       @db.LongText
+  aiTitle       String?
   publishStatus PublishStatus @default(DRAFT)
   scheduleDate  DateTime?
   articleId     String        @unique
   article       Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+model ApiConfig {
+  id                    String   @id @default(cuid())
+  claudeApiEncrypted    String?  @db.Text
+  openaiApiEncrypted    String?  @db.Text
+  geminiApiEncrypted    String?  @db.Text
+  googleApiEncrypted    String?  @db.Text
+  metaApiEncrypted      String?  @db.Text
+  kieApiEncrypted       String?  @db.Text
+  pieapiEncrypted       String?  @db.Text
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 enum Role {
@@ -159,6 +189,8 @@ enum ArticleStatus {
   ARTICLE_DONE
   IMAGING
   IMAGE_DONE
+  FORMATTING
+  FORMAT_DONE
   UPLOADED
 }
 

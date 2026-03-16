@@ -16,6 +16,8 @@ export type ArticleStatus =
   | 'ARTICLE_DONE'
   | 'IMAGING'
   | 'IMAGE_DONE'
+  | 'FORMATTING'
+  | 'FORMAT_DONE'
   | 'UPLOADED';
 
 export type ImageTaste =
@@ -104,6 +106,8 @@ export interface UploadMeta {
   excerpt: string;
   tags: string;
   category: string;
+  formattedHtml?: string;
+  aiTitle?: string;
   publishStatus: PublishStatus;
   scheduleDate?: string;
   articleId: string;

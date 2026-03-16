@@ -133,17 +133,9 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
         className="w-96 bg-bg1 border-l border-bd flex flex-col h-full overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-bd shrink-0">
-          <div>
-            <div className="text-xs text-t2 mb-0.5">{result.keywordText}</div>
-            <div className="text-sm text-t1 font-medium line-clamp-1">{result.title}</div>
-          </div>
-          <button onClick={onClose} className="text-t2 hover:text-t1 text-lg ml-2">✕</button>
-        </div>
-
-        {/* Tabs */}
+        {/* Tabs + Close */}
         <div className="flex border-b border-bd shrink-0">
+          <button onClick={onClose} className="text-t2 hover:text-t1 text-lg px-3 shrink-0">✕</button>
           {(['all', 'persona', 'structure', 'comment'] as Tab[]).map((tab) => (
             <button
               key={tab}
@@ -160,6 +152,12 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                 : t('detailPanelComment')}
             </button>
           ))}
+        </div>
+
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-bd shrink-0">
+          <div className="text-xs text-t2 mb-0.5">{result.keywordText}</div>
+          <div className="text-sm text-t1 font-medium break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{result.title}</div>
         </div>
 
         {/* Content */}

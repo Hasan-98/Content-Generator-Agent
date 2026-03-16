@@ -7,6 +7,7 @@ import {
   regenerateSectionHandler,
   generateImageHandler,
   generateImagesBulk,
+  formatArticleHandler,
 } from '../controllers/generateController';
 import { authenticate } from '../middleware/auth';
 
@@ -21,5 +22,6 @@ router.post('/article', generateArticleHandler);
 router.post('/article-section', regenerateSectionHandler);
 router.post('/image', generateImageHandler);
 router.post('/images-bulk', generateImagesBulk);
+router.post('/format-article', formatArticleHandler);
 
 export default router;

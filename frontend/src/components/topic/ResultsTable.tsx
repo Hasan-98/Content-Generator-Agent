@@ -284,7 +284,7 @@ export default function ResultsTable({
                     />
                   </td>
                   {/* Keyword */}
-                  <td className="px-3 py-2 font-mono text-xs text-aC whitespace-nowrap max-w-[140px] truncate">
+                  <td className="px-3 py-2 font-mono text-xs text-aC">
                     {result.keywordText}
                   </td>
                   {/* Title */}
@@ -304,6 +304,7 @@ export default function ResultsTable({
                       />
                     ) : (
                       <div
+                        title={result.title}
                         onDoubleClick={(e) => startEditTitle(result, e)}
                         className={`text-t1 text-xs leading-snug line-clamp-2 ${isSkipped ? 'line-through text-tM' : ''}`}
                       >

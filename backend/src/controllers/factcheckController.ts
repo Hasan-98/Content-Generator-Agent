@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { searchForFactCheck } from '../services/googleSearchService';
 import { verifyDemoSizeEstimate } from '../services/claudeService';
+import { getUserApiKey } from './apiConfigController';
 
 const prisma = new PrismaClient();
 
@@ -38,6 +39,8 @@ export async function factCheck(req: AuthRequest, res: Response): Promise<void> 
       { key: 'persona3', size: existing.demoSize3, value: existing.persona3 },
     ];
 
+    const claudeApi = (await getUserApiKey(req.user!.id, 'claudeApi')) || undefined;
+
     for (const p of personas) {
       if (!p.value) continue;
       const query = `${existing.keywordText} ${p.size || ''} ${existing.demographic || ''}`.trim();
@@ -47,7 +50,8 @@ export async function factCheck(req: AuthRequest, res: Response): Promise<void> 
         existing.demographic || '',
         p.value,
         p.size || '',
-        searchResults
+        searchResults,
+        claudeApi
       );
       factCheckData[p.key] = {
         persona: p.value,

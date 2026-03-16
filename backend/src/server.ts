@@ -10,6 +10,8 @@ import generateRoutes from './routes/generate';
 import factcheckRoutes from './routes/factcheck';
 import articleRoutes from './routes/articles';
 import publishRoutes from './routes/publish';
+import wpConfigRoutes from './routes/wpConfig';
+import apiConfigRoutes from './routes/apiConfig';
 
 dotenv.config();
 
@@ -28,6 +30,8 @@ app.use('/api/generate', generateRoutes);
 app.use('/api/factcheck', factcheckRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/publish', publishRoutes);
+app.use('/api/wp-config', wpConfigRoutes);
+app.use('/api/api-config', apiConfigRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -11,10 +11,20 @@ export interface WpPublishInput {
   scheduleDate?: string;
 }
 
-export async function publishToWordpress(input: WpPublishInput): Promise<string | null> {
-  const wpUrl = process.env.WP_API_URL;
-  const wpUser = process.env.WP_USER;
-  const wpPassword = process.env.WP_PASSWORD;
+export interface WpCredentials {
+  wpUrl: string;
+  wpUser: string;
+  wpPassword: string;
+}
+
+export async function publishToWordpress(
+  input: WpPublishInput,
+  credentials?: WpCredentials
+): Promise<string | null> {
+  // Use provided credentials (per-user) or fall back to env vars
+  const wpUrl = credentials?.wpUrl || process.env.WP_API_URL;
+  const wpUser = credentials?.wpUser || process.env.WP_USER;
+  const wpPassword = credentials?.wpPassword || process.env.WP_PASSWORD;
 
   if (!wpUrl || !wpUser || !wpPassword) {
     console.log('[wordpressService] WordPress credentials not configured');

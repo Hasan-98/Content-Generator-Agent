@@ -8,10 +8,23 @@ import {
   regenerateField,
   generateArticle,
   regenerateSection,
+  generateTitleImagePrompt,
+  generateInfographicPrompt,
+  formatArticleForPublish,
 } from '../services/claudeService';
-import { generateImage } from '../services/imageService';
+import { generateImageWithKie } from '../services/imageService';
+import { getUserApiKey } from './apiConfigController';
 
 const prisma = new PrismaClient();
+
+// Helper: fetch user's custom API keys (Claude + Kie)
+async function getUserKeys(userId: string) {
+  const [claudeApi, kieApi] = await Promise.all([
+    getUserApiKey(userId, 'claudeApi'),
+    getUserApiKey(userId, 'kieApi'),
+  ]);
+  return { claudeApi: claudeApi || undefined, kieApi: kieApi || undefined };
+}
 
 // Default image prompts per taste
 const DEFAULT_PROMPTS: Record<string, string> = {
@@ -36,8 +49,9 @@ export async function generate(req: AuthRequest, res: Response): Promise<void> {
     return;
   }
 
+  const { claudeApi } = await getUserKeys(req.user!.id);
   const serpData = await searchKeyword(kwRecord.keyword);
-  const pairs = await generateTitles(kwRecord.keyword, kwRecord.goal, kwRecord.audience, serpData);
+  const pairs = await generateTitles(kwRecord.keyword, kwRecord.goal, kwRecord.audience, serpData, claudeApi);
 
   const results = await Promise.all(
     pairs.map((pair) =>
@@ -66,12 +80,15 @@ export async function generatePersona(req: AuthRequest, res: Response): Promise<
   // Set to PERSONA_WIP while processing
   await prisma.generatedResult.update({ where: { id: resultId }, data: { status: 'PERSONA_WIP' } });
 
+  const { claudeApi } = await getUserKeys(req.user!.id);
+
   try {
     const personaData = await generatePersonaAndStructure(
       existing.keywordText,
       existing.keyword.goal,
       existing.keyword.audience,
-      existing.title
+      existing.title,
+      claudeApi
     );
 
     const result = await prisma.generatedResult.update({
@@ -103,13 +120,15 @@ export async function regenerateFieldHandler(req: AuthRequest, res: Response): P
     return;
   }
 
+  const { claudeApi } = await getUserKeys(req.user!.id);
   const currentValue = (existing as Record<string, unknown>)[fieldKey] as string || '';
   const newValue = await regenerateField(
     existing.keywordText,
     existing.title,
     fieldKey,
     currentValue,
-    instruction
+    instruction,
+    claudeApi
   );
 
   const result = await prisma.generatedResult.update({
@@ -138,7 +157,8 @@ export async function generateArticleHandler(req: AuthRequest, res: Response): P
     return;
   }
 
-  const sections = await generateArticle(existing);
+  const { claudeApi } = await getUserKeys(req.user!.id);
+  const sections = await generateArticle(existing, claudeApi);
 
   const article = await prisma.article.create({
     data: {
@@ -156,8 +176,8 @@ export async function generateArticleHandler(req: AuthRequest, res: Response): P
         create: sections.map((_, i) => ({
           index: i,
           enabled: true,
-          taste: 'PHOTO',
-          prompt: DEFAULT_PROMPTS.PHOTO,
+          taste: i === 0 ? 'TEXT_OVERLAY' : 'INFOGRAPHIC',
+          prompt: i === 0 ? DEFAULT_PROMPTS.TEXT_OVERLAY : DEFAULT_PROMPTS.INFOGRAPHIC,
         })),
       },
     },
@@ -189,10 +209,12 @@ export async function regenerateSectionHandler(req: AuthRequest, res: Response):
   const section = article.sections.find(s => s.index === sectionIndex);
   if (!section) { res.status(404).json({ error: 'Section not found' }); return; }
 
+  const { claudeApi } = await getUserKeys(req.user!.id);
   const newContent = await regenerateSection(
     { type: section.type, heading: section.heading, content: section.content },
     article.result.title,
-    instruction
+    instruction,
+    claudeApi
   );
 
   const updated = await prisma.articleSection.update({
@@ -222,7 +244,9 @@ export async function generateImageHandler(req: AuthRequest, res: Response): Pro
   const image = article.images.find(img => img.index === imageIndex);
   if (!image) { res.status(404).json({ error: 'Image not found' }); return; }
 
-  const imageUrl = await generateImage(image.prompt);
+  const { kieApi } = await getUserKeys(req.user!.id);
+  const aspectRatio = image.index === 0 ? '16:9' : '1:1';
+  const imageUrl = await generateImageWithKie(image.prompt, aspectRatio, kieApi);
 
   const updated = await prisma.articleImage.update({
     where: { id: image.id },
@@ -231,14 +255,18 @@ export async function generateImageHandler(req: AuthRequest, res: Response): Pro
   res.json(updated);
 }
 
-// STEP B — Generate all enabled images for an article
+// STEP B — Generate all enabled images for an article using kie.ai + Claude prompts
 export async function generateImagesBulk(req: AuthRequest, res: Response): Promise<void> {
   const { articleId } = req.body;
   if (!articleId) { res.status(400).json({ error: 'articleId is required' }); return; }
 
   const article = await prisma.article.findUnique({
     where: { id: articleId },
-    include: { result: { include: { keyword: { include: { topLevel: true } } } }, images: true },
+    include: {
+      result: { include: { keyword: { include: { topLevel: true } } } },
+      images: { orderBy: { index: 'asc' } },
+      sections: { orderBy: { index: 'asc' } },
+    },
   });
   if (!article || article.result.keyword.topLevel.userId !== req.user!.id) {
     res.status(404).json({ error: 'Article not found' });
@@ -247,14 +275,46 @@ export async function generateImagesBulk(req: AuthRequest, res: Response): Promi
 
   await prisma.article.update({ where: { id: articleId }, data: { status: 'IMAGING' } });
 
+  const { claudeApi, kieApi } = await getUserKeys(req.user!.id);
+  const keyword = article.result.keywordText;
+  const title = article.result.title;
+
+  // Build a brief summary from all sections for the title image prompt
+  const contentSummary = article.sections
+    .map(s => `${s.heading}: ${s.content.slice(0, 100)}`)
+    .join('\n');
+
   const enabledImages = article.images.filter(img => img.enabled);
   const results = [];
 
   for (const image of enabledImages) {
-    const imageUrl = await generateImage(image.prompt);
+    let prompt: string;
+    let aspectRatio: '16:9' | '1:1';
+
+    if (image.index === 0) {
+      // Title thumbnail — 16:9, YouTube style
+      aspectRatio = '16:9';
+      prompt = await generateTitleImagePrompt(keyword, title, contentSummary, claudeApi);
+    } else {
+      // Section infographic — 1:1, flat design
+      aspectRatio = '1:1';
+      const section = article.sections.find(s => s.index === image.index - 1);
+      if (section) {
+        prompt = await generateInfographicPrompt(keyword, title, section.heading, section.content, claudeApi);
+      } else {
+        // fallback: use stored prompt if section not found
+        prompt = image.prompt;
+      }
+    }
+
+    const imageUrl = await generateImageWithKie(prompt, aspectRatio, kieApi);
+
     const updated = await prisma.articleImage.update({
       where: { id: image.id },
-      data: { imageUrl: imageUrl || undefined },
+      data: {
+        prompt,
+        ...(imageUrl && { imageUrl }),
+      },
     });
     results.push(updated);
   }
@@ -262,4 +322,71 @@ export async function generateImagesBulk(req: AuthRequest, res: Response): Promi
   await prisma.article.update({ where: { id: articleId }, data: { status: 'IMAGE_DONE' } });
 
   res.json(results);
+}
+
+// STEP C — Format article for WordPress/Shopify publishing using AI
+export async function formatArticleHandler(req: AuthRequest, res: Response): Promise<void> {
+  const { articleId } = req.body;
+  if (!articleId) { res.status(400).json({ error: 'articleId is required' }); return; }
+
+  const article = await prisma.article.findUnique({
+    where: { id: articleId },
+    include: {
+      result: { include: { keyword: { include: { topLevel: true } } } },
+      sections: { orderBy: { index: 'asc' } },
+      images: { orderBy: { index: 'asc' } },
+      uploadMeta: true,
+    },
+  });
+  if (!article || article.result.keyword.topLevel.userId !== req.user!.id) {
+    res.status(404).json({ error: 'Article not found' });
+    return;
+  }
+
+  await prisma.article.update({ where: { id: articleId }, data: { status: 'FORMATTING' } });
+
+  const { claudeApi } = await getUserKeys(req.user!.id);
+
+  try {
+    const formatted = await formatArticleForPublish(
+      article.result.title,
+      article.result.keywordText,
+      article.sections.map(s => ({ type: s.type, heading: s.heading, content: s.content })),
+      article.images.map(i => ({ index: i.index, imageUrl: i.imageUrl, enabled: i.enabled })),
+      claudeApi
+    );
+
+    // Upsert uploadMeta with AI-generated content
+    const metaData = {
+      formattedHtml: formatted.body_html,
+      aiTitle: formatted.title,
+      excerpt: formatted.excerpt,
+      tags: formatted.tags,
+      slug: article.uploadMeta?.slug || article.result.keywordText.replace(/\s+/g, '-').toLowerCase(),
+      category: article.uploadMeta?.category || '',
+      publishStatus: article.uploadMeta?.publishStatus || 'DRAFT' as const,
+    };
+
+    const uploadMeta = await prisma.uploadMeta.upsert({
+      where: { articleId },
+      update: {
+        formattedHtml: metaData.formattedHtml,
+        aiTitle: metaData.aiTitle,
+        excerpt: metaData.excerpt,
+        tags: metaData.tags,
+      },
+      create: {
+        articleId,
+        ...metaData,
+      },
+    });
+
+    await prisma.article.update({ where: { id: articleId }, data: { status: 'FORMAT_DONE' } });
+
+    res.json({ formatted, uploadMeta });
+  } catch (err) {
+    // Rollback status on error
+    await prisma.article.update({ where: { id: articleId }, data: { status: 'IMAGE_DONE' } });
+    throw err;
+  }
 }

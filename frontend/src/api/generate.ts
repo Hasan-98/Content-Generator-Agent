@@ -46,3 +46,11 @@ export async function generateImagesBulk(articleId: string): Promise<ArticleImag
   const res = await client.post('/generate/images-bulk', { articleId });
   return res.data;
 }
+
+export async function formatArticle(articleId: string): Promise<{
+  formatted: { title: string; body_html: string; tags: string; excerpt: string };
+  uploadMeta: import('../types').UploadMeta;
+}> {
+  const res = await client.post('/generate/format-article', { articleId });
+  return res.data;
+}
