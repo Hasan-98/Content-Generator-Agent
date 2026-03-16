@@ -284,11 +284,16 @@ export default function ResultsTable({
                     />
                   </td>
                   {/* Keyword */}
-                  <td className="px-3 py-2 font-mono text-xs text-aC">
-                    {result.keywordText}
+                  <td className="px-3 py-2 font-mono text-xs text-aC" style={{ wordBreak: 'keep-all' }}>
+                    {result.keywordText.split(' ').map((word, i) => (
+                      <span key={i}>
+                        {i > 0 && <br />}
+                        {word}
+                      </span>
+                    ))}
                   </td>
                   {/* Title */}
-                  <td className="px-3 py-2 max-w-[240px]">
+                  <td className="px-3 py-2 max-w-[130px] min-w-[120px]">
                     {editingId === result.id ? (
                       <input
                         autoFocus
