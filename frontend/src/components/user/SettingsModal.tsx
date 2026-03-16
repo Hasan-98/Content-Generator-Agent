@@ -119,7 +119,7 @@ export default function SettingsModal({ onClose }: Props) {
     }
   }
 
-  const sections: { id: 'password' | ApiKeyName; label: string; icon: JSX.Element; isSet?: boolean }[] = [
+  const sections: { id: 'password' | ApiKeyName; label: string; icon: React.ReactNode; isSet?: boolean }[] = [
     {
       id: 'password',
       label: t('settingsPassword'),
