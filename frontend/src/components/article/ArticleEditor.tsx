@@ -1,7 +1,7 @@
 import { useLanguage } from '../../context/LanguageContext';
 import type { Article, GeneratedResult } from '../../types';
 import SectionCard from './SectionCard';
-import { regenerateSection } from '../../api/generate';
+import { regenerateSection, regenerateSectionHeading } from '../../api/generate';
 import { updateSection } from '../../api/articles';
 import toast from 'react-hot-toast';
 
@@ -41,6 +41,31 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onNext
     }
   }
 
+  async function handleHeadingChange(index: number, heading: string) {
+    try {
+      const updated = await updateSection(article.id, index, { heading });
+      onArticleUpdate({
+        ...article,
+        sections: article.sections.map(s => s.index === index ? { ...s, ...updated } : s),
+      });
+    } catch {
+      toast.error(t('toastUpdateFailed'));
+    }
+  }
+
+  async function handleRegenHeading(index: number) {
+    try {
+      const updated = await regenerateSectionHeading(article.id, index);
+      onArticleUpdate({
+        ...article,
+        sections: article.sections.map(s => s.index === index ? { ...s, heading: updated.heading } : s),
+      });
+      toast.success(t('toastHeadingRegenDone'));
+    } catch {
+      toast.error('タイトルの再生成に失敗しました');
+    }
+  }
+
   const totalChars = article.sections.reduce((sum, s) => sum + s.content.length, 0);
 
   return (
@@ -76,6 +101,8 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onNext
             section={section}
             onRegenerate={handleRegenSection}
             onContentChange={handleContentChange}
+            onHeadingChange={handleHeadingChange}
+            onRegenerateHeading={handleRegenHeading}
           />
         ))}
       </div>

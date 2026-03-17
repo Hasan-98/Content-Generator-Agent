@@ -506,3 +506,31 @@ Write in Japanese. 150-300 characters.`;
 
   return message.content[0].type === 'text' ? message.content[0].text.trim() : section.content;
 }
+
+export async function regenerateSectionHeading(
+  section: { type: string; heading: string; content: string },
+  articleTitle: string,
+  apiKey?: string
+): Promise<string> {
+  const prompt = `You are a professional Japanese blog writer and SEO expert.
+
+Article title: ${articleTitle}
+Section type: ${section.type}
+Current heading: ${section.heading}
+Section content summary: ${section.content.slice(0, 200)}
+
+Generate a new, compelling heading for this section that:
+- Matches the section content
+- Is engaging and SEO-friendly
+- Is written in Japanese
+
+Output ONLY the new heading as plain text (no JSON, no quotes, no explanation).`;
+
+  const message = await getClient(apiKey).messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 256,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  return message.content[0].type === 'text' ? message.content[0].text.trim() : section.heading;
+}

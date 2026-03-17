@@ -246,6 +246,9 @@ const en = {
   sectionRegenBtn: 'このセクションを再生成',
   sectionRegenWithInstruction: '指示付き再生成',
   sectionInstructionPlaceholder: '再生成の指示を入力…',
+  sectionHeadingRegenBtn: 'タイトル再生成',
+  sectionHeadingClickToEdit: 'クリックして編集',
+  toastHeadingRegenDone: 'タイトルを再生成しました',
 
   // Image Card
   imageTastePhoto: '📷 写実的',
@@ -604,6 +607,9 @@ const ja: Record<TKey, string> = {
   sectionRegenBtn: 'このセクションを再生成',
   sectionRegenWithInstruction: '指示付き再生成',
   sectionInstructionPlaceholder: '再生成の指示を入力…',
+  sectionHeadingRegenBtn: 'タイトル再生成',
+  sectionHeadingClickToEdit: 'クリックして編集',
+  toastHeadingRegenDone: 'タイトルを再生成しました',
 
   // Image Card
   imageTastePhoto: '📷 写実的',

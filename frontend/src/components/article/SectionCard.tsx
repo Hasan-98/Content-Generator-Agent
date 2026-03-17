@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleSection } from '../../types';
 
@@ -6,6 +6,8 @@ interface Props {
   section: ArticleSection;
   onRegenerate: (index: number, instruction?: string) => Promise<void>;
   onContentChange: (index: number, content: string) => void;
+  onHeadingChange: (index: number, heading: string) => void;
+  onRegenerateHeading: (index: number) => Promise<void>;
 }
 
 const TYPE_COLOR: Record<string, string> = {
@@ -26,12 +28,16 @@ const TYPE_LABEL: Record<string, string> = {
   matome:  'まとめ',
 };
 
-export default function SectionCard({ section, onRegenerate, onContentChange }: Props) {
+export default function SectionCard({ section, onRegenerate, onContentChange, onHeadingChange, onRegenerateHeading }: Props) {
   const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [showInstruction, setShowInstruction] = useState(false);
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
+  const [headingLoading, setHeadingLoading] = useState(false);
+  const [editingHeading, setEditingHeading] = useState(false);
+  const [headingDraft, setHeadingDraft] = useState(section.heading);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const color = TYPE_COLOR[section.type] ?? '#8b949e';
   const typeLabel = TYPE_LABEL[section.type] ?? section.type;
@@ -46,6 +52,30 @@ export default function SectionCard({ section, onRegenerate, onContentChange }: 
     }
   }
 
+  async function handleHeadingRegen() {
+    setHeadingLoading(true);
+    try {
+      await onRegenerateHeading(section.index);
+    } finally {
+      setHeadingLoading(false);
+    }
+  }
+
+  function startEditingHeading(e: React.MouseEvent) {
+    e.stopPropagation();
+    setHeadingDraft(section.heading);
+    setEditingHeading(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function commitHeading() {
+    setEditingHeading(false);
+    const trimmed = headingDraft.trim();
+    if (trimmed && trimmed !== section.heading) {
+      onHeadingChange(section.index, trimmed);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-bd bg-bg1 overflow-hidden mb-3">
       {/* Header */}
@@ -56,7 +86,49 @@ export default function SectionCard({ section, onRegenerate, onContentChange }: 
         <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: `${color}22`, color }}>
           {typeLabel}
         </span>
-        <span className="text-sm text-t1 font-medium flex-1 truncate">{section.heading}</span>
+
+        {editingHeading ? (
+          <input
+            ref={inputRef}
+            value={headingDraft}
+            onChange={(e) => setHeadingDraft(e.target.value)}
+            onBlur={commitHeading}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitHeading();
+              if (e.key === 'Escape') { setEditingHeading(false); setHeadingDraft(section.heading); }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 text-sm text-t1 font-medium bg-bg0 border border-aB rounded px-2 py-0.5 focus:outline-none"
+          />
+        ) : (
+          <span
+            className="text-sm text-t1 font-medium flex-1 truncate cursor-text hover:text-aB transition-colors"
+            onClick={startEditingHeading}
+            title={t('sectionHeadingClickToEdit')}
+          >
+            {section.heading}
+          </span>
+        )}
+
+        {/* Regenerate heading button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleHeadingRegen(); }}
+          disabled={headingLoading}
+          className="p-1 rounded hover:bg-bg2 text-tM hover:text-aP disabled:opacity-50 transition-colors"
+          title={t('sectionHeadingRegenBtn')}
+        >
+          {headingLoading ? (
+            <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M6.34 6.34L3.51 3.51" />
+            </svg>
+          ) : (
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 4v6h6M23 20v-6h-6" />
+              <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+            </svg>
+          )}
+        </button>
+
         <svg
           viewBox="0 0 24 24"
           fill="none"

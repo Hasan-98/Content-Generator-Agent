@@ -8,6 +8,7 @@ import {
   regenerateField,
   generateArticle,
   regenerateSection,
+  regenerateSectionHeading,
   generateTitleImagePrompt,
   generateInfographicPrompt,
   formatArticleForPublish,
@@ -220,6 +221,40 @@ export async function regenerateSectionHandler(req: AuthRequest, res: Response):
   const updated = await prisma.articleSection.update({
     where: { id: section.id },
     data: { content: newContent },
+  });
+  res.json(updated);
+}
+
+// STEP A2 — Regenerate a single section heading
+export async function regenerateSectionHeadingHandler(req: AuthRequest, res: Response): Promise<void> {
+  const { articleId, sectionIndex } = req.body;
+  if (articleId === undefined || sectionIndex === undefined) {
+    res.status(400).json({ error: 'articleId and sectionIndex are required' });
+    return;
+  }
+
+  const article = await prisma.article.findUnique({
+    where: { id: articleId },
+    include: { result: { include: { keyword: { include: { topLevel: true } } } }, sections: true },
+  });
+  if (!article || article.result.keyword.topLevel.userId !== req.user!.id) {
+    res.status(404).json({ error: 'Article not found' });
+    return;
+  }
+
+  const section = article.sections.find(s => s.index === sectionIndex);
+  if (!section) { res.status(404).json({ error: 'Section not found' }); return; }
+
+  const { claudeApi } = await getUserKeys(req.user!.id);
+  const newHeading = await regenerateSectionHeading(
+    { type: section.type, heading: section.heading, content: section.content },
+    article.result.title,
+    claudeApi
+  );
+
+  const updated = await prisma.articleSection.update({
+    where: { id: section.id },
+    data: { heading: newHeading },
   });
   res.json(updated);
 }

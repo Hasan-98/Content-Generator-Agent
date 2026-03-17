@@ -34,6 +34,14 @@ export async function regenerateSection(
   return res.data;
 }
 
+export async function regenerateSectionHeading(
+  articleId: string,
+  sectionIndex: number,
+): Promise<ArticleSection> {
+  const res = await client.post('/generate/article-section-heading', { articleId, sectionIndex });
+  return res.data;
+}
+
 export async function generateImage(
   articleId: string,
   imageIndex: number
