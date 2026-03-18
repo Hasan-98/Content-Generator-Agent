@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { GeneratedResult } from '../../types';
 import toast from 'react-hot-toast';
 import { regenerateField } from '../../api/generate';
 import { generatePersona } from '../../api/generate';
+import { updateResult } from '../../api/results';
 
 interface Props {
   result: GeneratedResult | null;
@@ -90,6 +91,19 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
   const [targetField, setTargetField] = useState('');
   const [regenLoading, setRegenLoading] = useState(false);
   const [genLoading, setGenLoading] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [titleSaving, setTitleSaving] = useState(false);
+  const [titleRegenLoading, setTitleRegenLoading] = useState(false);
+  const titleInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Focus textarea when entering edit mode
+  useEffect(() => {
+    if (editingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [editingTitle]);
 
   if (!result) return null;
 
@@ -124,7 +138,44 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
     }
   }
 
-  const allFields = [...PERSONA_FIELDS, ...STRUCT_FIELDS];
+  function startEditTitle() {
+    setTitleDraft(result!.title);
+    setEditingTitle(true);
+  }
+
+  async function saveTitle() {
+    if (!result || titleDraft.trim() === result.title) {
+      setEditingTitle(false);
+      return;
+    }
+    setTitleSaving(true);
+    try {
+      const updated = await updateResult(result.id, { title: titleDraft.trim() });
+      onUpdate(updated);
+      toast.success('タイトルを更新しました');
+      setEditingTitle(false);
+    } catch {
+      toast.error('タイトル更新に失敗しました');
+    } finally {
+      setTitleSaving(false);
+    }
+  }
+
+  async function handleRegenTitle() {
+    if (!result) return;
+    setTitleRegenLoading(true);
+    try {
+      const updated = await regenerateField(result.id, 'title');
+      onUpdate(updated);
+      toast.success('タイトルを再生成しました');
+    } catch {
+      toast.error('タイトル再生成に失敗しました');
+    } finally {
+      setTitleRegenLoading(false);
+    }
+  }
+
+  const allFields = [{ key: 'title', label: 'タイトル' }, ...PERSONA_FIELDS, ...STRUCT_FIELDS];
 
   return (
     <div className="fixed inset-0 z-40 flex" onClick={onClose}>
@@ -157,7 +208,64 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
         {/* Header */}
         <div className="px-4 py-3 border-b border-bd shrink-0">
           <div className="text-xs text-t2 mb-0.5">{result.keywordText}</div>
-          <div className="text-sm text-t1 font-medium break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{result.title}</div>
+          {editingTitle ? (
+            <div>
+              <textarea
+                ref={titleInputRef}
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveTitle(); }
+                  if (e.key === 'Escape') setEditingTitle(false);
+                }}
+                rows={2}
+                className="w-full text-sm bg-bg0 border border-aB rounded px-2 py-1 text-t1 resize-none focus:outline-none focus:ring-1 focus:ring-aB"
+              />
+              <div className="flex gap-1 mt-1">
+                <button
+                  onClick={saveTitle}
+                  disabled={titleSaving}
+                  className="text-[10px] px-2 py-0.5 rounded bg-aG text-bg0 font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                  {titleSaving ? '…' : '保存'}
+                </button>
+                <button
+                  onClick={() => setEditingTitle(false)}
+                  className="text-[10px] px-2 py-0.5 rounded bg-bg2 text-t2 hover:text-t1"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="group flex items-start gap-1">
+              <div
+                className="text-sm text-t1 font-medium break-words cursor-pointer hover:text-aB transition-colors flex-1"
+                style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                onClick={startEditTitle}
+                title="クリックして編集"
+              >
+                {result.title}
+              </div>
+              <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                <button
+                  onClick={startEditTitle}
+                  className="text-xs text-t2 hover:text-aB opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="タイトルを編集"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={handleRegenTitle}
+                  disabled={titleRegenLoading}
+                  className="text-xs text-aP hover:text-t1 disabled:opacity-40 transition-colors"
+                  title="タイトルを再生成"
+                >
+                  {titleRegenLoading ? '…' : '🔄'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Content */}
