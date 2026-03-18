@@ -43,7 +43,7 @@ export async function factCheck(req: AuthRequest, res: Response): Promise<void> 
 
     for (const p of personas) {
       if (!p.value) continue;
-      const query = `${existing.keywordText} ${p.size || ''} ${existing.demographic || ''}`.trim();
+      const query = `${existing.keywordText} ${existing.demographic || ''} 人口 市場規模`.trim();
       const searchResults = await searchForFactCheck(query);
       const { verdict, reason } = await verifyDemoSizeEstimate(
         existing.keywordText,

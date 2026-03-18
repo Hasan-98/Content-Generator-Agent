@@ -21,11 +21,17 @@ export async function searchForFactCheck(query: string): Promise<SearchResult[]>
     });
 
     const results = response.data?.organic_results || [];
-    return results.slice(0, 5).map((r: { title?: string; link?: string; snippet?: string }) => ({
-      title: r.title || '',
-      link: r.link || '',
-      snippet: r.snippet || '',
-    }));
+    if (results.length > 0) {
+      console.log('[googleSearchService] First result keys:', Object.keys(results[0]));
+    }
+    return results
+      .slice(0, 5)
+      .map((r: { title?: string; link?: string; url?: string; snippet?: string }) => ({
+        title: r.title || '',
+        link: r.link || r.url || '',
+        snippet: r.snippet || '',
+      }))
+      .filter((r: { link: string }) => r.link.startsWith('http'));
   } catch (err) {
     console.error('[googleSearchService] searchForFactCheck error:', err);
     return [];

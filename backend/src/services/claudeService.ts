@@ -110,7 +110,7 @@ Target audience: ${audience || 'General audience'}
 Generate:
 1. A demographic overview of the target reader
 2. Three specific reader personas (persona1, persona2, persona3) - describe each as a specific person with situation, pain point, and motivation (1-2 sentences each, in Japanese)
-3. Estimated demographic sizes for each persona (demoSize1, demoSize2, demoSize3) - describe size/proportion of this segment
+3. Estimated demographic sizes for each persona (demoSize1, demoSize2, demoSize3) - provide a concrete estimated population count in Japan (e.g. "日本国内に約120万人", "推定80万〜100万人"). Use real research-based numbers, not vague percentages.
 4. Article structure sections:
    - structIntro: Introduction hook and problem statement (1-2 sentences)
    - structNayami: Reader's pain/problem deep dive
