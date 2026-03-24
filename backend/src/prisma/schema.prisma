@@ -86,8 +86,9 @@ model GeneratedResult {
 model Article {
   id         String        @id @default(cuid())
   status     ArticleStatus @default(READY)
-  platform   String?
-  uploadedAt DateTime?
+  platform     String?
+  publishedUrl String?
+  uploadedAt   DateTime?
   resultId   String        @unique
   result     GeneratedResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
   sections   ArticleSection[]
