@@ -27,6 +27,7 @@ export async function factCheck(req: AuthRequest, res: Response): Promise<void> 
     type PersonaCheck = {
       persona: string;
       demoSize: string | null;
+      populationEstimate?: string;
       searchResults: { title: string; link: string; snippet: string }[];
       verified: boolean;
       verdict: 'confirmed' | 'uncertain' | 'incorrect';
@@ -45,7 +46,7 @@ export async function factCheck(req: AuthRequest, res: Response): Promise<void> 
       if (!p.value) continue;
       const query = `${existing.keywordText} ${existing.demographic || ''} 人口 市場規模`.trim();
       const searchResults = await searchForFactCheck(query);
-      const { verdict, reason } = await verifyDemoSizeEstimate(
+      const { verdict, reason, populationEstimate } = await verifyDemoSizeEstimate(
         existing.keywordText,
         existing.demographic || '',
         p.value,
@@ -56,6 +57,7 @@ export async function factCheck(req: AuthRequest, res: Response): Promise<void> 
       factCheckData[p.key] = {
         persona: p.value,
         demoSize: p.size,
+        populationEstimate,
         searchResults,
         verified: verdict === 'confirmed',
         verdict,

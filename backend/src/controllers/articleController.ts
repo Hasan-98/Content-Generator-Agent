@@ -10,7 +10,7 @@ async function findArticleWithAuth(id: string, userId: string) {
     include: {
       result: { include: { keyword: { include: { topLevel: true } } } },
       sections: { orderBy: { index: 'asc' } },
-      images: { orderBy: { index: 'asc' } },
+      images: { orderBy: { index: 'asc' }, include: { history: { orderBy: { createdAt: 'desc' } } } },
       uploadMeta: true,
     },
   });
@@ -74,6 +74,41 @@ export async function updateImage(req: AuthRequest, res: Response): Promise<void
       ...(prompt !== undefined && { prompt }),
       ...(imageUrl !== undefined && { imageUrl }),
     },
+  });
+  res.json(updated);
+}
+
+export async function selectHistoryImage(req: AuthRequest, res: Response): Promise<void> {
+  const articleId = String(req.params.id);
+  const imageIndex = parseInt(String(req.params.index), 10);
+  const { historyId } = req.body;
+  if (!historyId) { res.status(400).json({ error: 'historyId is required' }); return; }
+
+  const article = await findArticleWithAuth(articleId, req.user!.id);
+  if (!article) { res.status(404).json({ error: 'Not found' }); return; }
+
+  const image = article.images.find(img => img.index === imageIndex);
+  if (!image) { res.status(404).json({ error: 'Image not found' }); return; }
+
+  const historyEntry = await prisma.imageHistory.findFirst({
+    where: { id: historyId, imageId: image.id },
+  });
+  if (!historyEntry) { res.status(404).json({ error: 'History entry not found' }); return; }
+
+  // Save current image to history before swapping
+  if (image.imageUrl) {
+    await prisma.imageHistory.create({
+      data: { imageUrl: image.imageUrl, prompt: image.prompt, imageId: image.id },
+    });
+  }
+
+  // Remove the selected history entry and set it as current
+  await prisma.imageHistory.delete({ where: { id: historyId } });
+
+  const updated = await prisma.articleImage.update({
+    where: { id: image.id },
+    data: { imageUrl: historyEntry.imageUrl, prompt: historyEntry.prompt },
+    include: { history: { orderBy: { createdAt: 'desc' } } },
   });
   res.json(updated);
 }

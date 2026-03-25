@@ -322,6 +322,9 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                         {verdictLabel}
                       </span>
                     </div>
+                    {val.populationEstimate && (
+                      <div className="text-[11px] text-aB font-semibold mb-1.5">👥 {val.populationEstimate}</div>
+                    )}
                     {val.demoSize && (
                       <div className="text-[10px] text-t2 mb-1.5 font-mono">{val.demoSize}</div>
                     )}

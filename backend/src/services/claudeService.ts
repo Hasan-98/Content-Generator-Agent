@@ -256,7 +256,7 @@ export async function verifyDemoSizeEstimate(
   demoSize: string,
   searchResults: { title: string; link: string; snippet: string }[],
   apiKey?: string
-): Promise<{ verdict: 'confirmed' | 'uncertain' | 'incorrect'; reason: string }> {
+): Promise<{ verdict: 'confirmed' | 'uncertain' | 'incorrect'; reason: string; populationEstimate?: string }> {
   if (searchResults.length === 0) {
     return { verdict: 'uncertain', reason: '検索結果がありませんでした。' };
   }
@@ -278,10 +278,11 @@ Search results:
 ${resultsText}
 
 Reply ONLY with valid JSON (no extra text):
-{ "verdict": "confirmed", "reason": "..." }
+{ "verdict": "confirmed", "reason": "...", "populationEstimate": "約○○万人" }
 
 verdict must be exactly one of: "confirmed", "uncertain", "incorrect"
-reason must be a single sentence in Japanese explaining your assessment.`;
+reason must be a single sentence in Japanese explaining your assessment.
+populationEstimate must be a concrete population count in Japanese (e.g. "約120万人", "推定80万〜100万人"). Based on the search results, provide your best estimate of the actual population size for this persona segment in Japan.`;
 
   const message = await getClient(apiKey).messages.create({
     model: 'claude-sonnet-4-6',
@@ -294,7 +295,7 @@ reason must be a single sentence in Japanese explaining your assessment.`;
   if (!jsonMatch) return { verdict: 'uncertain', reason: '検証結果の解析に失敗しました。' };
 
   try {
-    return JSON.parse(jsonMatch[0]) as { verdict: 'confirmed' | 'uncertain' | 'incorrect'; reason: string };
+    return JSON.parse(jsonMatch[0]) as { verdict: 'confirmed' | 'uncertain' | 'incorrect'; reason: string; populationEstimate?: string };
   } catch {
     return { verdict: 'uncertain', reason: '検証結果の解析に失敗しました。' };
   }
@@ -321,7 +322,9 @@ Design rules:
 - Layout: central headline, supplementary info distributed around edges
 - Decorations: capsule strips, dotted separators, simple shapes, person photo lower-right
 - Style: catchy informative catalog, YouTube thumbnail, modern Japanese blog
-- Aspect ratio: 16:9`,
+- Aspect ratio: 16:9
+- Output the ENTIRE prompt in Japanese
+- All text elements in the generated image must be in Japanese`,
     messages: [
       {
         role: 'user',
@@ -366,7 +369,8 @@ Design rules (MUST follow):
 - NOT messy or overcrowded
 - Professional blog illustration
 - Article title as heading at top
-- Japanese text labels for each key point`,
+- Japanese text labels for each key point
+- Output the ENTIRE prompt in Japanese`,
     messages: [
       {
         role: 'user',

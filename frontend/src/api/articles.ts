@@ -29,6 +29,15 @@ export async function updateImage(
   return res.data;
 }
 
+export async function selectHistoryImage(
+  articleId: string,
+  index: number,
+  historyId: string
+): Promise<ArticleImage> {
+  const res = await client.post(`/articles/${articleId}/images/${index}/select-history`, { historyId });
+  return res.data;
+}
+
 export async function upsertUploadMeta(
   articleId: string,
   data: {

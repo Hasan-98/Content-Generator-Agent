@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleImage, ImageTaste } from '../../types';
 import { generateImage as generateImageApi } from '../../api/generate';
-import { updateImage } from '../../api/articles';
+import { updateImage, selectHistoryImage } from '../../api/articles';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -22,16 +22,30 @@ const TASTE_OPTIONS: { value: ImageTaste; labelKey: 'imageTastePhoto' | 'imageTa
 ];
 
 const DEFAULT_PROMPTS: Record<ImageTaste, string> = {
-  PHOTO: 'Realistic photo of a person reading content on a laptop, modern office setting, natural lighting',
-  TEXT_OVERLAY: 'Clean minimalist background with typography space for Japanese text overlay',
-  INFOGRAPHIC: 'Flat design infographic layout with icons and data visualization elements',
-  ILLUSTRATION: 'Colorful digital illustration of a concept related to the article topic',
-  CINEMATIC: 'Cinematic wide shot with dramatic lighting, shallow depth of field',
+  PHOTO: 'ノートパソコンでコンテンツを読む人物のリアルな写真、モダンなオフィス、自然光',
+  TEXT_OVERLAY: '日本語テキストオーバーレイ用のクリーンなミニマリスト背景',
+  INFOGRAPHIC: 'アイコンとデータ可視化要素を含むフラットデザインのインフォグラフィックレイアウト',
+  ILLUSTRATION: '記事のトピックに関連するカラフルなデジタルイラスト',
+  CINEMATIC: 'ドラマチックな照明と浅い被写界深度のシネマティックなワイドショット',
 };
 
 export default function ImageCard({ image, sectionHeading, sectionType, articleId, onUpdate }: Props) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [selectingHistory, setSelectingHistory] = useState(false);
+
+  async function handleSelectHistory(historyId: string) {
+    setSelectingHistory(true);
+    try {
+      const updated = await selectHistoryImage(articleId, image.index, historyId);
+      onUpdate(updated);
+      toast.success('画像を選択しました');
+    } catch {
+      toast.error('画像の選択に失敗しました');
+    } finally {
+      setSelectingHistory(false);
+    }
+  }
 
   async function handleToggleEnabled(enabled: boolean) {
     try {
@@ -171,6 +185,30 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
             )}
           </div>
         </div>
+
+        {/* History thumbnails */}
+        {image.history && image.history.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-bd">
+            <div className="text-[10px] text-t2 mb-2">過去の生成画像 ({image.history.length})</div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {image.history.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => handleSelectHistory(h.id)}
+                  disabled={selectingHistory}
+                  className="shrink-0 rounded border border-bd hover:border-aB overflow-hidden transition-colors disabled:opacity-50 group relative"
+                  style={{ width: 60, height: 42 }}
+                  title={`${new Date(h.createdAt).toLocaleString('ja-JP')} — クリックで選択`}
+                >
+                  <img src={h.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-bg0/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-[9px] text-t1 font-medium">選択</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

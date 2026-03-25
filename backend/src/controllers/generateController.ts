@@ -279,6 +279,13 @@ export async function generateImageHandler(req: AuthRequest, res: Response): Pro
   const image = article.images.find(img => img.index === imageIndex);
   if (!image) { res.status(404).json({ error: 'Image not found' }); return; }
 
+  // Save current image to history before overwriting
+  if (image.imageUrl) {
+    await prisma.imageHistory.create({
+      data: { imageUrl: image.imageUrl, prompt: image.prompt, imageId: image.id },
+    });
+  }
+
   const { kieApi } = await getUserKeys(req.user!.id);
   const aspectRatio = image.index === 0 ? '16:9' : '1:1';
   const imageUrl = await generateImageWithKie(image.prompt, aspectRatio, kieApi);
@@ -286,6 +293,7 @@ export async function generateImageHandler(req: AuthRequest, res: Response): Pro
   const updated = await prisma.articleImage.update({
     where: { id: image.id },
     data: { imageUrl: imageUrl || undefined },
+    include: { history: { orderBy: { createdAt: 'desc' } } },
   });
   res.json(updated);
 }
@@ -342,6 +350,13 @@ export async function generateImagesBulk(req: AuthRequest, res: Response): Promi
       }
     }
 
+    // Save current image to history before overwriting
+    if (image.imageUrl) {
+      await prisma.imageHistory.create({
+        data: { imageUrl: image.imageUrl, prompt: image.prompt, imageId: image.id },
+      });
+    }
+
     const imageUrl = await generateImageWithKie(prompt, aspectRatio, kieApi);
 
     const updated = await prisma.articleImage.update({
@@ -350,6 +365,7 @@ export async function generateImagesBulk(req: AuthRequest, res: Response): Promi
         prompt,
         ...(imageUrl && { imageUrl }),
       },
+      include: { history: { orderBy: { createdAt: 'desc' } } },
     });
     results.push(updated);
   }

@@ -119,8 +119,18 @@ model ArticleImage {
   imageUrl  String?
   articleId String
   article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  history   ImageHistory[]
 
   @@unique([articleId, index])
+}
+
+model ImageHistory {
+  id        String       @id @default(cuid())
+  imageUrl  String
+  prompt    String       @db.Text
+  imageId   String
+  image     ArticleImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
 }
 
 model WordpressConfig {

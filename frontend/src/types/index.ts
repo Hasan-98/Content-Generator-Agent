@@ -70,6 +70,7 @@ export interface GeneratedResult {
   factCheck?: Record<string, {
     persona: string;
     demoSize: string | null;
+    populationEstimate?: string;
     searchResults: { title: string; link: string; snippet: string }[];
     verified: boolean;
     verdict?: 'confirmed' | 'uncertain' | 'incorrect';
@@ -90,6 +91,14 @@ export interface ArticleSection {
   articleId: string;
 }
 
+export interface ImageHistory {
+  id: string;
+  imageUrl: string;
+  prompt: string;
+  imageId: string;
+  createdAt: string;
+}
+
 export interface ArticleImage {
   id: string;
   index: number;
@@ -98,6 +107,7 @@ export interface ArticleImage {
   prompt: string;
   imageUrl?: string;
   articleId: string;
+  history?: ImageHistory[];
 }
 
 export interface UploadMeta {
