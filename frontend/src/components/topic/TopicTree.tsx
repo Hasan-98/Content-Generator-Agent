@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { TopLevel, Keyword } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import WpConfigModal from '../user/WpConfigModal';
 
 interface Props {
   topLevels: TopLevel[];
@@ -37,6 +38,7 @@ export default function TopicTree({
   const [collapsedKW, setCollapsedKW] = useState<Set<string>>(new Set());
   const [editingTL, setEditingTL] = useState<string | null>(null);
   const [editTLName, setEditTLName] = useState('');
+  const [wpConfigTopic, setWpConfigTopic] = useState<{ id: string; name: string } | null>(null);
 
   function toggleTL(id: string) {
     setCollapsedTL((prev) => {
@@ -145,6 +147,16 @@ export default function TopicTree({
 
               <div className="hidden group-hover:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                 <button
+                  onClick={() => setWpConfigTopic({ id: tl.id, name: tl.name })}
+                  className="w-5 h-5 flex items-center justify-center rounded text-tM hover:bg-aB/15 hover:text-aB transition-colors border-0 bg-transparent"
+                  title={t('treeWpConfig')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M3.5 12l3.2 8.5L9 13l4-1-4-1L6.7 3.5 3.5 12z" />
+                  </svg>
+                </button>
+                <button
                   onClick={() => startEditTL(tl)}
                   className="w-5 h-5 flex items-center justify-center rounded text-tM hover:bg-bg2 hover:text-t1 transition-colors border-0 bg-transparent"
                   title={t('treeEdit')}
@@ -201,6 +213,14 @@ export default function TopicTree({
           </div>
         ))}
       </div>
+
+      {wpConfigTopic && (
+        <WpConfigModal
+          topLevelId={wpConfigTopic.id}
+          topicName={wpConfigTopic.name}
+          onClose={() => setWpConfigTopic(null)}
+        />
+      )}
     </div>
   );
 }

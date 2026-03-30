@@ -5,10 +5,12 @@ import type { WpConfigResponse } from '../../api/wpConfig';
 import toast from 'react-hot-toast';
 
 interface Props {
+  topLevelId: string;
+  topicName: string;
   onClose: () => void;
 }
 
-export default function WpConfigModal({ onClose }: Props) {
+export default function WpConfigModal({ topLevelId, topicName, onClose }: Props) {
   const { t } = useLanguage();
   const [wpUrl, setWpUrl] = useState('');
   const [wpUser, setWpUser] = useState('');
@@ -22,7 +24,7 @@ export default function WpConfigModal({ onClose }: Props) {
   useEffect(() => {
     (async () => {
       try {
-        const config = await getWpConfig();
+        const config = await getWpConfig(topLevelId);
         if (config) {
           setExisting(config);
           setWpUrl(config.wpUrl);
@@ -34,7 +36,7 @@ export default function WpConfigModal({ onClose }: Props) {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [topLevelId]);
 
   async function handleSave() {
     if (!wpUrl.trim() || !wpUser.trim()) {
@@ -54,7 +56,7 @@ export default function WpConfigModal({ onClose }: Props) {
       };
       if (wpPassword.trim()) payload.wpPassword = wpPassword.trim();
 
-      const result = await upsertWpConfig(payload);
+      const result = await upsertWpConfig(topLevelId, payload);
       setExisting(result);
       setWpPassword('');
       toast.success(t('wpConfigSaved'));
@@ -69,7 +71,7 @@ export default function WpConfigModal({ onClose }: Props) {
   async function handleTest() {
     setTesting(true);
     try {
-      const result = await testWpConnection();
+      const result = await testWpConnection(topLevelId);
       if (result.success) {
         toast.success(`${t('wpConfigTestOk')} — ${result.siteName}`);
       } else {
@@ -86,7 +88,7 @@ export default function WpConfigModal({ onClose }: Props) {
   async function handleDelete() {
     setDeleting(true);
     try {
-      await deleteWpConfig();
+      await deleteWpConfig(topLevelId);
       setExisting(null);
       setWpUrl('');
       setWpUser('');
@@ -116,7 +118,7 @@ export default function WpConfigModal({ onClose }: Props) {
             </svg>
             <div>
               <div className="text-sm font-semibold text-t1">{t('wpConfigTitle')}</div>
-              <div className="text-[11px] text-tM mt-0.5">{t('wpConfigSubtitle')}</div>
+              <div className="text-[11px] text-tM mt-0.5">{topicName}</div>
             </div>
           </div>
           <button onClick={onClose} className="text-t2 hover:text-t1 text-lg transition-colors">✕</button>

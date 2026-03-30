@@ -5,10 +5,23 @@ import { encrypt, decrypt } from '../services/crypto';
 
 const prisma = new PrismaClient();
 
-// GET /api/wp-config — get current user's WordPress config (masked password)
+// Verify user owns the topLevel
+async function verifyOwnership(topLevelId: string, userId: string): Promise<boolean> {
+  const tl = await prisma.topLevel.findUnique({ where: { id: topLevelId } });
+  return !!tl && tl.userId === userId;
+}
+
+// GET /api/wp-config/:topLevelId — get WordPress config for a topic
 export async function getWpConfig(req: AuthRequest, res: Response): Promise<void> {
+  const topLevelId = req.params.topLevelId as string;
+
+  if (!await verifyOwnership(topLevelId, req.user!.id)) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
+
   const config = await prisma.wordpressConfig.findUnique({
-    where: { userId: req.user!.id },
+    where: { topLevelId },
   });
 
   if (!config) {
@@ -20,28 +33,33 @@ export async function getWpConfig(req: AuthRequest, res: Response): Promise<void
     id: config.id,
     wpUrl: config.wpUrl,
     wpUser: decrypt(config.wpUserEncrypted),
-    wpPasswordSet: true, // Never send password back, just indicate it's set
+    wpPasswordSet: true,
+    topLevelId: config.topLevelId,
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
   });
 }
 
-// PUT /api/wp-config — create or update WordPress config
+// PUT /api/wp-config/:topLevelId — create or update WordPress config for a topic
 export async function upsertWpConfig(req: AuthRequest, res: Response): Promise<void> {
+  const topLevelId = req.params.topLevelId as string;
   const { wpUrl, wpUser, wpPassword } = req.body;
+
+  if (!await verifyOwnership(topLevelId, req.user!.id)) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
 
   if (!wpUrl || !wpUser) {
     res.status(400).json({ error: 'wpUrl and wpUser are required' });
     return;
   }
 
-  const userId = req.user!.id;
-  const existing = await prisma.wordpressConfig.findUnique({ where: { userId } });
+  const existing = await prisma.wordpressConfig.findUnique({ where: { topLevelId } });
 
   const data = {
-    wpUrl: wpUrl.replace(/\/+$/, ''), // strip trailing slash
+    wpUrl: wpUrl.replace(/\/+$/, ''),
     wpUserEncrypted: encrypt(wpUser),
-    // Only update password if provided (allows updating URL/user without re-entering password)
     ...(wpPassword ? { wpPassEncrypted: encrypt(wpPassword) } : {}),
   };
 
@@ -51,40 +69,53 @@ export async function upsertWpConfig(req: AuthRequest, res: Response): Promise<v
       return;
     }
     const config = await prisma.wordpressConfig.update({
-      where: { userId },
+      where: { topLevelId },
       data,
     });
-    res.json({ id: config.id, wpUrl: config.wpUrl, wpUser, wpPasswordSet: true });
+    res.json({ id: config.id, wpUrl: config.wpUrl, wpUser, wpPasswordSet: true, topLevelId });
   } else {
     if (!wpPassword) {
       res.status(400).json({ error: 'wpPassword is required for first setup' });
       return;
     }
     const config = await prisma.wordpressConfig.create({
-      data: { userId, ...data, wpPassEncrypted: encrypt(wpPassword) },
+      data: { topLevelId, ...data, wpPassEncrypted: encrypt(wpPassword) },
     });
-    res.status(201).json({ id: config.id, wpUrl: config.wpUrl, wpUser, wpPasswordSet: true });
+    res.status(201).json({ id: config.id, wpUrl: config.wpUrl, wpUser, wpPasswordSet: true, topLevelId });
   }
 }
 
-// DELETE /api/wp-config — remove WordPress config
+// DELETE /api/wp-config/:topLevelId — remove WordPress config for a topic
 export async function deleteWpConfig(req: AuthRequest, res: Response): Promise<void> {
-  const userId = req.user!.id;
-  const existing = await prisma.wordpressConfig.findUnique({ where: { userId } });
+  const topLevelId = req.params.topLevelId as string;
+
+  if (!await verifyOwnership(topLevelId, req.user!.id)) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
+
+  const existing = await prisma.wordpressConfig.findUnique({ where: { topLevelId } });
 
   if (!existing) {
     res.status(404).json({ error: 'No WordPress config found' });
     return;
   }
 
-  await prisma.wordpressConfig.delete({ where: { userId } });
+  await prisma.wordpressConfig.delete({ where: { topLevelId } });
   res.json({ success: true });
 }
 
-// POST /api/wp-config/test — test connection to WordPress
+// POST /api/wp-config/:topLevelId/test — test connection to WordPress
 export async function testWpConfig(req: AuthRequest, res: Response): Promise<void> {
+  const topLevelId = req.params.topLevelId as string;
+
+  if (!await verifyOwnership(topLevelId, req.user!.id)) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
+
   const config = await prisma.wordpressConfig.findUnique({
-    where: { userId: req.user!.id },
+    where: { topLevelId },
   });
 
   if (!config) {

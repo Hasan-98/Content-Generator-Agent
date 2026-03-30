@@ -19,7 +19,7 @@ const en = {
   authErrorInvalid: 'Incorrect email or password',
 
   // Titlebar
-  titlebarUserMgmt: 'User Management',
+  titlebarUserMgmt: 'Subscribers',
   titlebarAccountSettings: 'Account Settings',
   titlebarLogout: 'Logout',
   titlebarWpSettings: 'WordPress Settings',
@@ -127,6 +127,7 @@ const en = {
   treeAddTop: 'Add top level',
   treeEdit: 'Edit',
   treeDelete: 'Delete',
+  treeWpConfig: 'WordPress Settings',
   treeAddKeyword: 'Add Keywords...',
 
   // Keyword Card
@@ -299,7 +300,7 @@ const en = {
   refClose: '閉じる',
 
   // User Modal
-  usersTitle: 'User Management',
+  usersTitle: 'SUbscribers',
   usersAddUser: 'Add User',
   usersName: 'Name',
   usersNamePlaceholder: 'John Smith',
@@ -380,7 +381,7 @@ const ja: Record<TKey, string> = {
   authErrorInvalid: 'メールアドレスまたはパスワードが正しくありません',
 
   // Titlebar
-  titlebarUserMgmt: 'ユーザー管理',
+  titlebarUserMgmt: 'サブスクライバー',
   titlebarAccountSettings: 'アカウント設定',
   titlebarLogout: 'ログアウト',
   titlebarWpSettings: 'WordPress設定',
@@ -488,6 +489,7 @@ const ja: Record<TKey, string> = {
   treeAddTop: 'トップを追加',
   treeEdit: '編集',
   treeDelete: '削除',
+  treeWpConfig: 'WordPress設定',
   treeAddKeyword: 'キーワードを追加...',
 
   // Keyword Card
@@ -660,8 +662,8 @@ const ja: Record<TKey, string> = {
   refClose: '閉じる',
 
   // User Modal
-  usersTitle: 'ユーザー管理',
-  usersAddUser: 'ユーザーを追加',
+  usersTitle: 'サブスクライバー',
+  usersAddUser: 'サブスクライバーを追加',
   usersName: '名前',
   usersNamePlaceholder: '山田 太郎',
   usersEmail: 'メールアドレス',
@@ -670,7 +672,7 @@ const ja: Record<TKey, string> = {
   usersRole: '権限',
   usersAdd: '追加',
   usersLoading: '読み込み中…',
-  usersColUser: 'ユーザー',
+  usersColUser: 'サブスクライバー',
   usersColRole: '権限',
   usersColStatus: 'ステータス',
   usersColLastLogin: '最終ログイン',
@@ -688,9 +690,9 @@ const ja: Record<TKey, string> = {
   roleViewer: '閲覧者',
 
   // User toast messages
-  toastUsersLoadFailed: 'ユーザーの読み込みに失敗しました',
+  toastUsersLoadFailed: 'サブスクライバーの読み込みに失敗しました',
   toastUsersFillAll: 'すべてのフィールドを入力してください',
-  toastUsersCreateFailed: 'ユーザーの作成に失敗しました',
+  toastUsersCreateFailed: 'サブスクライバーの作成に失敗しました',
   toastUsersUpdateFailed: '更新に失敗しました',
   toastUsersRoleChangeFailed: '権限の変更に失敗しました',
   toastUsersDeleteFailed: '削除に失敗しました',

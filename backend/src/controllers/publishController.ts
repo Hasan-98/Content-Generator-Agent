@@ -58,9 +58,10 @@ export async function publish(req: AuthRequest, res: Response): Promise<void> {
   let postUrl: string | null = null;
 
   if (platform === 'wordpress') {
-    // Load per-user WordPress credentials
+    // Load per-topic WordPress credentials
+    const topLevelId = article.result.keyword.topLevelId;
     const wpConfig = await prisma.wordpressConfig.findUnique({
-      where: { userId: req.user!.id },
+      where: { topLevelId },
     });
 
     let credentials;

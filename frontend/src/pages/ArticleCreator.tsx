@@ -225,6 +225,8 @@ export default function ArticleCreator() {
             <UploadPanel
               article={article}
               result={selectedResult}
+              topLevelId={topLevels.find(tl => tl.keywords.some(k => k.id === selectedResult.keywordId))?.id ?? ''}
+              topicName={topLevels.find(tl => tl.keywords.some(k => k.id === selectedResult.keywordId))?.name ?? ''}
               onArticleUpdate={setArticle}
               onBack={() => setPhase('image')}
             />

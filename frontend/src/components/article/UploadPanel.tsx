@@ -3,11 +3,15 @@ import { useLanguage } from '../../context/LanguageContext';
 import type { Article, GeneratedResult } from '../../types';
 import { upsertUploadMeta } from '../../api/articles';
 import { publish } from '../../api/publish';
+import { getWpConfig } from '../../api/wpConfig';
+import WpConfigModal from '../user/WpConfigModal';
 import toast from 'react-hot-toast';
 
 interface Props {
   article: Article;
   result: GeneratedResult;
+  topLevelId: string;
+  topicName: string;
   onArticleUpdate: (article: Article) => void;
   onBack: () => void;
 }
@@ -16,7 +20,7 @@ type UploadTab = 'preview' | 'seo' | 'platform';
 type Platform = 'wordpress' | 'shopify';
 type PubStatus = 'PUBLISH' | 'DRAFT' | 'SCHEDULE';
 
-export default function UploadPanel({ article, result, onArticleUpdate, onBack }: Props) {
+export default function UploadPanel({ article, result, topLevelId, topicName, onArticleUpdate, onBack }: Props) {
   const { t } = useLanguage();
   const [tab, setTab] = useState<UploadTab>('seo');
   const [platform, setPlatform] = useState<Platform>('wordpress');
@@ -26,6 +30,7 @@ export default function UploadPanel({ article, result, onArticleUpdate, onBack }
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
   const [postUrl, setPostUrl] = useState<string | null>(null);
+  const [showWpConfig, setShowWpConfig] = useState(false);
 
   const meta = article.uploadMeta;
   const [slug, setSlug] = useState(meta?.slug ?? '');
@@ -52,6 +57,20 @@ export default function UploadPanel({ article, result, onArticleUpdate, onBack }
   }
 
   async function handlePublish() {
+    // Check if WordPress credentials exist for this topic
+    if (platform === 'wordpress') {
+      try {
+        const config = await getWpConfig(topLevelId);
+        if (!config) {
+          setShowWpConfig(true);
+          return;
+        }
+      } catch {
+        setShowWpConfig(true);
+        return;
+      }
+    }
+
     setPublishing(true);
     try {
       await handleSaveMeta();
@@ -296,6 +315,14 @@ export default function UploadPanel({ article, result, onArticleUpdate, onBack }
           </div>
         )}
       </div>
+
+      {showWpConfig && (
+        <WpConfigModal
+          topLevelId={topLevelId}
+          topicName={topicName}
+          onClose={() => setShowWpConfig(false)}
+        />
+      )}
     </div>
   );
 }

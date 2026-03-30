@@ -11,7 +11,6 @@ import ArticleCreator from './pages/ArticleCreator';
 import InstagramPanel from './pages/InstagramPanel';
 import UserModal from './components/user/UserModal';
 import UserSettingsModal from './components/user/UserSettingsModal';
-import WpConfigModal from './components/user/WpConfigModal';
 import SettingsModal from './components/user/SettingsModal';
 
 function AppShell() {
@@ -19,7 +18,6 @@ function AppShell() {
   const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'instagram'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [wpConfigModalOpen, setWpConfigModalOpen] = useState(false);
   const [apiSettingsModalOpen, setApiSettingsModalOpen] = useState(false);
 
   if (loading) {
@@ -64,7 +62,7 @@ function AppShell() {
           </button>
         </div>
       )}
-      <Titlebar onOpenUsers={() => setUserModalOpen(true)} onOpenSettings={() => setSettingsModalOpen(true)} onOpenWpConfig={() => setWpConfigModalOpen(true)} />
+      <Titlebar onOpenUsers={() => setUserModalOpen(true)} onOpenSettings={() => setSettingsModalOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
         <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'instagram')} />
         {activeTab === 'topic' ? <TopicCreator /> : activeTab === 'article' ? <ArticleCreator /> : <InstagramPanel />}
@@ -72,7 +70,6 @@ function AppShell() {
       <Statusbar section={sectionLabel} onOpenSettings={() => setApiSettingsModalOpen(true)} />
       {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} />}
       {settingsModalOpen && <UserSettingsModal onClose={() => setSettingsModalOpen(false)} />}
-      {wpConfigModalOpen && <WpConfigModal onClose={() => setWpConfigModalOpen(false)} />}
       {apiSettingsModalOpen && <SettingsModal onClose={() => setApiSettingsModalOpen(false)} />}
     </div>
   );

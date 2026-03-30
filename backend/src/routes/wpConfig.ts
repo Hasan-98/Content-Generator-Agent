@@ -6,9 +6,9 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/', getWpConfig);
-router.put('/', upsertWpConfig);
-router.delete('/', deleteWpConfig);
-router.post('/test', testWpConfig);
+router.get('/:topLevelId', getWpConfig);
+router.put('/:topLevelId', upsertWpConfig);
+router.delete('/:topLevelId', deleteWpConfig);
+router.post('/:topLevelId/test', testWpConfig);
 
 export default router;
