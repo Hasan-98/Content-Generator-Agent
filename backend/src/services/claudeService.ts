@@ -1,10 +1,24 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
-const defaultClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const defaultClient = new OpenAI({ apiKey: process.env.OPEN_API });
 
-function getClient(apiKey?: string): Anthropic {
-  if (apiKey) return new Anthropic({ apiKey });
+function getClient(apiKey?: string): OpenAI {
+  if (apiKey) return new OpenAI({ apiKey });
   return defaultClient;
+}
+
+async function chat(client: OpenAI, model: string, systemPrompt: string | null, userPrompt: string, maxTokens: number): Promise<string> {
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+  if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+  messages.push({ role: 'user', content: userPrompt });
+
+  const completion = await client.chat.completions.create({
+    model,
+    max_tokens: maxTokens,
+    messages,
+  });
+
+  return completion.choices[0]?.message?.content ?? '';
 }
 
 export interface GeneratedPair {
@@ -77,16 +91,10 @@ Output ONLY valid JSON array with exactly 10 objects:
   { "keyword": "...", "title": "..." }
 ]`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 2048);
 
   const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Failed to parse Claude response as JSON array');
+  if (!jsonMatch) throw new Error('Failed to parse OpenAI response as JSON array');
 
   return JSON.parse(jsonMatch[0]) as GeneratedPair[];
 }
@@ -140,15 +148,9 @@ Output ONLY valid JSON:
   "structH2": "..."
 }`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 4096);
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Failed to parse Claude persona response');
+  if (!jsonMatch) throw new Error('Failed to parse OpenAI persona response');
 
   return JSON.parse(jsonMatch[0]) as PersonaStructureResult;
 }
@@ -173,13 +175,8 @@ ${instruction ? `- Special instruction: ${instruction}` : ''}
 Regenerate only the "${fieldKey}" field with a fresh, improved version.
 Output ONLY the new value as plain text (no JSON wrapper, no quotes).`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 512,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  return message.content[0].type === 'text' ? message.content[0].text.trim() : currentValue;
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 512);
+  return text.trim() || currentValue;
 }
 
 export async function generateArticle(result: {
@@ -236,15 +233,9 @@ Output ONLY valid JSON array with exactly 8 objects:
 
 Write all content in Japanese. Each content section should be 150-300 characters.`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 8192,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 8192);
   const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Failed to parse Claude article response');
+  if (!jsonMatch) throw new Error('Failed to parse OpenAI article response');
 
   return JSON.parse(jsonMatch[0]) as ArticleSection[];
 }
@@ -284,13 +275,7 @@ verdict must be exactly one of: "confirmed", "uncertain", "incorrect"
 reason must be a single sentence in Japanese explaining your assessment.
 populationEstimate must be a concrete population count in Japanese (e.g. "約120万人", "推定80万〜100万人"). Based on the search results, provide your best estimate of the actual population size for this persona segment in Japan.`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 256,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 256);
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return { verdict: 'uncertain', reason: '検証結果の解析に失敗しました。' };
 
@@ -307,10 +292,7 @@ export async function generateTitleImagePrompt(
   contentSummary: string,
   apiKey?: string
 ): Promise<string> {
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: `You are an expert at creating image generation prompts for Japanese blog title thumbnails (YouTube thumbnail style).
+  const systemPrompt = `You are an expert at creating image generation prompts for Japanese blog title thumbnails (YouTube thumbnail style).
 Your output must be a single image generation prompt string only — no explanation, no preamble, no JSON.
 
 Design rules:
@@ -324,20 +306,15 @@ Design rules:
 - Style: catchy informative catalog, YouTube thumbnail, modern Japanese blog
 - Aspect ratio: 16:9
 - Output the ENTIRE prompt in Japanese
-- All text elements in the generated image must be in Japanese`,
-    messages: [
-      {
-        role: 'user',
-        content: `Keyword: ${keyword}
+- All text elements in the generated image must be in Japanese`;
+
+  const userPrompt = `Keyword: ${keyword}
 Title: ${title}
 Article summary: ${contentSummary}
 
-Create an image generation prompt for the title thumbnail.`,
-      },
-    ],
-  });
+Create an image generation prompt for the title thumbnail.`;
 
-  return message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+  return (await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 1024)).trim();
 }
 
 export async function generateInfographicPrompt(
@@ -347,10 +324,7 @@ export async function generateInfographicPrompt(
   sectionContent: string,
   apiKey?: string
 ): Promise<string> {
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: `You are an expert at creating image generation prompts for Japanese blog infographic illustrations.
+  const systemPrompt = `You are an expert at creating image generation prompts for Japanese blog infographic illustrations.
 Your output must be a single image generation prompt string only — no explanation, no preamble, no JSON.
 
 Analysis steps (internal only, do not output):
@@ -370,21 +344,16 @@ Design rules (MUST follow):
 - Professional blog illustration
 - Article title as heading at top
 - Japanese text labels for each key point
-- Output the ENTIRE prompt in Japanese`,
-    messages: [
-      {
-        role: 'user',
-        content: `Keyword: ${keyword}
+- Output the ENTIRE prompt in Japanese`;
+
+  const userPrompt = `Keyword: ${keyword}
 Article title: ${title}
 Section heading: ${sectionHeading}
 Section content: ${sectionContent}
 
-Create an infographic image generation prompt for this section.`,
-      },
-    ],
-  });
+Create an infographic image generation prompt for this section.`;
 
-  return message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+  return (await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 1024)).trim();
 }
 
 export interface FormattedArticle {
@@ -410,7 +379,6 @@ export async function formatArticleForPublish(
     .map(s => `【${s.heading}】\n${s.content}`)
     .join('\n\n');
 
-  // Build image placement instructions based on section types
   const sectionMap = sections.map((s, i) => `${i}: ${s.type} — ${s.heading}`).join('\n');
 
   const prompt = `あなたは経験豊富なWebライター兼編集者です。
@@ -462,15 +430,8 @@ ${imageList || '画像なし'}
 キーワード: ${keyword}
 元タイトル: ${articleTitle}`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 16384,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 16384);
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
-
-  // Strip markdown code fences if present
   let jsonStr = text;
   if (jsonStr.includes('```json')) {
     jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
@@ -479,7 +440,7 @@ ${imageList || '画像なし'}
   }
 
   const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Failed to parse Claude formatting response as JSON');
+  if (!jsonMatch) throw new Error('Failed to parse OpenAI formatting response as JSON');
 
   return JSON.parse(jsonMatch[0]) as FormattedArticle;
 }
@@ -502,13 +463,8 @@ Rewrite this section with fresh, improved content.
 Output ONLY the new content as plain text (no JSON, no quotes, no heading).
 Write in Japanese. 150-300 characters.`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  return message.content[0].type === 'text' ? message.content[0].text.trim() : section.content;
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 1024);
+  return text.trim() || section.content;
 }
 
 export async function regenerateSectionHeading(
@@ -530,11 +486,6 @@ Generate a new, compelling heading for this section that:
 
 Output ONLY the new heading as plain text (no JSON, no quotes, no explanation).`;
 
-  const message = await getClient(apiKey).messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 256,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  return message.content[0].type === 'text' ? message.content[0].text.trim() : section.heading;
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 256);
+  return text.trim() || section.heading;
 }

@@ -20,11 +20,11 @@ const prisma = new PrismaClient();
 
 // Helper: fetch user's custom API keys (Claude + Kie)
 async function getUserKeys(userId: string) {
-  const [claudeApi, kieApi] = await Promise.all([
-    getUserApiKey(userId, 'claudeApi'),
+  const [openaiApi, kieApi] = await Promise.all([
+    getUserApiKey(userId, 'openaiApi'),
     getUserApiKey(userId, 'kieApi'),
   ]);
-  return { claudeApi: claudeApi || undefined, kieApi: kieApi || undefined };
+  return { claudeApi: openaiApi || undefined, kieApi: kieApi || undefined };
 }
 
 // Default image prompts per taste
