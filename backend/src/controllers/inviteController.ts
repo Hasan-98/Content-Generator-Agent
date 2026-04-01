@@ -65,7 +65,7 @@ export async function sendInvite(req: AuthRequest, res: Response): Promise<void>
 
 // GET /api/invites/:token — Validate token (public)
 export async function validateInvite(req: Request, res: Response): Promise<void> {
-  const { token } = req.params;
+  const token = req.params.token as string;
 
   const invite = await prisma.invite.findUnique({
     where: { token },
@@ -94,7 +94,7 @@ export async function validateInvite(req: Request, res: Response): Promise<void>
 
 // POST /api/invites/:token/accept — Create account from invite (public)
 export async function acceptInvite(req: Request, res: Response): Promise<void> {
-  const { token } = req.params;
+  const token = req.params.token as string;
   const { name, password } = req.body;
 
   if (!name || !password) {
@@ -102,7 +102,10 @@ export async function acceptInvite(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const invite = await prisma.invite.findUnique({ where: { token } });
+  const invite = await prisma.invite.findUnique({
+    where: { token },
+    include: { invitedBy: { select: { name: true } } },
+  });
 
   if (!invite) {
     res.status(404).json({ error: 'Invalid invite link' });
