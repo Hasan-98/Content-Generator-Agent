@@ -12,6 +12,7 @@ import articleRoutes from './routes/articles';
 import publishRoutes from './routes/publish';
 import wpConfigRoutes from './routes/wpConfig';
 import apiConfigRoutes from './routes/apiConfig';
+import inviteRoutes from './routes/invites';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use('/api/articles', articleRoutes);
 app.use('/api/publish', publishRoutes);
 app.use('/api/wp-config', wpConfigRoutes);
 app.use('/api/api-config', apiConfigRoutes);
+app.use('/api/invites', inviteRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

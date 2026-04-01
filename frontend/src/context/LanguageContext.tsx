@@ -20,6 +20,7 @@ const en = {
 
   // Titlebar
   titlebarUserMgmt: 'Subscribers',
+  titlebarInviteUser: 'Invite User',
   titlebarAccountSettings: 'Account Settings',
   titlebarLogout: 'Logout',
   titlebarWpSettings: 'WordPress Settings',
@@ -382,6 +383,7 @@ const ja: Record<TKey, string> = {
 
   // Titlebar
   titlebarUserMgmt: 'サブスクライバー',
+  titlebarInviteUser: 'ユーザーを招待',
   titlebarAccountSettings: 'アカウント設定',
   titlebarLogout: 'ログアウト',
   titlebarWpSettings: 'WordPress設定',

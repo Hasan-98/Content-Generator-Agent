@@ -12,11 +12,18 @@ import InstagramPanel from './pages/InstagramPanel';
 import UserModal from './components/user/UserModal';
 import UserSettingsModal from './components/user/UserSettingsModal';
 import SettingsModal from './components/user/SettingsModal';
+import AcceptInvite from './pages/AcceptInvite';
+
+function getInviteToken(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('invite');
+}
 
 function AppShell() {
   const { user, loading, isImpersonating, isViewingAs, returnToAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'instagram'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [userModalInvite, setUserModalInvite] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [apiSettingsModalOpen, setApiSettingsModalOpen] = useState(false);
 
@@ -62,17 +69,27 @@ function AppShell() {
           </button>
         </div>
       )}
-      <Titlebar onOpenUsers={() => setUserModalOpen(true)} onOpenSettings={() => setSettingsModalOpen(true)} />
+      <Titlebar onOpenUsers={() => { setUserModalInvite(false); setUserModalOpen(true); }} onOpenSettings={() => setSettingsModalOpen(true)} onInviteUser={() => { setUserModalInvite(true); setUserModalOpen(true); }} />
       <div className="flex flex-1 overflow-hidden">
         <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'instagram')} />
         {activeTab === 'topic' ? <TopicCreator /> : activeTab === 'article' ? <ArticleCreator /> : <InstagramPanel />}
       </div>
       <Statusbar section={sectionLabel} onOpenSettings={() => setApiSettingsModalOpen(true)} />
-      {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} />}
+      {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} defaultShowInvite={userModalInvite} />}
       {settingsModalOpen && <UserSettingsModal onClose={() => setSettingsModalOpen(false)} />}
       {apiSettingsModalOpen && <SettingsModal onClose={() => setApiSettingsModalOpen(false)} />}
     </div>
   );
+}
+
+function InviteGate() {
+  const inviteToken = getInviteToken();
+  const [dismissed, setDismissed] = useState(false);
+
+  if (inviteToken && !dismissed) {
+    return <AcceptInvite token={inviteToken} onDismiss={() => setDismissed(true)} />;
+  }
+  return <AppShell />;
 }
 
 export default function App() {
@@ -90,7 +107,7 @@ export default function App() {
             },
           }}
         />
-        <AppShell />
+        <InviteGate />
       </AuthProvider>
     </LanguageProvider>
   );

@@ -5,9 +5,10 @@ import { useLanguage } from '../../context/LanguageContext';
 interface Props {
   onOpenUsers: () => void;
   onOpenSettings: () => void;
+  onInviteUser: () => void;
 }
 
-export default function Titlebar({ onOpenUsers, onOpenSettings }: Props) {
+export default function Titlebar({ onOpenUsers, onOpenSettings, onInviteUser }: Props) {
   const { user, logout } = useAuth();
   const { lang, toggle, t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -75,6 +76,18 @@ export default function Titlebar({ onOpenUsers, onOpenSettings }: Props) {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                   {t('titlebarUserMgmt')}
+                </button>
+              )}
+              {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && (
+                <button
+                  onClick={() => { setMenuOpen(false); onInviteUser(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-t2 text-xs hover:bg-bg2 hover:text-t1 transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[17px] h-[17px] shrink-0">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  {t('titlebarInviteUser')}
                 </button>
               )}
               <button

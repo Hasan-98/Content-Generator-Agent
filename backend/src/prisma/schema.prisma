@@ -19,6 +19,19 @@ model User {
   updatedAt    DateTime   @updatedAt
   topLevels       TopLevel[]
   apiConfig       ApiConfig?
+  sentInvites     Invite[]
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  email       String
+  role        Role      @default(EDITOR)
+  token       String    @unique @default(cuid())
+  invitedById String
+  invitedBy   User      @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
 }
 
 model TopLevel {

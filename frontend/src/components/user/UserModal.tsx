@@ -3,11 +3,13 @@ import toast from 'react-hot-toast';
 import type { User, Role } from '../../types';
 import { getUsers, createUser, updateUser, deleteUser } from '../../api/users';
 import { impersonateUser, viewAsUser, editAsUser } from '../../api/auth';
+import { sendInvite } from '../../api/invites';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface Props {
   onClose: () => void;
+  defaultShowInvite?: boolean;
 }
 
 const AVATAR_COLORS = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f778ba', '#39d2c0', '#f85149'];
@@ -19,12 +21,15 @@ const ROLE_COLORS: Record<Role, string> = {
   VIEWER: 'bg-t2/15 text-t2',
 };
 
-export default function UserModal({ onClose }: Props) {
+export default function UserModal({ onClose, defaultShowInvite = false }: Props) {
   const { user: currentUser, startImpersonation, startViewAs } = useAuth();
   const { lang, t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'EDITOR' });
+  const [inviteForm, setInviteForm] = useState({ email: '', role: 'EDITOR' });
+  const [inviting, setInviting] = useState(false);
+  const [showInvitePanel, setShowInvitePanel] = useState(defaultShowInvite);
 
   const getRoleLabel = (role: Role) => {
     const map: Record<Role, ReturnType<typeof t>> = {
@@ -124,6 +129,22 @@ export default function UserModal({ onClose }: Props) {
     }
   }
 
+  async function handleSendInvite() {
+    if (!inviteForm.email) { toast.error('Please enter an email address'); return; }
+    setInviting(true);
+    try {
+      await sendInvite(inviteForm.email, inviteForm.role);
+      toast.success(`Invite sent to ${inviteForm.email}`);
+      setInviteForm({ email: '', role: 'EDITOR' });
+      setShowInvitePanel(false);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to send invite';
+      toast.error(msg);
+    } finally {
+      setInviting(false);
+    }
+  }
+
   async function handleEditAs(user: User) {
     try {
       const { token, user: targetUser } = await editAsUser(user.id);
@@ -152,15 +173,75 @@ export default function UserModal({ onClose }: Props) {
             </svg>
             {t('usersTitle')}
           </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-t2 hover:bg-bg2 hover:text-t1 transition-colors text-lg leading-none"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowInvitePanel((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-aB/10 hover:bg-aB/20 text-aB text-xs font-semibold rounded-lg border border-aB/20 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              Invite User
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-t2 hover:bg-bg2 hover:text-t1 transition-colors text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Invite User Panel */}
+          {showInvitePanel && (
+            <div className="bg-aB/[0.06] border border-aB/20 rounded-[10px] px-5 py-4">
+              <h3 className="text-aB text-xs font-semibold mb-3 flex items-center gap-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Invite via Email
+              </h3>
+              <p className="text-t2 text-[11px] mb-3 leading-relaxed">
+                Send an invitation email. The recipient gets a link to create their account.
+              </p>
+              <div className="flex gap-2.5 items-end flex-wrap">
+                <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+                  <label className="text-t2 text-[11px] font-mono">Email address</label>
+                  <input
+                    type="email"
+                    placeholder="colleague@example.com"
+                    value={inviteForm.email}
+                    onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSendInvite(); }}
+                    className="bg-bg1 border border-bd rounded-md px-2.5 py-[7px] text-t1 text-xs focus:outline-none focus:border-aB w-full"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 min-w-[110px]">
+                  <label className="text-t2 text-[11px] font-mono">{t('usersRole')}</label>
+                  <select
+                    value={inviteForm.role}
+                    onChange={(e) => setInviteForm((p) => ({ ...p, role: e.target.value }))}
+                    className="bg-bg1 border border-bd rounded-md px-2.5 py-[7px] text-t1 text-xs focus:outline-none focus:border-aB cursor-pointer appearance-none"
+                  >
+                    <option value="EDITOR">{t('roleEditor')}</option>
+                    <option value="VIEWER">{t('roleViewer')}</option>
+                    <option value="ADMIN">{t('roleAdmin')}</option>
+                  </select>
+                </div>
+                <button
+                  onClick={handleSendInvite}
+                  disabled={inviting}
+                  className="px-[18px] py-[7px] bg-aB hover:bg-[#4c97f5] disabled:opacity-50 disabled:cursor-not-allowed text-bg0 text-xs font-semibold rounded-md transition-colors whitespace-nowrap h-[34px]"
+                >
+                  {inviting ? 'Sending…' : 'Send Invite'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Add User Form */}
           <div className="bg-bg0 border border-bd rounded-[10px] px-5 py-4">
             <h3 className="text-aG text-xs font-semibold mb-3.5 flex items-center gap-2">
