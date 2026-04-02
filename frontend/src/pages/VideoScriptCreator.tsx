@@ -244,7 +244,7 @@ export default function VideoScriptCreator() {
         ...(narration !== undefined && { narration }),
         ...(heading !== undefined && { heading }),
         ...(points !== undefined && { points }),
-        ...(visualType !== undefined && { visualType }),
+        ...(visualType !== undefined && { visualType: visualType as import('../types').VisualType }),
         ...(visualNote !== undefined && { visualNote }),
       });
       setSelectedScript((prev) => {
