@@ -292,21 +292,22 @@ export async function generateTitleImagePrompt(
   contentSummary: string,
   apiKey?: string
 ): Promise<string> {
-  const systemPrompt = `You are an expert at creating image generation prompts for Japanese blog title thumbnails (YouTube thumbnail style).
+  const systemPrompt = `You are an expert at creating image generation prompts for professional blog featured images.
 Your output must be a single image generation prompt string only — no explanation, no preamble, no JSON.
 
 Design rules:
-- Main text: condensed Japanese phrase from the title (max 3 lines), placed center-large
-- Sub text: supporting info in side bands (top/right/left corners)
-- Background: dark grey or near-black, moody professional feel
-- Main text color: #FFFFFF, accent/highlight: #FFFF00
-- Font style: ultra-bold, minimal serifs, high readability
-- Layout: central headline, supplementary info distributed around edges
-- Decorations: capsule strips, dotted separators, simple shapes, person photo lower-right
-- Style: catchy informative catalog, YouTube thumbnail, modern Japanese blog
-- Aspect ratio: 16:9
-- Output the ENTIRE prompt in Japanese
-- All text elements in the generated image must be in Japanese`;
+- Create a visually striking, professional blog header image
+- Use conceptual imagery that represents the article topic (NOT text-heavy)
+- Style: modern, clean, high-quality stock photo or digital illustration feel
+- Lighting: professional, well-lit, cinematic quality
+- Color palette: rich and cohesive, matching the topic mood
+- Composition: rule of thirds, clear focal point, good negative space
+- Include relevant objects, scenes, or metaphorical imagery related to the topic
+- DO NOT include any text, words, letters, or typography in the image
+- DO NOT include UI elements, buttons, or overlay graphics
+- Aspect ratio: 16:9 (wide landscape)
+- Resolution: high detail, sharp focus
+- Mood: professional, trustworthy, engaging`;
 
   const userPrompt = `Keyword: ${keyword}
 Title: ${title}
@@ -324,27 +325,25 @@ export async function generateInfographicPrompt(
   sectionContent: string,
   apiKey?: string
 ): Promise<string> {
-  const systemPrompt = `You are an expert at creating image generation prompts for Japanese blog infographic illustrations.
+  const systemPrompt = `You are an expert at creating image generation prompts for blog section illustrations.
 Your output must be a single image generation prompt string only — no explanation, no preamble, no JSON.
 
 Analysis steps (internal only, do not output):
-1. Determine content type: comparison (A vs B → split layout) / process (steps → flowchart) / general (icons + sections)
-2. Choose style: Flat design OR Isometric OR Minimalist
-3. Choose data element: Flowchart OR Charts OR Icons OR Timeline
-4. Choose 2 accent colors (hex)
-5. Extract 3-5 key points as short Japanese labels
+1. Determine the key concept of this section
+2. Choose a visual metaphor or scene that represents the concept
+3. Pick a style: flat illustration, isometric, or clean photography
 
 Design rules (MUST follow):
-- ALL TEXT IN JAPANESE — no English text
-- White background
 - 1:1 square aspect ratio
-- High contrast, generous white space, clear visual hierarchy
-- NO photo-realistic — only vector/flat/isometric style
-- NOT messy or overcrowded
-- Professional blog illustration
-- Article title as heading at top
-- Japanese text labels for each key point
-- Output the ENTIRE prompt in Japanese`;
+- Clean, professional illustration or conceptual photograph
+- Clear visual hierarchy with a single focal point
+- Soft, cohesive color palette with 2-3 accent colors
+- Generous white space, not cluttered
+- DO NOT include any text, words, letters, numbers, or typography
+- DO NOT include charts, graphs, or data visualizations with labels
+- Use visual metaphors, icons, objects, or scenes instead of text
+- Style: modern, minimal, suitable for professional blog
+- High quality, sharp details`;
 
   const userPrompt = `Keyword: ${keyword}
 Article title: ${title}
@@ -465,6 +464,145 @@ Write in Japanese. 150-300 characters.`;
 
   const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 1024);
   return text.trim() || section.content;
+}
+
+export interface VideoScriptResult {
+  title: string;
+  sections: {
+    section: string;
+    heading: string;
+    points: string;
+    type: string;
+    narration: string;
+    background_keyword: string;
+    visual_type: string;
+    visual_note: string;
+  }[];
+}
+
+// Post-processing: enforce visual_type rules from the workflow
+function enforceVisualTypeRules(sections: VideoScriptResult['sections']): void {
+  if (sections.length !== 8) return;
+
+  // Intro and outro must be avatar
+  sections[0].visual_type = 'avatar';
+  sections[7].visual_type = 'avatar';
+
+  // Count non-speaker sections in middle (index 1-6)
+  const noSpeakerIndices: number[] = [];
+  for (let i = 1; i <= 6; i++) {
+    if (sections[i].visual_type === 'scenery' || sections[i].visual_type === 'closeup') {
+      noSpeakerIndices.push(i);
+    }
+  }
+
+  // Max 2 non-speaker sections — convert extras to avatar
+  if (noSpeakerIndices.length > 2) {
+    const fixIndices = noSpeakerIndices.slice(2);
+    for (const idx of fixIndices) {
+      sections[idx].visual_type = 'avatar';
+      sections[idx].visual_note = '自動修正: 回想シーン超過のためavatarに変更';
+    }
+  }
+
+  // No consecutive scenery/closeup
+  for (let i = 1; i < 7; i++) {
+    const curr = sections[i].visual_type;
+    const prev = sections[i - 1].visual_type;
+    if (
+      (curr === 'scenery' || curr === 'closeup') &&
+      (prev === 'scenery' || prev === 'closeup')
+    ) {
+      sections[i].visual_type = 'avatar';
+      sections[i].visual_note = '自動修正: 回想シーン連続のためavatarに変更';
+    }
+  }
+}
+
+export async function generateVideoScript(
+  articleTitle: string,
+  articleContent: string,
+  apiKey?: string
+): Promise<VideoScriptResult> {
+  const systemPrompt = '動画スクリプト専門家。JSONのみ出力。話し手が主役の動画を作る。回想シーンは最小限に。';
+
+  const userPrompt = `以下のブログ記事から、2分程度の解説動画用スクリプトを生成してください。
+
+【ブログ記事タイトル】
+${articleTitle}
+
+【ブログ記事本文】
+${articleContent}
+
+JSON形式のみ出力。説明文不要。
+
+\`\`\`json
+{
+  "title": "動画タイトル",
+  "sections": [
+    {
+      "section": "イントロ",
+      "heading": "見出し",
+      "points": "ポイント1、ポイント2、ポイント3",
+      "type": "general",
+      "narration": "ナレーションテキスト",
+      "background_keyword": "english keyword",
+      "visual_type": "avatar",
+      "visual_note": "演出メモ"
+    }
+  ]
+}
+\`\`\`
+
+イントロ→セクション1〜6→アウトロ（8セクション）
+narration: 通常の日本語（漢字あり）。約80-150文字。動画全体で約2分。
+heading: 漢字OK。
+points: 3キーポイント、カンマ区切り。
+type: general/process/comparison
+background_keyword: セクション内容に合った英語の背景画像検索キーワード。
+
+visual_type:
+- "avatar": 話し手がメイン。イントロ・アウトロ・解説時
+- "scenery": 背景のみフルスクリーン。回想シーン専用
+- "closeup": テキスト大きく表示。重要ポイント強調
+- "split": 左に話し手、右にテキスト。解説・比較
+
+★ visual_type配分ルール（絶対遵守）:
+- 話し手が見える(avatar/split)は8セクション中6セクション以上（75%以上）
+- 話し手が消える(scenery/closeup)は最大2セクションまで。回想シーンの位置づけ
+- イントロ=avatar、アウトロ=avatar（固定）
+- sceneryとcloseupは連続禁止
+- おすすめ: avatar,avatar,scenery,avatar,split,closeup,avatar,avatar
+
+visual_note: 演出意図を簡潔に。
+トーン: 親しみやすく丁寧に。`;
+
+  const text = await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 4096);
+
+  let jsonStr = text;
+  const jsonMatch = text.match(/```json\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    jsonStr = jsonMatch[1];
+  } else {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) jsonStr = m[0];
+  }
+
+  const parsed = JSON.parse(jsonStr.trim()) as VideoScriptResult;
+  if (!parsed.title || !Array.isArray(parsed.sections)) {
+    throw new Error('Invalid video script structure from AI');
+  }
+
+  // Ensure defaults for visual fields
+  for (const s of parsed.sections) {
+    s.visual_type = s.visual_type || 'avatar';
+    s.visual_note = s.visual_note || '';
+  }
+
+  // Enforce visual_type rules
+  enforceVisualTypeRules(parsed.sections);
+
+  return parsed;
 }
 
 export async function regenerateSectionHeading(

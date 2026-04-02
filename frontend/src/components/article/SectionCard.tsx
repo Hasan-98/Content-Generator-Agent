@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleSection } from '../../types';
+import { IMEInput, IMETextarea } from '../common/IMEInput';
 
 interface Props {
   section: ArticleSection;
@@ -88,10 +89,10 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
         </span>
 
         {editingHeading ? (
-          <input
+          <IMEInput
             ref={inputRef}
             value={headingDraft}
-            onChange={(e) => setHeadingDraft(e.target.value)}
+            onValueChange={setHeadingDraft}
             onBlur={commitHeading}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commitHeading();
@@ -143,9 +144,9 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
       {!collapsed && (
         <div className="px-4 pb-4 border-t border-bd/50">
           {/* Content textarea */}
-          <textarea
+          <IMETextarea
             value={section.content}
-            onChange={(e) => onContentChange(section.index, e.target.value)}
+            onValueChange={(val) => onContentChange(section.index, val)}
             rows={4}
             className="w-full mt-3 bg-bg0 border border-bd rounded-lg px-3 py-2 text-xs text-t1 resize-none focus:outline-none focus:border-aB transition-colors"
             style={{ minHeight: 80 }}
@@ -170,9 +171,9 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
 
           {showInstruction && (
             <div className="mt-2 flex gap-2">
-              <input
+              <IMEInput
                 value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
+                onValueChange={setInstruction}
                 placeholder={t('sectionInstructionPlaceholder')}
                 className="flex-1 bg-bg0 border border-bd rounded px-2 py-1.5 text-xs text-t1 focus:outline-none focus:border-aB"
                 onKeyDown={(e) => { if (e.key === 'Enter') handleRegen(true); }}

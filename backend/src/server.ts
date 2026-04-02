@@ -13,6 +13,10 @@ import publishRoutes from './routes/publish';
 import wpConfigRoutes from './routes/wpConfig';
 import apiConfigRoutes from './routes/apiConfig';
 import inviteRoutes from './routes/invites';
+import videoScriptRoutes from './routes/videoScripts';
+import shopifyConfigRoutes from './routes/shopifyConfig';
+import ttsDictionaryRoutes from './routes/ttsDictionary';
+import path from 'path';
 
 dotenv.config();
 
@@ -34,6 +38,12 @@ app.use('/api/publish', publishRoutes);
 app.use('/api/wp-config', wpConfigRoutes);
 app.use('/api/api-config', apiConfigRoutes);
 app.use('/api/invites', inviteRoutes);
+app.use('/api/video-scripts', videoScriptRoutes);
+app.use('/api/shopify-config', shopifyConfigRoutes);
+app.use('/api/tts-dictionary', ttsDictionaryRoutes);
+
+// Serve audio files
+app.use('/audio', express.static(path.join(__dirname, '..', 'audio')));
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { TopLevel, GeneratedResult } from '../../types';
+import WpConfigModal from '../user/WpConfigModal';
+import ShopifyConfigModal from '../user/ShopifyConfigModal';
 
 interface Props {
   topLevels: TopLevel[];
@@ -28,6 +31,8 @@ const ARTICLE_STATUS_LABEL: Record<string, string> = {
 
 export default function ArticleTree({ topLevels, selectedResultId, onSelect, onOpenRef }: Props) {
   const { t } = useLanguage();
+  const [wpConfigTopic, setWpConfigTopic] = useState<{ id: string; name: string } | null>(null);
+  const [shopifyConfigTopic, setShopifyConfigTopic] = useState<{ id: string; name: string } | null>(null);
 
   const articleItems = topLevels.flatMap((tl) =>
     tl.keywords.flatMap((kw) =>
@@ -57,8 +62,22 @@ export default function ArticleTree({ topLevels, selectedResultId, onSelect, onO
               if (tlItems.length === 0) return null;
               return (
                 <div key={tl.id}>
-                  <div className="px-3 py-1.5 text-[10px] font-semibold text-aO uppercase tracking-wider">
-                    {tl.name}
+                  <div className="px-3 py-1.5 flex items-center gap-1 group/tl">
+                    <span className="text-[10px] font-semibold text-aO uppercase tracking-wider flex-1">{tl.name}</span>
+                    <button
+                      onClick={() => setWpConfigTopic({ id: tl.id, name: tl.name })}
+                      className="hidden group-hover/tl:flex w-4 h-4 items-center justify-center rounded text-tM hover:text-aB transition-colors"
+                      title={t('treeWpConfig')}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3"><circle cx="12" cy="12" r="10" /><path d="M3.5 12l3.2 8.5L9 13l4-1-4-1L6.7 3.5 3.5 12z" /></svg>
+                    </button>
+                    <button
+                      onClick={() => setShopifyConfigTopic({ id: tl.id, name: tl.name })}
+                      className="hidden group-hover/tl:flex w-4 h-4 items-center justify-center rounded text-tM hover:text-aG transition-colors"
+                      title={t('treeShopifyConfig')}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3"><path d="M15.5 2.5L14 4l1 2-1 1 3 3 1-1 2 1 1.5-1.5-5-5z" /><path d="M14 4l-9.5 9.5a2 2 0 0 0 0 2.83l2.17 2.17a2 2 0 0 0 2.83 0L19 9" /></svg>
+                    </button>
                   </div>
                   {tl.keywords.map((kw) => {
                     const kwItems = tlItems.filter(i => i.kw.id === kw.id);
@@ -117,6 +136,13 @@ export default function ArticleTree({ topLevels, selectedResultId, onSelect, onO
           </>
         )}
       </div>
+
+      {wpConfigTopic && (
+        <WpConfigModal topLevelId={wpConfigTopic.id} topicName={wpConfigTopic.name} onClose={() => setWpConfigTopic(null)} />
+      )}
+      {shopifyConfigTopic && (
+        <ShopifyConfigModal topLevelId={shopifyConfigTopic.id} topicName={shopifyConfigTopic.name} onClose={() => setShopifyConfigTopic(null)} />
+      )}
     </div>
   );
 }

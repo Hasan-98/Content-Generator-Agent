@@ -330,49 +330,64 @@ export async function generateImagesBulk(req: AuthRequest, res: Response): Promi
   const enabledImages = article.images.filter(img => img.enabled);
   const results = [];
 
-  for (const image of enabledImages) {
-    let prompt: string;
-    let aspectRatio: '16:9' | '1:1';
+  try {
+    for (const image of enabledImages) {
+      let prompt: string;
+      let aspectRatio: '16:9' | '1:1';
 
-    if (image.index === 0) {
-      // Title thumbnail — 16:9, YouTube style
-      aspectRatio = '16:9';
-      prompt = await generateTitleImagePrompt(keyword, title, contentSummary, claudeApi);
-    } else {
-      // Section infographic — 1:1, flat design
-      aspectRatio = '1:1';
-      const section = article.sections.find(s => s.index === image.index - 1);
-      if (section) {
-        prompt = await generateInfographicPrompt(keyword, title, section.heading, section.content, claudeApi);
+      if (image.index === 0) {
+        // Title thumbnail — 16:9, YouTube style
+        aspectRatio = '16:9';
+        prompt = await generateTitleImagePrompt(keyword, title, contentSummary, claudeApi);
       } else {
-        // fallback: use stored prompt if section not found
-        prompt = image.prompt;
+        // Section infographic — 1:1, flat design
+        aspectRatio = '1:1';
+        const section = article.sections.find(s => s.index === image.index - 1);
+        if (section) {
+          prompt = await generateInfographicPrompt(keyword, title, section.heading, section.content, claudeApi);
+        } else {
+          prompt = image.prompt;
+        }
+      }
+
+      // Save current image to history before overwriting
+      if (image.imageUrl) {
+        await prisma.imageHistory.create({
+          data: { imageUrl: image.imageUrl, prompt: image.prompt, imageId: image.id },
+        });
+      }
+
+      try {
+        const imageUrl = await generateImageWithKie(prompt, aspectRatio, kieApi);
+
+        const updated = await prisma.articleImage.update({
+          where: { id: image.id },
+          data: {
+            prompt,
+            ...(imageUrl && { imageUrl }),
+          },
+          include: { history: { orderBy: { createdAt: 'desc' } } },
+        });
+        results.push(updated);
+      } catch (imgErr) {
+        // If one image fails, save prompt but continue with others
+        console.error(`Image generation failed for index ${image.index}:`, imgErr);
+        const updated = await prisma.articleImage.update({
+          where: { id: image.id },
+          data: { prompt },
+          include: { history: { orderBy: { createdAt: 'desc' } } },
+        });
+        results.push(updated);
       }
     }
 
-    // Save current image to history before overwriting
-    if (image.imageUrl) {
-      await prisma.imageHistory.create({
-        data: { imageUrl: image.imageUrl, prompt: image.prompt, imageId: image.id },
-      });
-    }
-
-    const imageUrl = await generateImageWithKie(prompt, aspectRatio, kieApi);
-
-    const updated = await prisma.articleImage.update({
-      where: { id: image.id },
-      data: {
-        prompt,
-        ...(imageUrl && { imageUrl }),
-      },
-      include: { history: { orderBy: { createdAt: 'desc' } } },
-    });
-    results.push(updated);
+    await prisma.article.update({ where: { id: articleId }, data: { status: 'IMAGE_DONE' } });
+    res.json(results);
+  } catch (err: any) {
+    // Reset status so user can retry
+    await prisma.article.update({ where: { id: articleId }, data: { status: 'ARTICLE_DONE' } });
+    res.status(500).json({ error: err.message || 'Image generation failed' });
   }
-
-  await prisma.article.update({ where: { id: articleId }, data: { status: 'IMAGE_DONE' } });
-
-  res.json(results);
 }
 
 // STEP C — Format article for WordPress/Shopify publishing using AI

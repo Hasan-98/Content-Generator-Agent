@@ -26,6 +26,15 @@ const tabs = [
     ),
   },
   {
+    id: 'video',
+    label: 'Video Script',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3" />
+      </svg>
+    ),
+  },
+  {
     id: 'instagram',
     label: 'Instagram Publisher',
     icon: (

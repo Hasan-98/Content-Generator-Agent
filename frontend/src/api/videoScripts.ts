@@ -1,0 +1,91 @@
+import client from './client';
+import type { VideoScript, VideoScriptSection, TtsDictionary, HeygenAvatar } from '../types';
+
+export async function listVideoScripts(): Promise<VideoScript[]> {
+  const res = await client.get('/video-scripts');
+  return res.data;
+}
+
+export async function getVideoScript(id: string): Promise<VideoScript> {
+  const res = await client.get(`/video-scripts/${id}`);
+  return res.data;
+}
+
+export async function generateVideoScriptApi(articleId: string): Promise<VideoScript> {
+  const res = await client.post('/video-scripts/generate', { articleId });
+  return res.data;
+}
+
+export async function generateTtsApi(scriptId: string): Promise<VideoScript> {
+  const res = await client.post(`/video-scripts/${scriptId}/tts`);
+  return res.data;
+}
+
+export async function updateVideoScriptSection(
+  sectionId: string,
+  data: Partial<Pick<VideoScriptSection, 'heading' | 'narration' | 'points' | 'type' | 'backgroundKeyword' | 'section' | 'visualType' | 'visualNote'>>
+): Promise<VideoScriptSection> {
+  const res = await client.patch(`/video-scripts/sections/${sectionId}`, data);
+  return res.data;
+}
+
+export async function deleteVideoScript(id: string): Promise<void> {
+  await client.delete(`/video-scripts/${id}`);
+}
+
+// Avatars
+export async function listAvatarsApi(): Promise<HeygenAvatar[]> {
+  const res = await client.get('/video-scripts/avatars');
+  return res.data;
+}
+
+// Settings
+export async function updateVideoSettingsApi(
+  scriptId: string,
+  data: { avatarId?: string; orientation?: string; theme?: string }
+): Promise<VideoScript> {
+  const res = await client.patch(`/video-scripts/${scriptId}/settings`, data);
+  return res.data;
+}
+
+// HeyGen
+export async function generateHeygenVideoApi(scriptId: string): Promise<VideoScript> {
+  const res = await client.post(`/video-scripts/${scriptId}/heygen`);
+  return res.data;
+}
+
+export async function checkHeygenStatusApi(scriptId: string): Promise<VideoScript> {
+  const res = await client.post(`/video-scripts/${scriptId}/heygen-status`);
+  return res.data;
+}
+
+// Remotion
+export async function generateRemotionVideoApi(scriptId: string): Promise<VideoScript> {
+  const res = await client.post(`/video-scripts/${scriptId}/remotion`);
+  return res.data;
+}
+
+export async function checkRemotionStatusApi(scriptId: string): Promise<VideoScript> {
+  const res = await client.post(`/video-scripts/${scriptId}/remotion-status`);
+  return res.data;
+}
+
+// TTS Dictionary
+export async function listTtsDictionary(): Promise<TtsDictionary[]> {
+  const res = await client.get('/tts-dictionary');
+  return res.data;
+}
+
+export async function addTtsDictionaryEntry(kanji: string, reading: string): Promise<TtsDictionary> {
+  const res = await client.post('/tts-dictionary', { kanji, reading });
+  return res.data;
+}
+
+export async function updateTtsDictionaryEntry(id: string, data: { kanji?: string; reading?: string }): Promise<TtsDictionary> {
+  const res = await client.patch(`/tts-dictionary/${id}`, data);
+  return res.data;
+}
+
+export async function deleteTtsDictionaryEntry(id: string): Promise<void> {
+  await client.delete(`/tts-dictionary/${id}`);
+}

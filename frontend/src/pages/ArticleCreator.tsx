@@ -91,7 +91,7 @@ export default function ArticleCreator() {
           images: prev.images.map(img => imageMap.get(img.index) ?? img),
         };
       });
-      toast.success('全画像生成完了');
+      toast.success(t('toastImageGenDone'));
     } catch {
       toast.error(t('toastImageGenFailed'));
     } finally {

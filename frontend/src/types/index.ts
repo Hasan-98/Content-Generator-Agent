@@ -136,6 +136,59 @@ export interface Article {
   updatedAt: string;
 }
 
+export type VisualType = 'avatar' | 'scenery' | 'closeup' | 'split';
+
+export interface VideoScriptSection {
+  id: string;
+  sectionNumber: number;
+  section: string;
+  heading: string;
+  points: string;
+  type: string;
+  narration: string;
+  backgroundKeyword: string;
+  visualType: VisualType;
+  visualNote: string;
+  videoScriptId: string;
+}
+
+export interface HeygenAvatar {
+  id: string;
+  name: string;
+  imageUrl: string;
+}
+
+export interface VideoScript {
+  id: string;
+  title: string;
+  audioUrl?: string;
+  audioStatus: string;
+  avatarId?: string;
+  orientation: string;
+  theme: string;
+  heygenVideoId?: string;
+  heygenVideoUrl?: string;
+  heygenStatus: string;
+  remotionJobId?: string;
+  remotionVideoUrl?: string;
+  remotionStatus: string;
+  articleId: string;
+  article?: Article & {
+    result?: { keywordText: string; title: string };
+  };
+  sections: VideoScriptSection[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TtsDictionary {
+  id: string;
+  kanji: string;
+  reading: string;
+  userId: string;
+  createdAt: string;
+}
+
 export interface Keyword {
   id: string;
   keyword: string;

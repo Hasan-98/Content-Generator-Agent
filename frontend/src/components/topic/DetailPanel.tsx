@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { regenerateField } from '../../api/generate';
 import { generatePersona } from '../../api/generate';
 import { updateResult } from '../../api/results';
+import { IMETextarea } from '../common/IMEInput';
 
 interface Props {
   result: GeneratedResult | null;
@@ -210,10 +211,10 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
           <div className="text-xs text-t2 mb-0.5">{result.keywordText}</div>
           {editingTitle ? (
             <div>
-              <textarea
+              <IMETextarea
                 ref={titleInputRef}
                 value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
+                onValueChange={setTitleDraft}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveTitle(); }
                   if (e.key === 'Escape') setEditingTitle(false);

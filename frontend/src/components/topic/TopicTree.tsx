@@ -2,7 +2,9 @@ import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { TopLevel, Keyword } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { IMEInput, IMETextarea } from '../common/IMEInput';
 import WpConfigModal from '../user/WpConfigModal';
+import ShopifyConfigModal from '../user/ShopifyConfigModal';
 
 interface Props {
   topLevels: TopLevel[];
@@ -39,6 +41,7 @@ export default function TopicTree({
   const [editingTL, setEditingTL] = useState<string | null>(null);
   const [editTLName, setEditTLName] = useState('');
   const [wpConfigTopic, setWpConfigTopic] = useState<{ id: string; name: string } | null>(null);
+  const [shopifyConfigTopic, setShopifyConfigTopic] = useState<{ id: string; name: string } | null>(null);
 
   function toggleTL(id: string) {
     setCollapsedTL((prev) => {
@@ -128,12 +131,12 @@ export default function TopicTree({
               </svg>
 
               {editingTL === tl.id ? (
-                <input
+                <IMEInput
                   autoFocus
                   value={editTLName}
-                  onChange={(e) => setEditTLName(e.target.value)}
+                  onValueChange={setEditTLName}
                   onBlur={() => commitEditTL(tl.id)}
-                  onKeyDown={(e) => handleEditKeyDown(e, tl.id)}
+                  onKeyDown={(e) => handleEditKeyDown(e as unknown as KeyboardEvent, tl.id)}
                   onClick={(e) => e.stopPropagation()}
                   className="flex-1 bg-bg0 border border-aB rounded px-1.5 py-0.5 text-t1 text-xs focus:outline-none"
                 />
@@ -154,6 +157,16 @@ export default function TopicTree({
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
                     <circle cx="12" cy="12" r="10" />
                     <path d="M3.5 12l3.2 8.5L9 13l4-1-4-1L6.7 3.5 3.5 12z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setShopifyConfigTopic({ id: tl.id, name: tl.name })}
+                  className="w-5 h-5 flex items-center justify-center rounded text-tM hover:bg-aG/15 hover:text-aG transition-colors border-0 bg-transparent"
+                  title={t('treeShopifyConfig')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
+                    <path d="M15.5 2.5L14 4l1 2-1 1 3 3 1-1 2 1 1.5-1.5-5-5z" />
+                    <path d="M14 4l-9.5 9.5a2 2 0 0 0 0 2.83l2.17 2.17a2 2 0 0 0 2.83 0L19 9" />
                   </svg>
                 </button>
                 <button
@@ -219,6 +232,13 @@ export default function TopicTree({
           topLevelId={wpConfigTopic.id}
           topicName={wpConfigTopic.name}
           onClose={() => setWpConfigTopic(null)}
+        />
+      )}
+      {shopifyConfigTopic && (
+        <ShopifyConfigModal
+          topLevelId={shopifyConfigTopic.id}
+          topicName={shopifyConfigTopic.name}
+          onClose={() => setShopifyConfigTopic(null)}
         />
       )}
     </div>
@@ -302,9 +322,9 @@ function KeywordCard({
               {t('kwKeyword')}
               <span className="text-[8px] px-1 rounded bg-aB/15 text-aB normal-case tracking-normal">required</span>
             </label>
-            <input
+            <IMEInput
               value={kwVal}
-              onChange={(e) => setKwVal(e.target.value)}
+              onValueChange={setKwVal}
               onBlur={() => { if (kwVal.trim() !== keyword.keyword) onUpdate({ keyword: kwVal.trim() }); }}
               onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
               className="w-full bg-bg1 border border-bd rounded px-2 py-1.5 text-t1 text-xs focus:outline-none focus:border-aB transition-colors"
@@ -313,9 +333,9 @@ function KeywordCard({
 
           <div className="space-y-1">
             <label className="block text-tM text-[10px] font-mono uppercase tracking-wider">{t('kwGoal')}</label>
-            <input
+            <IMEInput
               value={goalVal}
-              onChange={(e) => setGoalVal(e.target.value)}
+              onValueChange={setGoalVal}
               onBlur={() => { if (goalVal !== keyword.goal) onUpdate({ goal: goalVal }); }}
               onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
               placeholder={t('kwGoalPlaceholder')}
@@ -325,9 +345,9 @@ function KeywordCard({
 
           <div className="space-y-1">
             <label className="block text-tM text-[10px] font-mono uppercase tracking-wider">{t('kwAudience')}</label>
-            <textarea
+            <IMETextarea
               value={audVal}
-              onChange={(e) => setAudVal(e.target.value)}
+              onValueChange={setAudVal}
               onBlur={() => { if (audVal !== keyword.audience) onUpdate({ audience: audVal }); }}
               rows={2}
               className="w-full bg-bg1 border border-bd rounded px-2 py-1.5 text-t1 text-xs focus:outline-none focus:border-aB transition-colors resize-y min-h-[36px] leading-relaxed"

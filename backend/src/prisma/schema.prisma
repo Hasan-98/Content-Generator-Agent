@@ -42,6 +42,7 @@ model TopLevel {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   keywords        Keyword[]
   wordpressConfig WordpressConfig?
+  shopifyConfig   ShopifyConfig?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
@@ -106,9 +107,10 @@ model Article {
   result     GeneratedResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
   sections   ArticleSection[]
   images     ArticleImage[]
-  uploadMeta UploadMeta?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  uploadMeta   UploadMeta?
+  videoScript  VideoScript?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model ArticleSection {
@@ -157,6 +159,17 @@ model WordpressConfig {
   updatedAt       DateTime @updatedAt
 }
 
+model ShopifyConfig {
+  id                    String   @id @default(cuid())
+  shopDomain            String
+  accessTokenEncrypted  String   @db.Text
+  blogId                String   @default("")
+  topLevelId            String   @unique
+  topLevel              TopLevel @relation(fields: [topLevelId], references: [id], onDelete: Cascade)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
 model UploadMeta {
   id            String        @id @default(cuid())
   slug          String
@@ -171,6 +184,52 @@ model UploadMeta {
   article       Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+model VideoScript {
+  id              String               @id @default(cuid())
+  title           String
+  audioUrl        String?
+  audioStatus     String               @default("pending")
+  avatarId        String?
+  orientation     String               @default("horizontal")
+  theme           String               @default("modern-dark")
+  heygenVideoId   String?
+  heygenVideoUrl  String?
+  heygenStatus    String               @default("pending")
+  remotionJobId   String?
+  remotionVideoUrl String?
+  remotionStatus  String               @default("pending")
+  articleId       String               @unique
+  article         Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  sections        VideoScriptSection[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model TtsDictionary {
+  id      String @id @default(cuid())
+  kanji   String @unique
+  reading String
+  userId  String
+  createdAt DateTime @default(now())
+}
+
+model VideoScriptSection {
+  id               String      @id @default(cuid())
+  sectionNumber    Int
+  section          String
+  heading          String
+  points           String      @db.Text
+  type             String      @default("general")
+  narration        String      @db.Text
+  backgroundKeyword String     @default("")
+  visualType       String     @default("avatar")
+  visualNote       String     @default("")
+  videoScriptId    String
+  videoScript      VideoScript @relation(fields: [videoScriptId], references: [id], onDelete: Cascade)
+
+  @@unique([videoScriptId, sectionNumber])
 }
 
 model ApiConfig {
