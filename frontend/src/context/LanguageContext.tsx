@@ -393,6 +393,7 @@ const en = {
   vsLoadFailed: 'Failed to load video scripts',
   vsVisualType: 'Visual Type',
   vsVisualNote: 'Visual Note',
+  vsEditVisual: 'Edit Visual Content',
 
   // TTS
   ttsAudioTitle: 'TTS Audio',
@@ -870,6 +871,7 @@ const ja: Record<TKey, string> = {
   vsLoadFailed: '動画スクリプトの読み込みに失敗しました',
   vsVisualType: 'ビジュアルタイプ',
   vsVisualNote: '演出メモ',
+  vsEditVisual: 'ビジュアルコンテンツを編集',
 
   // TTS
   ttsAudioTitle: 'TTS音声',

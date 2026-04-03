@@ -9,6 +9,7 @@ import {
   generateRemotionVideoApi, checkRemotionStatusApi,
   listAvatarsApi, updateVideoSettingsApi,
 } from '../api/videoScripts';
+import { IMEInput, IMETextarea } from '../components/common/IMEInput';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -236,6 +237,7 @@ export default function VideoScriptCreator() {
     const narration = editValues[`narration-${sectionId}`];
     const heading = editValues[`heading-${sectionId}`];
     const points = editValues[`points-${sectionId}`];
+    const backgroundKeyword = editValues[`backgroundKeyword-${sectionId}`];
     const visualType = editValues[`visualType-${sectionId}`];
     const visualNote = editValues[`visualNote-${sectionId}`];
 
@@ -244,6 +246,7 @@ export default function VideoScriptCreator() {
         ...(narration !== undefined && { narration }),
         ...(heading !== undefined && { heading }),
         ...(points !== undefined && { points }),
+        ...(backgroundKeyword !== undefined && { backgroundKeyword }),
         ...(visualType !== undefined && { visualType: visualType as import('../types').VisualType }),
         ...(visualNote !== undefined && { visualNote }),
       });
@@ -656,6 +659,7 @@ export default function VideoScriptCreator() {
                               [`heading-${sec.id}`]: sec.heading,
                               [`narration-${sec.id}`]: sec.narration,
                               [`points-${sec.id}`]: sec.points,
+                              [`backgroundKeyword-${sec.id}`]: sec.backgroundKeyword || '',
                               [`visualType-${sec.id}`]: sec.visualType || 'avatar',
                               [`visualNote-${sec.id}`]: sec.visualNote || '',
                             });
@@ -673,15 +677,19 @@ export default function VideoScriptCreator() {
                         <>
                           <div>
                             <label className="text-[10px] text-tM uppercase tracking-wider">{t('vsHeading')}</label>
-                            <input value={editValues[`heading-${sec.id}`] || ''} onChange={(e) => setEditValues((v) => ({ ...v, [`heading-${sec.id}`]: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none" />
+                            <IMEInput value={editValues[`heading-${sec.id}`] || ''} onValueChange={(val) => setEditValues((v) => ({ ...v, [`heading-${sec.id}`]: val }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none" />
                           </div>
                           <div>
                             <label className="text-[10px] text-tM uppercase tracking-wider">{t('vsNarration')}</label>
-                            <textarea value={editValues[`narration-${sec.id}`] || ''} onChange={(e) => setEditValues((v) => ({ ...v, [`narration-${sec.id}`]: e.target.value }))} rows={3} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none resize-none" />
+                            <IMETextarea value={editValues[`narration-${sec.id}`] || ''} onValueChange={(val) => setEditValues((v) => ({ ...v, [`narration-${sec.id}`]: val }))} rows={3} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none resize-none" />
                           </div>
                           <div>
                             <label className="text-[10px] text-tM uppercase tracking-wider">{t('vsPoints')}</label>
-                            <input value={editValues[`points-${sec.id}`] || ''} onChange={(e) => setEditValues((v) => ({ ...v, [`points-${sec.id}`]: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none" />
+                            <IMEInput value={editValues[`points-${sec.id}`] || ''} onValueChange={(val) => setEditValues((v) => ({ ...v, [`points-${sec.id}`]: val }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-tM uppercase tracking-wider">{t('vsBgKeyword')}</label>
+                            <IMEInput value={editValues[`backgroundKeyword-${sec.id}`] || ''} onValueChange={(val) => setEditValues((v) => ({ ...v, [`backgroundKeyword-${sec.id}`]: val }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none" />
                           </div>
                           <div className="flex gap-3">
                             <div className="flex-1">
@@ -694,7 +702,7 @@ export default function VideoScriptCreator() {
                             </div>
                             <div className="flex-1">
                               <label className="text-[10px] text-tM uppercase tracking-wider">{t('vsVisualNote')}</label>
-                              <input value={editValues[`visualNote-${sec.id}`] || ''} onChange={(e) => setEditValues((v) => ({ ...v, [`visualNote-${sec.id}`]: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none" />
+                              <IMEInput value={editValues[`visualNote-${sec.id}`] || ''} onValueChange={(val) => setEditValues((v) => ({ ...v, [`visualNote-${sec.id}`]: val }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none" />
                             </div>
                           </div>
                           <div className="flex gap-2 pt-1">
@@ -726,12 +734,33 @@ export default function VideoScriptCreator() {
                               <p className="text-[10px] text-aB mt-0.5 font-mono">{sec.backgroundKeyword}</p>
                             </div>
                           </div>
-                          {sec.visualNote && (
-                            <div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
                               <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsVisualNote')}</span>
-                              <p className="text-[10px] text-t2 mt-0.5 italic">{sec.visualNote}</p>
+                              <button
+                                onClick={() => {
+                                  setEditingSection(sec.id);
+                                  setEditValues({
+                                    [`heading-${sec.id}`]: sec.heading,
+                                    [`narration-${sec.id}`]: sec.narration,
+                                    [`points-${sec.id}`]: sec.points,
+                                    [`backgroundKeyword-${sec.id}`]: sec.backgroundKeyword || '',
+                                    [`visualType-${sec.id}`]: sec.visualType || 'avatar',
+                                    [`visualNote-${sec.id}`]: sec.visualNote || '',
+                                  });
+                                }}
+                                className="w-4 h-4 rounded bg-bg2 hover:bg-aB/20 text-tM hover:text-aB flex items-center justify-center transition-colors"
+                                title={t('vsEditVisual')}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+                              </button>
                             </div>
-                          )}
+                            {sec.visualNote ? (
+                              <p className="text-[10px] text-t2 italic">{sec.visualNote}</p>
+                            ) : (
+                              <p className="text-[10px] text-tM italic">—</p>
+                            )}
+                          </div>
                         </>
                       )}
                     </div>
@@ -769,16 +798,16 @@ export default function VideoScriptCreator() {
 
               {/* Add new entry */}
               <div className="flex gap-2 mb-4">
-                <input
+                <IMEInput
                   value={newKanji}
-                  onChange={(e) => setNewKanji(e.target.value)}
+                  onValueChange={setNewKanji}
                   placeholder={t('ttsDictKanji')}
                   className="flex-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none"
                 />
                 <span className="text-tM text-xs self-center">→</span>
-                <input
+                <IMEInput
                   value={newReading}
-                  onChange={(e) => setNewReading(e.target.value)}
+                  onValueChange={setNewReading}
                   placeholder={t('ttsDictReading')}
                   className="flex-1 px-2 py-1.5 text-xs bg-bg0 border border-bd rounded text-t1 focus:border-aB outline-none"
                 />
