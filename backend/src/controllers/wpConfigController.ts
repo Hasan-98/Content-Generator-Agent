@@ -124,13 +124,17 @@ export async function testWpConfig(req: AuthRequest, res: Response): Promise<voi
   }
 
   try {
-    const wpUrl = config.wpUrl;
+    const rawUrl = config.wpUrl;
+    const baseUrl = rawUrl
+      .replace(/\/wp-json\/wp\/v2.*$/i, '')
+      .replace(/\?rest_route=.*$/i, '')
+      .replace(/\/+$/, '');
     const wpUser = decrypt(config.wpUserEncrypted);
     const wpPass = decrypt(config.wpPassEncrypted);
     const auth = Buffer.from(`${wpUser}:${wpPass}`).toString('base64');
 
     const axios = (await import('axios')).default;
-    const response = await axios.get(`${wpUrl}/wp-json/wp/v2/users/me`, {
+    const response = await axios.get(`${baseUrl}/?rest_route=/wp/v2/users/me`, {
       headers: { Authorization: `Basic ${auth}` },
       timeout: 10000,
     });

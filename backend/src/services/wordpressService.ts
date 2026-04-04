@@ -32,9 +32,16 @@ export async function publishToWordpress(
   }
 
   try {
+    // Derive the base site URL, stripping any REST API path the user may have included
+    const baseUrl = wpUrl
+      .replace(/\/wp-json\/wp\/v2.*$/i, '')
+      .replace(/\?rest_route=.*$/i, '')
+      .replace(/\/+$/, '');
+    // Use ?rest_route= format — works on all WP sites regardless of permalink settings
+    const endpoint = `${baseUrl}/?rest_route=/wp/v2/posts`;
     const auth = Buffer.from(`${wpUser}:${wpPassword}`).toString('base64');
     const response = await axios.post(
-      `${wpUrl}/wp-json/wp/v2/posts`,
+      endpoint,
       {
         title: input.title,
         content: input.content,
