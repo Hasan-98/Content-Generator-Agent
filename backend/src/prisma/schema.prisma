@@ -226,6 +226,8 @@ model VideoScriptSection {
   backgroundKeyword String     @default("")
   visualType       String     @default("avatar")
   visualNote       String     @default("")
+  imagePrompt      String     @default("")
+  imageUrl         String?
   videoScriptId    String
   videoScript      VideoScript @relation(fields: [videoScriptId], references: [id], onDelete: Cascade)
 

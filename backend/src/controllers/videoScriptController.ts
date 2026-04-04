@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { generateVideoScript } from '../services/claudeService';
 import { getUserApiKey } from './apiConfigController';
+import { generateImageWithKie } from '../services/imageService';
 
 const prisma = new PrismaClient();
 
@@ -133,7 +134,7 @@ export async function generateVideoScriptHandler(req: AuthRequest, res: Response
 // PATCH /api/video-scripts/sections/:id — update a section
 export async function updateVideoScriptSection(req: AuthRequest, res: Response): Promise<void> {
   const id = String(req.params.id);
-  const { heading, narration, points, type, backgroundKeyword, section, visualType, visualNote } = req.body;
+  const { heading, narration, points, type, backgroundKeyword, section, visualType, visualNote, imagePrompt } = req.body;
 
   const updated = await prisma.videoScriptSection.update({
     where: { id },
@@ -146,7 +147,40 @@ export async function updateVideoScriptSection(req: AuthRequest, res: Response):
       ...(section !== undefined && { section }),
       ...(visualType !== undefined && { visualType }),
       ...(visualNote !== undefined && { visualNote }),
+      ...(imagePrompt !== undefined && { imagePrompt }),
     },
+  });
+
+  res.json(updated);
+}
+
+// POST /api/video-scripts/sections/:id/generate-image — generate image from prompt
+export async function generateSectionImage(req: AuthRequest, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const { prompt } = req.body;
+
+  if (!prompt || !prompt.trim()) {
+    res.status(400).json({ error: 'prompt is required' });
+    return;
+  }
+
+  const section = await prisma.videoScriptSection.findUnique({ where: { id } });
+  if (!section) {
+    res.status(404).json({ error: 'Section not found' });
+    return;
+  }
+
+  const kieApi = (await getUserApiKey(req.user!.id, 'kieApi')) || undefined;
+  const imageUrl = await generateImageWithKie(prompt.trim(), '16:9', kieApi);
+
+  if (!imageUrl) {
+    res.status(500).json({ error: 'Image generation failed' });
+    return;
+  }
+
+  const updated = await prisma.videoScriptSection.update({
+    where: { id },
+    data: { imageUrl, imagePrompt: prompt.trim() },
   });
 
   res.json(updated);

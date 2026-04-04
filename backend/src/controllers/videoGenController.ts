@@ -165,6 +165,7 @@ export async function generateRemotionVideo(req: AuthRequest, res: Response): Pr
         narration: s.narration,
         type: s.type,
         backgroundKeyword: s.backgroundKeyword,
+        imageUrl: s.imageUrl,
       })),
       script.orientation
     );

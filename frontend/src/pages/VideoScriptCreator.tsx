@@ -7,7 +7,7 @@ import {
   generateTtsApi, listTtsDictionary, addTtsDictionaryEntry, deleteTtsDictionaryEntry,
   generateHeygenVideoApi, checkHeygenStatusApi,
   generateRemotionVideoApi, checkRemotionStatusApi,
-  listAvatarsApi, updateVideoSettingsApi,
+  listAvatarsApi, updateVideoSettingsApi, generateSectionImageApi,
 } from '../api/videoScripts';
 import { IMEInput, IMETextarea } from '../components/common/IMEInput';
 import { useLanguage } from '../context/LanguageContext';
@@ -77,6 +77,9 @@ export default function VideoScriptCreator() {
   const [dictEntries, setDictEntries] = useState<TtsDictionary[]>([]);
   const [newKanji, setNewKanji] = useState('');
   const [newReading, setNewReading] = useState('');
+  // Section image generation
+  const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
+  const [imagePromptValues, setImagePromptValues] = useState<Record<string, string>>({});
 
   // Load data
   useEffect(() => {
@@ -261,6 +264,32 @@ export default function VideoScriptCreator() {
       toast.success(t('vsSectionSaved'));
     } catch {
       toast.error(t('vsSectionSaveFailed'));
+    }
+  }
+
+  // Section image generation
+  async function handleGenerateSectionImage(sectionId: string) {
+    const prompt = imagePromptValues[sectionId];
+    if (!prompt?.trim()) {
+      toast.error(t('vsImagePromptRequired'));
+      return;
+    }
+    setGeneratingImageFor(sectionId);
+    toast.loading(t('vsImageGenerating'), { id: `gen-img-${sectionId}` });
+    try {
+      const updated = await generateSectionImageApi(sectionId, prompt.trim());
+      setSelectedScript((prev) => {
+        if (!prev) return prev;
+        return { ...prev, sections: prev.sections.map((s) => (s.id === sectionId ? { ...s, ...updated } : s)) };
+      });
+      setScripts((prev) =>
+        prev.map((vs) => ({ ...vs, sections: vs.sections.map((s) => (s.id === sectionId ? { ...s, ...updated } : s)) }))
+      );
+      toast.success(t('vsImageGenerated'), { id: `gen-img-${sectionId}` });
+    } catch {
+      toast.error(t('vsImageGenFailed'), { id: `gen-img-${sectionId}` });
+    } finally {
+      setGeneratingImageFor(null);
     }
   }
 
@@ -734,9 +763,16 @@ export default function VideoScriptCreator() {
                               <p className="text-[10px] text-aB mt-0.5 font-mono">{sec.backgroundKeyword}</p>
                             </div>
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
+                          {sec.visualNote && (
+                            <div>
                               <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsVisualNote')}</span>
+                              <p className="text-[10px] text-t2 mt-0.5 italic">{sec.visualNote}</p>
+                            </div>
+                          )}
+                          {/* Image prompt + generate + preview */}
+                          <div className="mt-2 p-3 bg-bg0 border border-bd rounded-lg space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsImagePrompt')}</span>
                               <button
                                 onClick={() => {
                                   setEditingSection(sec.id);
@@ -755,10 +791,35 @@ export default function VideoScriptCreator() {
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
                               </button>
                             </div>
-                            {sec.visualNote ? (
-                              <p className="text-[10px] text-t2 italic">{sec.visualNote}</p>
-                            ) : (
-                              <p className="text-[10px] text-tM italic">—</p>
+                            <div className="flex gap-2">
+                              <IMETextarea
+                                value={imagePromptValues[sec.id] ?? sec.imagePrompt ?? ''}
+                                onValueChange={(val) => setImagePromptValues((v) => ({ ...v, [sec.id]: val }))}
+                                placeholder={t('vsImagePromptPlaceholder')}
+                                rows={2}
+                                className="flex-1 px-2 py-1.5 text-xs bg-bg1 border border-bd rounded text-t1 focus:border-aB outline-none resize-none"
+                              />
+                              <button
+                                onClick={() => handleGenerateSectionImage(sec.id)}
+                                disabled={generatingImageFor === sec.id}
+                                className="self-end px-3 py-1.5 text-[10px] bg-aO text-white rounded hover:bg-aO/80 transition-colors disabled:opacity-50 whitespace-nowrap"
+                              >
+                                {generatingImageFor === sec.id
+                                  ? t('vsImageGenerating')
+                                  : sec.imageUrl
+                                    ? t('vsImageRegenerate')
+                                    : t('vsImageGenerate')}
+                              </button>
+                            </div>
+                            {sec.imageUrl && (
+                              <div>
+                                <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsCurrentImage')}</span>
+                                <img
+                                  src={sec.imageUrl}
+                                  alt={sec.heading}
+                                  className="mt-1 w-full max-h-48 object-cover rounded border border-bd"
+                                />
+                              </div>
                             )}
                           </div>
                         </>

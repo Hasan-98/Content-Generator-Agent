@@ -394,6 +394,15 @@ const en = {
   vsVisualType: 'Visual Type',
   vsVisualNote: 'Visual Note',
   vsEditVisual: 'Edit Visual Content',
+  vsImagePrompt: 'Image Prompt',
+  vsImagePromptPlaceholder: 'Describe the image you want to generate…',
+  vsImageGenerate: 'Generate Image',
+  vsImageRegenerate: 'Regenerate',
+  vsImageGenerating: 'Generating image…',
+  vsImageGenerated: 'Image generated',
+  vsImageGenFailed: 'Image generation failed',
+  vsImagePromptRequired: 'Please enter an image prompt',
+  vsCurrentImage: 'Current Image',
 
   // TTS
   ttsAudioTitle: 'TTS Audio',
@@ -872,6 +881,15 @@ const ja: Record<TKey, string> = {
   vsVisualType: 'ビジュアルタイプ',
   vsVisualNote: '演出メモ',
   vsEditVisual: 'ビジュアルコンテンツを編集',
+  vsImagePrompt: '画像プロンプト',
+  vsImagePromptPlaceholder: '生成したい画像を説明してください…',
+  vsImageGenerate: '画像生成',
+  vsImageRegenerate: '再生成',
+  vsImageGenerating: '画像生成中…',
+  vsImageGenerated: '画像が生成されました',
+  vsImageGenFailed: '画像生成に失敗しました',
+  vsImagePromptRequired: '画像プロンプトを入力してください',
+  vsCurrentImage: '現在の画像',
 
   // TTS
   ttsAudioTitle: 'TTS音声',

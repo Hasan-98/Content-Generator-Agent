@@ -149,6 +149,8 @@ export interface VideoScriptSection {
   backgroundKeyword: string;
   visualType: VisualType;
   visualNote: string;
+  imagePrompt: string;
+  imageUrl?: string | null;
   videoScriptId: string;
 }
 

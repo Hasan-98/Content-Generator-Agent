@@ -23,9 +23,14 @@ export async function generateTtsApi(scriptId: string): Promise<VideoScript> {
 
 export async function updateVideoScriptSection(
   sectionId: string,
-  data: Partial<Pick<VideoScriptSection, 'heading' | 'narration' | 'points' | 'type' | 'backgroundKeyword' | 'section' | 'visualType' | 'visualNote'>>
+  data: Partial<Pick<VideoScriptSection, 'heading' | 'narration' | 'points' | 'type' | 'backgroundKeyword' | 'section' | 'visualType' | 'visualNote' | 'imagePrompt'>>
 ): Promise<VideoScriptSection> {
   const res = await client.patch(`/video-scripts/sections/${sectionId}`, data);
+  return res.data;
+}
+
+export async function generateSectionImageApi(sectionId: string, prompt: string): Promise<VideoScriptSection> {
+  const res = await client.post(`/video-scripts/sections/${sectionId}/generate-image`, { prompt });
   return res.data;
 }
 

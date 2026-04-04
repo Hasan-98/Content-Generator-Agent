@@ -4,6 +4,7 @@ import {
   getVideoScript,
   generateVideoScriptHandler,
   updateVideoScriptSection,
+  generateSectionImage,
   deleteVideoScript,
 } from '../controllers/videoScriptController';
 import { generateTts } from '../controllers/ttsController';
@@ -32,6 +33,7 @@ router.post('/:id/heygen-status', checkHeygenVideoStatus);
 router.post('/:id/remotion', generateRemotionVideo);
 router.post('/:id/remotion-status', checkRemotionVideoStatus);
 router.patch('/sections/:id', updateVideoScriptSection);
+router.post('/sections/:id/generate-image', generateSectionImage);
 router.delete('/:id', deleteVideoScript);
 
 export default router;

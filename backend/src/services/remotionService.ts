@@ -50,6 +50,7 @@ export async function buildRenderSections(
     narration: string;
     type: string;
     backgroundKeyword: string;
+    imageUrl?: string | null;
   }[],
   orientation: string = 'horizontal'
 ): Promise<
@@ -65,7 +66,8 @@ export async function buildRenderSections(
   const results = [];
 
   for (const section of sections) {
-    const bgImageUrl = await fetchBackgroundImage(section.backgroundKeyword, orientation);
+    // Use custom image if set, otherwise fall back to Pexels search
+    const bgImageUrl = section.imageUrl || await fetchBackgroundImage(section.backgroundKeyword, orientation);
     const durationFrames = calculateDurationFrames(section.narration);
 
     results.push({
