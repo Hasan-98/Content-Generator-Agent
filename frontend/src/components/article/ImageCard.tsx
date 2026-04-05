@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleImage, ImageTaste } from '../../types';
 import { generateImage as generateImageApi } from '../../api/generate';
@@ -33,6 +33,25 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [selectingHistory, setSelectingHistory] = useState(false);
+  const [localPrompt, setLocalPrompt] = useState(image.prompt);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local prompt when image prop changes externally (taste change, reset, etc.)
+  useEffect(() => {
+    setLocalPrompt(image.prompt);
+  }, [image.prompt]);
+
+  const debouncedPromptSave = useCallback((prompt: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const updated = await updateImage(articleId, image.index, { prompt });
+        onUpdate(updated);
+      } catch {
+        toast.error(t('toastUpdateFailed'));
+      }
+    }, 600);
+  }, [articleId, image.index, onUpdate, t]);
 
   async function handleSelectHistory(historyId: string) {
     setSelectingHistory(true);
@@ -153,8 +172,11 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
                 </button>
               </div>
               <textarea
-                value={image.prompt}
-                onChange={(e) => handlePromptChange(e.target.value)}
+                value={localPrompt}
+                onChange={(e) => {
+                  setLocalPrompt(e.target.value);
+                  debouncedPromptSave(e.target.value);
+                }}
                 rows={3}
                 className="w-full bg-bg0 border border-bd rounded px-2 py-1.5 text-xs text-t1 resize-none focus:outline-none focus:border-aB"
               />
