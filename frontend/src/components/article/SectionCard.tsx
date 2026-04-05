@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleSection } from '../../types';
 import { IMEInput, IMETextarea } from '../common/IMEInput';
@@ -39,6 +39,14 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
   const [editingHeading, setEditingHeading] = useState(false);
   const [headingDraft, setHeadingDraft] = useState(section.heading);
   const inputRef = useRef<HTMLInputElement>(null);
+  const contentDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedContentChange = useCallback((val: string) => {
+    if (contentDebounceRef.current) clearTimeout(contentDebounceRef.current);
+    contentDebounceRef.current = setTimeout(() => {
+      onContentChange(section.index, val);
+    }, 600);
+  }, [onContentChange, section.index]);
 
   const color = TYPE_COLOR[section.type] ?? '#8b949e';
   const typeLabel = TYPE_LABEL[section.type] ?? section.type;
@@ -146,7 +154,7 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
           {/* Content textarea */}
           <IMETextarea
             value={section.content}
-            onValueChange={(val) => onContentChange(section.index, val)}
+            onValueChange={debouncedContentChange}
             rows={4}
             className="w-full mt-3 bg-bg0 border border-bd rounded-lg px-3 py-2 text-xs text-t1 resize-none focus:outline-none focus:border-aB transition-colors"
             style={{ minHeight: 80 }}
