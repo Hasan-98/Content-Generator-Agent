@@ -142,7 +142,7 @@ export async function testWpConfig(req: AuthRequest, res: Response): Promise<voi
     res.json({
       success: true,
       siteName: response.data?.name || 'Connected',
-      siteUrl: wpUrl,
+      siteUrl: baseUrl,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Connection failed';
