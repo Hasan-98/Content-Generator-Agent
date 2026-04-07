@@ -8,13 +8,14 @@ import { decrypt } from '../services/crypto';
 const prisma = new PrismaClient();
 
 function buildHtml(
-  title: string,
+  _title: string,
   sections: { heading: string; content: string }[],
   images: { index: number; imageUrl: string | null; enabled: boolean }[]
 ): string {
   const imageMap = new Map(images.filter(i => i.enabled && i.imageUrl).map(i => [i.index, i.imageUrl]));
 
-  let html = `<h1>${title}</h1>\n`;
+  // Don't include <h1> — WordPress uses the title field as the post heading
+  let html = '';
   sections.forEach((s, i) => {
     if (imageMap.has(i)) {
       html += `<img src="${imageMap.get(i)}" alt="${s.heading}" />\n`;
