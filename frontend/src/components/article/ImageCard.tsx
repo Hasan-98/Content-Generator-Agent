@@ -29,12 +29,90 @@ const DEFAULT_PROMPTS: Record<ImageTaste, string> = {
   CINEMATIC: 'ドラマチックな照明と浅い被写界深度のシネマティックなワイドショット',
 };
 
+// Built-in variations per taste, plus user-added ones loaded from localStorage.
+type Variation = { name: string; prompt: string };
+
+const BUILTIN_VARIATIONS: Record<ImageTaste, Variation[]> = {
+  PHOTO: [
+    { name: 'Realistic photo', prompt: DEFAULT_PROMPTS.PHOTO },
+  ],
+  TEXT_OVERLAY: [
+    { name: 'Text overlay', prompt: DEFAULT_PROMPTS.TEXT_OVERLAY },
+  ],
+  INFOGRAPHIC: [
+    { name: 'Infographic', prompt: DEFAULT_PROMPTS.INFOGRAPHIC },
+    { name: 'Infographic with text', prompt: 'アイコン、ラベル、見出しテキスト付きのフラットデザインインフォグラフィック。日本語テキストを含む、データ可視化、明確な階層、プロフェッショナルなレイアウト' },
+  ],
+  ILLUSTRATION: [
+    { name: 'Illustration', prompt: DEFAULT_PROMPTS.ILLUSTRATION },
+  ],
+  CINEMATIC: [
+    { name: 'Cinematic', prompt: DEFAULT_PROMPTS.CINEMATIC },
+  ],
+};
+
+const VARIATIONS_KEY = 'imageTasteVariations.v1';
+
+function loadCustomVariations(): Record<ImageTaste, Variation[]> {
+  try {
+    const raw = localStorage.getItem(VARIATIONS_KEY);
+    if (!raw) return { PHOTO: [], TEXT_OVERLAY: [], INFOGRAPHIC: [], ILLUSTRATION: [], CINEMATIC: [] };
+    return JSON.parse(raw);
+  } catch {
+    return { PHOTO: [], TEXT_OVERLAY: [], INFOGRAPHIC: [], ILLUSTRATION: [], CINEMATIC: [] };
+  }
+}
+
+function saveCustomVariations(v: Record<ImageTaste, Variation[]>) {
+  try { localStorage.setItem(VARIATIONS_KEY, JSON.stringify(v)); } catch { /* ignore */ }
+}
+
 export default function ImageCard({ image, sectionHeading, sectionType, articleId, onUpdate }: Props) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [selectingHistory, setSelectingHistory] = useState(false);
   const [localPrompt, setLocalPrompt] = useState(image.prompt);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<ImageTaste | null>(null);
+  const [customVariations, setCustomVariations] = useState<Record<ImageTaste, Variation[]>>(loadCustomVariations);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    }
+    if (openDropdown) document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [openDropdown]);
+
+  function getVariations(taste: ImageTaste): Variation[] {
+    return [...BUILTIN_VARIATIONS[taste], ...(customVariations[taste] || [])];
+  }
+
+  async function handleSelectVariation(taste: ImageTaste, v: Variation) {
+    setOpenDropdown(null);
+    try {
+      const updated = await updateImage(articleId, image.index, { taste, prompt: v.prompt });
+      onUpdate(updated);
+    } catch {
+      toast.error(t('toastUpdateFailed'));
+    }
+  }
+
+  function handleAddVariation(taste: ImageTaste) {
+    const name = window.prompt(t('imageVariationNamePrompt'));
+    if (!name) return;
+    const promptText = window.prompt(t('imageVariationPromptPrompt'));
+    if (!promptText) return;
+    const next = {
+      ...customVariations,
+      [taste]: [...(customVariations[taste] || []), { name, prompt: promptText }],
+    };
+    setCustomVariations(next);
+    saveCustomVariations(next);
+  }
 
   // Sync local prompt when image prop changes externally (taste change, reset, etc.)
   useEffect(() => {
@@ -143,21 +221,52 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
         <div className="flex gap-4">
           {/* Left: controls */}
           <div className="flex-1 min-w-0">
-            {/* Taste pills */}
-            <div className="flex flex-wrap gap-1 mb-3">
-              {TASTE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => handleTasteChange(opt.value)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    image.taste === opt.value
-                      ? 'border-aB bg-aB/20 text-aB'
-                      : 'border-bd text-t2 hover:border-aB hover:text-aB'
-                  }`}
-                >
-                  {t(opt.labelKey)}
-                </button>
-              ))}
+            {/* Taste dropdown buttons */}
+            <div className="flex flex-wrap gap-1 mb-3 relative" ref={dropdownRef}>
+              {TASTE_OPTIONS.map((opt) => {
+                const active = image.taste === opt.value;
+                const isOpen = openDropdown === opt.value;
+                const variations = getVariations(opt.value);
+                return (
+                  <div key={opt.value} className="relative">
+                    <button
+                      onClick={() => {
+                        if (!active) handleTasteChange(opt.value);
+                        setOpenDropdown(isOpen ? null : opt.value);
+                      }}
+                      className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                        active
+                          ? 'border-aB bg-aB/20 text-aB'
+                          : 'border-bd text-t2 hover:border-aB hover:text-aB'
+                      }`}
+                    >
+                      <span>{t(opt.labelKey)}</span>
+                      <svg width="8" height="8" viewBox="0 0 8 8" className="opacity-70">
+                        <path d="M1 2.5 L4 5.5 L7 2.5" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    {isOpen && (
+                      <div className="absolute z-20 mt-1 left-0 min-w-[200px] rounded-lg border border-bd bg-bg2 shadow-lg overflow-hidden">
+                        {variations.map((v, i) => (
+                          <button
+                            key={`${v.name}-${i}`}
+                            onClick={() => handleSelectVariation(opt.value, v)}
+                            className="w-full text-left text-xs px-3 py-2 text-t1 hover:bg-aB/20 hover:text-aB transition-colors"
+                          >
+                            {v.name}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => handleAddVariation(opt.value)}
+                          className="w-full text-left text-xs px-3 py-2 text-t2 border-t border-bd hover:bg-bg1 hover:text-aB transition-colors"
+                        >
+                          {t('imageVariationAdd')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Prompt */}

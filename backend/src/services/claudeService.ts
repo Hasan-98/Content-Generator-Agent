@@ -292,28 +292,25 @@ export async function generateTitleImagePrompt(
   contentSummary: string,
   apiKey?: string
 ): Promise<string> {
-  const systemPrompt = `You are an expert at creating image generation prompts for professional blog featured images.
+  const systemPrompt = `You are an expert at writing image generation prompts for blog TITLE thumbnails (YouTube-style title cards).
 Your output must be a single image generation prompt string only — no explanation, no preamble, no JSON.
 
-Design rules:
-- Create a visually striking, professional blog header image
-- Use conceptual imagery that represents the article topic (NOT text-heavy)
-- Style: modern, clean, high-quality stock photo or digital illustration feel
-- Lighting: professional, well-lit, cinematic quality
-- Color palette: rich and cohesive, matching the topic mood
-- Composition: rule of thirds, clear focal point, good negative space
-- Include relevant objects, scenes, or metaphorical imagery related to the topic
-- DO NOT include any text, words, letters, or typography in the image
-- DO NOT include UI elements, buttons, or overlay graphics
-- Aspect ratio: 16:9 (wide landscape)
-- Resolution: high detail, sharp focus
-- Mood: professional, trustworthy, engaging`;
+The image MUST clearly display the exact Japanese title given by the user as bold, perfectly legible Japanese typography. Treat the title text as the main subject of the image — like a YouTube thumbnail or magazine cover.
+
+Design rules (MUST follow):
+- 16:9 wide landscape thumbnail
+- Render the Japanese title text VERBATIM, prominently and centered, as crisp, large, bold Japanese typography (Noto Sans JP / gothic style)
+- Title text must be perfectly legible — high contrast against the background, no garbled or fake characters, no extra words
+- Use a tasteful background (gradient, subtle pattern, or soft conceptual imagery related to the topic) that does not compete with the title
+- Strong color contrast, modern editorial / YouTube thumbnail aesthetic
+- Optional small accent icon or shape relating to the topic, but keep the title as the dominant focal point
+- High quality, sharp, professional`;
 
   const userPrompt = `Keyword: ${keyword}
-Title: ${title}
-Article summary: ${contentSummary}
+Japanese title to render verbatim in the image: 「${title}」
+Article summary (for background mood only): ${contentSummary}
 
-Create an image generation prompt for the title thumbnail.`;
+Write an image generation prompt for this title thumbnail. The prompt MUST instruct the image model to render the exact Japanese title 「${title}」 as the main bold typography.`;
 
   return (await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 1024)).trim();
 }

@@ -266,6 +266,12 @@ const en = {
   imagePromptReset: 'Reset',
   imageGenAll: 'Generate All Images',
   imageGenAllBtn: 'Generate all enabled images',
+  imageMasterPromptLabel: 'Master Prompt (auto-applies to all images)',
+  imageMasterPromptPlaceholder: 'Type a prompt here — it will be applied to every image box automatically.',
+  imageMasterPromptApply: 'Apply to all',
+  imageVariationAdd: '+ Add new option',
+  imageVariationNamePrompt: 'Variation name?',
+  imageVariationPromptPrompt: 'Prompt text for this variation?',
 
   // Upload Panel
   uploadTabPreview: 'Preview',
@@ -753,6 +759,12 @@ const ja: Record<TKey, string> = {
   imagePromptReset: 'リセット',
   imageGenAll: '全画像を生成',
   imageGenAllBtn: '全ての有効な画像を生成する',
+  imageMasterPromptLabel: 'マスタープロンプト（全画像に自動適用）',
+  imageMasterPromptPlaceholder: 'ここにプロンプトを入力すると、全ての画像ボックスに自動で適用されます。',
+  imageMasterPromptApply: '全てに適用',
+  imageVariationAdd: '＋ 他のオプション',
+  imageVariationNamePrompt: 'バリエーション名は？',
+  imageVariationPromptPrompt: 'このバリエーションのプロンプトは？',
 
   // Upload Panel
   uploadTabPreview: 'プレビュー',

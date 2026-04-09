@@ -4,7 +4,7 @@ import type { TopLevel, GeneratedResult, Article } from '../types';
 import { getTopLevels } from '../api/topics';
 import { generateArticle } from '../api/generate';
 import { generateImagesBulk } from '../api/generate';
-import { getArticle } from '../api/articles';
+import { getArticle, updateImage } from '../api/articles';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import ArticleTree from '../components/article/ArticleTree';
@@ -27,6 +27,8 @@ export default function ArticleCreator() {
   const [generatingArticle, setGeneratingArticle] = useState(false);
   const [generatingAllImages, setGeneratingAllImages] = useState(false);
   const [refResult, setRefResult] = useState<GeneratedResult | null>(null);
+  const [masterPrompt, setMasterPrompt] = useState('');
+  const [applyingMaster, setApplyingMaster] = useState(false);
 
   useEffect(() => {
     getTopLevels()
@@ -96,6 +98,28 @@ export default function ArticleCreator() {
       toast.error(t('toastImageGenFailed'));
     } finally {
       setGeneratingAllImages(false);
+    }
+  }
+
+  async function handleApplyMasterPrompt() {
+    if (!article || !masterPrompt.trim()) return;
+    setApplyingMaster(true);
+    try {
+      const updates = await Promise.all(
+        article.images
+          .filter(img => img.enabled)
+          .map(img => updateImage(article.id, img.index, { prompt: masterPrompt }))
+      );
+      setArticle(prev => {
+        if (!prev) return prev;
+        const map = new Map(updates.map(u => [u.index, u]));
+        return { ...prev, images: prev.images.map(img => map.get(img.index) ?? img) };
+      });
+      toast.success(t('imageMasterPromptApply'));
+    } catch {
+      toast.error(t('toastUpdateFailed'));
+    } finally {
+      setApplyingMaster(false);
     }
   }
 
@@ -206,6 +230,26 @@ export default function ArticleCreator() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-5">
+                {/* Master prompt — auto-applies to every image box */}
+                <div className="mb-4 rounded-lg border border-aP/40 bg-aP/5 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] text-aP font-medium">{t('imageMasterPromptLabel')}</span>
+                    <button
+                      onClick={handleApplyMasterPrompt}
+                      disabled={applyingMaster || !masterPrompt.trim()}
+                      className="text-[11px] px-3 py-1 rounded border border-aP/50 text-aP hover:bg-aP/20 disabled:opacity-40 transition-colors"
+                    >
+                      {applyingMaster ? '…' : t('imageMasterPromptApply')}
+                    </button>
+                  </div>
+                  <textarea
+                    value={masterPrompt}
+                    onChange={(e) => setMasterPrompt(e.target.value)}
+                    placeholder={t('imageMasterPromptPlaceholder')}
+                    rows={2}
+                    className="w-full bg-bg0 border border-bd rounded px-2 py-1.5 text-xs text-t1 resize-none focus:outline-none focus:border-aP"
+                  />
+                </div>
                 {article.images.map((image) => {
                   const section = article.sections.find(s => s.index === image.index);
                   return (
