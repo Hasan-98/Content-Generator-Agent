@@ -16,6 +16,7 @@ import inviteRoutes from './routes/invites';
 import videoScriptRoutes from './routes/videoScripts';
 import shopifyConfigRoutes from './routes/shopifyConfig';
 import ttsDictionaryRoutes from './routes/ttsDictionary';
+import heygenAvatarRoutes from './routes/heygenAvatars';
 import path from 'path';
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/api/invites', inviteRoutes);
 app.use('/api/video-scripts', videoScriptRoutes);
 app.use('/api/shopify-config', shopifyConfigRoutes);
 app.use('/api/tts-dictionary', ttsDictionaryRoutes);
+app.use('/api/heygen-avatars', heygenAvatarRoutes);
 
 // Serve audio files
 app.use('/audio', express.static(path.join(__dirname, '..', 'audio')));

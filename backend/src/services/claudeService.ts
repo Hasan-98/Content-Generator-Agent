@@ -7,7 +7,14 @@ function getClient(apiKey?: string): OpenAI {
   return defaultClient;
 }
 
-async function chat(client: OpenAI, model: string, systemPrompt: string | null, userPrompt: string, maxTokens: number): Promise<string> {
+async function chat(
+  client: OpenAI,
+  model: string,
+  systemPrompt: string | null,
+  userPrompt: string,
+  maxTokens: number,
+  temperature?: number
+): Promise<string> {
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
   messages.push({ role: 'user', content: userPrompt });
@@ -16,6 +23,7 @@ async function chat(client: OpenAI, model: string, systemPrompt: string | null, 
     model,
     max_tokens: maxTokens,
     messages,
+    ...(temperature !== undefined && { temperature }),
   });
 
   return completion.choices[0]?.message?.content ?? '';
@@ -574,7 +582,8 @@ visual_type:
 visual_note: 演出意図を簡潔に。
 トーン: 親しみやすく丁寧に。`;
 
-  const text = await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 4096);
+  // Match n8n WF1 exactly: gpt-4.1-mini, temperature 0.3, maxTokens 4096
+  const text = await chat(getClient(apiKey), 'gpt-4.1-mini', systemPrompt, userPrompt, 4096, 0.3);
 
   let jsonStr = text;
   const jsonMatch = text.match(/```json\s*([\s\S]*?)```/);

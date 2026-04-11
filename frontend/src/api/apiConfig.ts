@@ -8,6 +8,7 @@ export interface ApiConfigStatus {
   metaApi: boolean;
   kieApi: boolean;
   pieapi: boolean;
+  heygenApi: boolean;
 }
 
 export type ApiKeyName = keyof ApiConfigStatus;

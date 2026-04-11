@@ -13,6 +13,7 @@ const API_KEY_FIELDS = [
   'metaApi',
   'kieApi',
   'pieapi',
+  'heygenApi',
 ] as const;
 
 type ApiKeyName = (typeof API_KEY_FIELDS)[number];

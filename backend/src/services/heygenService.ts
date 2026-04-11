@@ -12,6 +12,144 @@ const heygenApi = axios.create({
   },
 });
 
+// ============================================================================
+// WF0 — Photo Avatar Training (create a custom HeyGen avatar from a photo)
+// ============================================================================
+
+/**
+ * Detect image MIME type from file magic bytes.
+ * HeyGen's upload endpoint requires the correct Content-Type.
+ */
+function detectImageMime(buffer: Buffer): string {
+  if (buffer.length < 12) return 'image/jpeg';
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  // PNG: 89 50 4E 47
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return 'image/png';
+  // WEBP: "RIFF"...."WEBP"
+  if (
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+  ) return 'image/webp';
+  // GIF
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) return 'image/gif';
+  return 'image/jpeg';
+}
+
+/**
+ * Download an image from a URL as a Buffer.
+ */
+export async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
+  const response = await axios.get<ArrayBuffer>(url, {
+    responseType: 'arraybuffer',
+    timeout: 30000,
+    maxContentLength: 50 * 1024 * 1024, // 50MB cap
+  });
+  const buffer = Buffer.from(response.data);
+  const headerMime = (response.headers['content-type'] as string | undefined)?.split(';')[0]?.trim();
+  const contentType = headerMime && headerMime.startsWith('image/') ? headerMime : detectImageMime(buffer);
+  return { buffer, contentType };
+}
+
+function resolveApiKey(userKey?: string): string {
+  const key = userKey || HEYGEN_API_KEY;
+  if (!key) throw new Error('HeyGen API key is not configured');
+  return key;
+}
+
+/**
+ * Upload an image to HeyGen's asset service. Returns the image_key.
+ * Mirrors WF0 step "HeyGen asset upload".
+ */
+export async function uploadImageToHeygen(
+  buffer: Buffer,
+  contentType: string,
+  userApiKey?: string
+): Promise<string> {
+  const apiKey = resolveApiKey(userApiKey);
+  const response = await axios.post('https://upload.heygen.com/v1/asset', buffer, {
+    headers: {
+      'X-Api-Key': apiKey,
+      'Content-Type': contentType,
+    },
+    maxBodyLength: Infinity,
+    timeout: 60000,
+  });
+  const data = response.data?.data || {};
+  const imageKey = data.image_key || '';
+  if (!imageKey) {
+    throw new Error('HeyGen image upload returned no image_key: ' + JSON.stringify(response.data).slice(0, 300));
+  }
+  return imageKey;
+}
+
+/**
+ * Create a photo_avatar group using a previously uploaded image_key.
+ * Returns the group_id.
+ */
+export async function createAvatarGroup(
+  name: string,
+  imageKey: string,
+  userApiKey?: string
+): Promise<string> {
+  const apiKey = resolveApiKey(userApiKey);
+  const response = await axios.post(
+    'https://api.heygen.com/v2/photo_avatar/avatar_group/create',
+    { name, image_key: imageKey },
+    {
+      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 30000,
+    }
+  );
+  const data = response.data?.data || {};
+  const groupId = data.id || data.group_id || '';
+  if (!groupId) {
+    throw new Error('HeyGen avatar_group/create returned no id: ' + JSON.stringify(response.data).slice(0, 300));
+  }
+  return groupId;
+}
+
+/**
+ * Kick off photo_avatar training. HeyGen does this async; we tolerate non-2xx
+ * (matching the n8n "neverError: true" behaviour).
+ */
+export async function trainAvatarGroup(groupId: string, userApiKey?: string): Promise<void> {
+  const apiKey = resolveApiKey(userApiKey);
+  try {
+    await axios.post(
+      'https://api.heygen.com/v2/photo_avatar/train',
+      { group_id: groupId },
+      {
+        headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+        timeout: 30000,
+      }
+    );
+  } catch (err: any) {
+    // HeyGen occasionally 400s if training is already in progress — don't fail the flow.
+    console.warn('[heygenService] trainAvatarGroup non-fatal error:', err?.response?.data || err?.message);
+  }
+}
+
+/**
+ * Poll an avatar group's status. Returns the trained avatar_id once ready,
+ * or null if still training.
+ */
+export async function getAvatarGroupStatus(
+  groupId: string,
+  userApiKey?: string
+): Promise<{ avatarId: string | null; raw: any }> {
+  const apiKey = resolveApiKey(userApiKey);
+  const response = await axios.get(`https://api.heygen.com/v2/photo_avatar/${groupId}`, {
+    headers: { 'X-Api-Key': apiKey },
+    timeout: 30000,
+  });
+  const data = response.data?.data || {};
+  const looks = data.photo_avatar_list || data.looks || [];
+  const first = Array.isArray(looks) && looks.length > 0 ? looks[0] : null;
+  const avatarId = (first && (first.id || first.avatar_id || first.talking_photo_id)) || null;
+  return { avatarId, raw: data };
+}
+
 /**
  * List available talking photos from HeyGen.
  */

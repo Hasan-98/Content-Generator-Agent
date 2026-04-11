@@ -160,6 +160,22 @@ export interface HeygenAvatar {
   imageUrl: string;
 }
 
+export type HeygenTrainedAvatarStatus = 'PENDING' | 'UPLOADING' | 'TRAINING' | 'READY' | 'FAILED';
+
+export interface HeygenTrainedAvatar {
+  id: string;
+  userId: string;
+  name: string;
+  imageUrl: string;
+  imageKey: string | null;
+  groupId: string | null;
+  avatarId: string | null;
+  status: HeygenTrainedAvatarStatus;
+  errorMsg: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface VideoScript {
   id: string;
   title: string;

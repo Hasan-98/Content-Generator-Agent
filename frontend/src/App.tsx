@@ -10,6 +10,7 @@ import TopicCreator from './pages/TopicCreator';
 import ArticleCreator from './pages/ArticleCreator';
 import InstagramPanel from './pages/InstagramPanel';
 import VideoScriptCreator from './pages/VideoScriptCreator';
+import HeygenAvatarsPage from './pages/HeygenAvatarsPage';
 import UserModal from './components/user/UserModal';
 import UserSettingsModal from './components/user/UserSettingsModal';
 import SettingsModal from './components/user/SettingsModal';
@@ -22,7 +23,7 @@ function getInviteToken(): string | null {
 
 function AppShell() {
   const { user, loading, isImpersonating, isViewingAs, returnToAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'video' | 'instagram'>('topic');
+  const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'video' | 'avatars' | 'instagram'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [userModalInvite, setUserModalInvite] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -38,7 +39,12 @@ function AppShell() {
 
   if (!user) return <LoginScreen />;
 
-  const sectionLabel = activeTab === 'topic' ? 'Topic Creator' : activeTab === 'article' ? 'Article Creator' : activeTab === 'video' ? 'Video Script' : 'Instagram Publisher';
+  const sectionLabel =
+    activeTab === 'topic' ? 'Topic Creator' :
+    activeTab === 'article' ? 'Article Creator' :
+    activeTab === 'video' ? 'Video Script' :
+    activeTab === 'avatars' ? 'HeyGen Avatars' :
+    'Instagram Publisher';
 
   return (
     <div className="flex flex-col h-screen">
@@ -72,8 +78,12 @@ function AppShell() {
       )}
       <Titlebar onOpenUsers={() => { setUserModalInvite(false); setUserModalOpen(true); }} onOpenSettings={() => setSettingsModalOpen(true)} onInviteUser={() => { setUserModalInvite(true); setUserModalOpen(true); }} />
       <div className="flex flex-1 overflow-hidden">
-        <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'video' | 'instagram')} />
-        {activeTab === 'topic' ? <TopicCreator /> : activeTab === 'article' ? <ArticleCreator /> : activeTab === 'video' ? <VideoScriptCreator /> : <InstagramPanel />}
+        <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'video' | 'avatars' | 'instagram')} />
+        {activeTab === 'topic' ? <TopicCreator />
+          : activeTab === 'article' ? <ArticleCreator />
+          : activeTab === 'video' ? <VideoScriptCreator />
+          : activeTab === 'avatars' ? <HeygenAvatarsPage />
+          : <InstagramPanel />}
       </div>
       <Statusbar section={sectionLabel} onOpenSettings={() => setApiSettingsModalOpen(true)} />
       {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} defaultShowInvite={userModalInvite} />}

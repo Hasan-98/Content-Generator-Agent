@@ -20,6 +20,7 @@ model User {
   topLevels       TopLevel[]
   apiConfig       ApiConfig?
   sentInvites     Invite[]
+  heygenAvatars   HeygenTrainedAvatar[]
 }
 
 model Invite {
@@ -243,10 +244,36 @@ model ApiConfig {
   metaApiEncrypted      String?  @db.Text
   kieApiEncrypted       String?  @db.Text
   pieapiEncrypted       String?  @db.Text
+  heygenApiEncrypted    String?  @db.Text
   userId                String   @unique
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model HeygenTrainedAvatar {
+  id         String              @id @default(cuid())
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  imageUrl   String              @db.Text
+  imageKey   String?             @db.Text
+  groupId    String?
+  avatarId   String?
+  status     HeygenAvatarStatus  @default(PENDING)
+  errorMsg   String?             @db.Text
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@index([userId])
+}
+
+enum HeygenAvatarStatus {
+  PENDING
+  UPLOADING
+  TRAINING
+  READY
+  FAILED
 }
 
 enum Role {

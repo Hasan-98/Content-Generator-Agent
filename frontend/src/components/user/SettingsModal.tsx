@@ -16,6 +16,7 @@ const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; place
   { key: 'metaApi', label: 'Meta API', labelJa: 'Meta API', placeholder: 'Enter API key...' },
   { key: 'kieApi', label: 'Kie API', labelJa: 'Kie API', placeholder: 'Enter API key...' },
   { key: 'pieapi', label: 'Pieapi', labelJa: 'Pieapi', placeholder: 'Enter API key...' },
+  { key: 'heygenApi', label: 'HeyGen API', labelJa: 'HeyGen API', placeholder: 'sk_V2_hgu_...' },
 ];
 
 export default function SettingsModal({ onClose }: Props) {
@@ -45,6 +46,7 @@ export default function SettingsModal({ onClose }: Props) {
         setConfig({
           claudeApi: false, openaiApi: false, geminiApi: false,
           googleApi: false, metaApi: false, kieApi: false, pieapi: false,
+          heygenApi: false,
         });
       } finally {
         setLoading(false);
