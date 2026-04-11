@@ -47,7 +47,7 @@ export async function listAvatarsApi(): Promise<HeygenAvatar[]> {
 // Settings
 export async function updateVideoSettingsApi(
   scriptId: string,
-  data: { avatarId?: string; orientation?: string; theme?: string }
+  data: { avatarId?: string; orientation?: string; theme?: string; pattern?: string }
 ): Promise<VideoScript> {
   const res = await client.patch(`/video-scripts/${scriptId}/settings`, data);
   return res.data;
@@ -61,6 +61,15 @@ export async function generateHeygenVideoApi(scriptId: string): Promise<VideoScr
 
 export async function checkHeygenStatusApi(scriptId: string): Promise<VideoScript> {
   const res = await client.post(`/video-scripts/${scriptId}/heygen-status`);
+  return res.data;
+}
+
+// WF4: preview background builder (Pexels with Japan-aware keyword mapping)
+export async function buildVideoPreviewApi(
+  scriptId: string,
+  force: boolean = false
+): Promise<{ script: VideoScript; populatedCount: number; totalSections: number }> {
+  const res = await client.post(`/video-scripts/${scriptId}/build-preview`, { force });
   return res.data;
 }
 

@@ -5,13 +5,6 @@ import path from 'path';
 const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY || '';
 const TALKING_PHOTO_ID = process.env.HEYGEN_TALKING_PHOTO_ID || '';
 
-const heygenApi = axios.create({
-  headers: {
-    'X-Api-Key': HEYGEN_API_KEY,
-    'Content-Type': 'application/json',
-  },
-});
-
 // ============================================================================
 // WF0 — Photo Avatar Training (create a custom HeyGen avatar from a photo)
 // ============================================================================
@@ -153,10 +146,14 @@ export async function getAvatarGroupStatus(
 /**
  * List available talking photos from HeyGen.
  */
-export async function listTalkingPhotos(): Promise<
-  { id: string; name: string; imageUrl: string }[]
-> {
-  const response = await heygenApi.get('https://api.heygen.com/v2/talking_photo.list');
+export async function listTalkingPhotos(
+  userApiKey?: string
+): Promise<{ id: string; name: string; imageUrl: string }[]> {
+  const apiKey = resolveApiKey(userApiKey);
+  const response = await axios.get('https://api.heygen.com/v2/talking_photo.list', {
+    headers: { 'X-Api-Key': apiKey },
+    timeout: 30000,
+  });
   const list = response.data.data?.talking_photos || [];
   return list.map((p: any) => ({
     id: p.talking_photo_id || p.id,
@@ -167,33 +164,57 @@ export async function listTalkingPhotos(): Promise<
 
 /**
  * Upload an MP3 audio file to HeyGen as an asset.
- * Returns the asset ID.
+ * Returns the asset ID. Accepts either a file path or a raw buffer.
  */
-export async function uploadAudioToHeygen(audioFilePath: string): Promise<string> {
+export async function uploadAudioToHeygen(
+  audioFilePath: string,
+  userApiKey?: string
+): Promise<string> {
   const audioBuffer = fs.readFileSync(audioFilePath);
+  return uploadAudioBufferToHeygen(audioBuffer, userApiKey);
+}
 
+export async function uploadAudioBufferToHeygen(
+  audioBuffer: Buffer,
+  userApiKey?: string
+): Promise<string> {
+  const apiKey = resolveApiKey(userApiKey);
   const response = await axios.post('https://upload.heygen.com/v1/asset', audioBuffer, {
     headers: {
-      'X-Api-Key': HEYGEN_API_KEY,
+      'X-Api-Key': apiKey,
       'Content-Type': 'audio/mpeg',
     },
     maxBodyLength: Infinity,
+    timeout: 120000,
   });
-
-  return response.data.data?.id || '';
+  const data = response.data?.data || {};
+  // HeyGen returns the asset id under `.id`
+  return data.id || data.asset_id || '';
 }
 
 /**
- * Create a HeyGen video from audio assets.
- * Each section gets its own video_input with the talking photo avatar.
+ * Create a HeyGen video.
+ *
+ * Accepts either:
+ *  - A single asset_id (WF3-style single combined audio)   — pass `audioAssetIds: [id]`
+ *  - An array of asset_ids (per-section pacing)             — pass `audioAssetIds: [id1, id2, ...]`
+ *
+ * All video_inputs share the same talking_photo avatar, matting: true, and a
+ * #00FF00 chromakey background — byte-for-byte the same as n8n WF3.
  */
 export async function createHeygenVideo(
   title: string,
   audioAssetIds: string[],
   avatarId?: string,
-  orientation: string = 'horizontal'
+  orientation: string = 'horizontal',
+  userApiKey?: string
 ): Promise<{ videoId: string }> {
+  const apiKey = resolveApiKey(userApiKey);
   const talkingPhotoId = avatarId || TALKING_PHOTO_ID;
+  if (!talkingPhotoId) {
+    throw new Error('No avatarId or HEYGEN_TALKING_PHOTO_ID configured for HeyGen video generation');
+  }
+
   const dimension = orientation === 'vertical'
     ? { width: 1080, height: 1920 }
     : { width: 1920, height: 1080 };
@@ -214,32 +235,43 @@ export async function createHeygenVideo(
     },
   }));
 
-  const response = await heygenApi.post('https://api.heygen.com/v2/video/generate', {
-    video_inputs: videoInputs,
-    dimension,
-    title,
-  });
+  const response = await axios.post(
+    'https://api.heygen.com/v2/video/generate',
+    { video_inputs: videoInputs, dimension, title },
+    {
+      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 60000,
+    }
+  );
 
   return {
-    videoId: response.data.data?.video_id || '',
+    videoId: response.data?.data?.video_id || '',
   };
 }
 
 /**
  * Check HeyGen video generation status.
  */
-export async function checkHeygenStatus(videoId: string): Promise<{
+export async function checkHeygenStatus(
+  videoId: string,
+  userApiKey?: string
+): Promise<{
   status: string;
   videoUrl: string;
   thumbnailUrl: string;
   duration: number;
   error: string;
 }> {
-  const response = await heygenApi.get(
-    `https://api.heygen.com/v1/video_status.get?video_id=${videoId}`
+  const apiKey = resolveApiKey(userApiKey);
+  const response = await axios.get(
+    `https://api.heygen.com/v1/video_status.get?video_id=${videoId}`,
+    {
+      headers: { 'X-Api-Key': apiKey },
+      timeout: 30000,
+    }
   );
 
-  const data = response.data.data || {};
+  const data = response.data?.data || {};
   return {
     status: data.status || 'unknown',
     videoUrl: data.video_url || '',
@@ -247,6 +279,44 @@ export async function checkHeygenStatus(videoId: string): Promise<{
     duration: data.duration || 0,
     error: data.error ? JSON.stringify(data.error) : '',
   };
+}
+
+/**
+ * WF3 final step: convert a HeyGen-hosted mp4 to a web-compatible preview via the VPS
+ * `/video/convert-preview` endpoint. Returns the converted preview URL.
+ *
+ * Base URL is read from HEYGEN_PREVIEW_CONVERT_URL (preferred) or derived from
+ * REMOTION_RENDER_URL. Returns null on failure (non-fatal — the raw HeyGen URL
+ * still works, just not always in every browser).
+ */
+export async function convertHeygenPreview(videoUrl: string): Promise<string | null> {
+  if (!videoUrl) return null;
+
+  const explicit = process.env.HEYGEN_PREVIEW_CONVERT_URL;
+  const derived = process.env.REMOTION_RENDER_URL
+    ? process.env.REMOTION_RENDER_URL.replace('/render-avatar', '/convert-preview')
+    : '';
+  const endpoint = explicit || derived;
+  if (!endpoint) {
+    console.warn('[heygenService] convertHeygenPreview: no HEYGEN_PREVIEW_CONVERT_URL configured');
+    return null;
+  }
+
+  try {
+    const response = await axios.post(
+      endpoint,
+      { videoUrl },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 120000,
+      }
+    );
+    const data = response.data || {};
+    return data.previewUrl || data.preview_url || data.url || data.videoUrl || null;
+  } catch (err: any) {
+    console.error('[heygenService] convertHeygenPreview error:', err?.message || err);
+    return null;
+  }
 }
 
 /**

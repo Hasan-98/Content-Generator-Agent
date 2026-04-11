@@ -195,9 +195,11 @@ model VideoScript {
   avatarId        String?
   orientation     String               @default("horizontal")
   theme           String               @default("modern-dark")
-  heygenVideoId   String?
-  heygenVideoUrl  String?
-  heygenStatus    String               @default("pending")
+  pattern         String               @default("formal")
+  heygenVideoId    String?
+  heygenVideoUrl   String?
+  previewVideoUrl  String?
+  heygenStatus     String               @default("pending")
   remotionJobId   String?
   remotionVideoUrl String?
   remotionStatus  String               @default("pending")

@@ -6,7 +6,7 @@ import {
   listVideoScripts, generateVideoScriptApi, deleteVideoScript, updateVideoScriptSection,
   generateTtsApi, listTtsDictionary, addTtsDictionaryEntry, deleteTtsDictionaryEntry,
   generateHeygenVideoApi, checkHeygenStatusApi,
-  generateRemotionVideoApi, checkRemotionStatusApi,
+  generateRemotionVideoApi, checkRemotionStatusApi, buildVideoPreviewApi,
   listAvatarsApi, updateVideoSettingsApi, generateSectionImageApi,
 } from '../api/videoScripts';
 import { IMEInput, IMETextarea } from '../components/common/IMEInput';
@@ -67,6 +67,7 @@ export default function VideoScriptCreator() {
   const [generatingTts, setGeneratingTts] = useState(false);
   const [generatingHeygen, setGeneratingHeygen] = useState(false);
   const [generatingRemotion, setGeneratingRemotion] = useState(false);
+  const [buildingPreview, setBuildingPreview] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   // Avatars & Settings
@@ -171,6 +172,28 @@ export default function VideoScriptCreator() {
       }
     } catch {
       toast.error(t('heygenCheckFailed'));
+    }
+  }
+
+  async function handleBuildPreview() {
+    if (!selectedScript) return;
+    const force = window.confirm(t('previewBuildForceConfirm'));
+    setBuildingPreview(true);
+    toast.loading(t('previewBuilding'), { id: 'build-preview' });
+    try {
+      const { script: updated, populatedCount, totalSections } = await buildVideoPreviewApi(
+        selectedScript.id,
+        force
+      );
+      updateScriptInState(updated);
+      toast.success(
+        `${t('previewBuildDone')} (${populatedCount}/${totalSections})`,
+        { id: 'build-preview' }
+      );
+    } catch {
+      toast.error(t('previewBuildFailed'), { id: 'build-preview' });
+    } finally {
+      setBuildingPreview(false);
     }
   }
 
@@ -548,6 +571,32 @@ export default function VideoScriptCreator() {
                     ))}
                   </div>
                 </div>
+
+                {/* Pattern Selector (WF4b) */}
+                <div>
+                  <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsPattern')}</span>
+                  <div className="grid grid-cols-4 gap-2 mt-1">
+                    {[
+                      { id: 'formal',    label: 'Formal',    desc: t('vsPatternFormalDesc'),    active: true },
+                      { id: 'casual',    label: 'Casual',    desc: t('vsPatternCasualDesc'),    active: false },
+                      { id: 'minimal',   label: 'Minimal',   desc: t('vsPatternMinimalDesc'),   active: false },
+                      { id: 'corporate', label: 'Corporate', desc: t('vsPatternCorporateDesc'), active: false },
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => p.active && handleUpdateSettings({ pattern: p.id })}
+                        disabled={!p.active}
+                        className={`rounded-lg border-2 p-2 transition-all text-left ${
+                          selectedScript.pattern === p.id ? 'border-aB ring-1 ring-aB' : 'border-bd hover:border-aB/50'
+                        } ${!p.active ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        title={p.desc}
+                      >
+                        <div className="text-[11px] text-t1 font-semibold mb-0.5">{p.label}</div>
+                        <div className="text-[9px] text-tM leading-tight line-clamp-2">{p.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -608,7 +657,11 @@ export default function VideoScriptCreator() {
                   </div>
                   {selectedScript.heygenVideoUrl && selectedScript.heygenStatus === 'done' && (
                     <div className="mt-3">
-                      <video controls className="w-full rounded" src={selectedScript.heygenVideoUrl} />
+                      <video
+                        controls
+                        className="w-full rounded"
+                        src={selectedScript.previewVideoUrl || selectedScript.heygenVideoUrl}
+                      />
                     </div>
                   )}
                   {selectedScript.audioStatus !== 'done' && (
@@ -637,6 +690,14 @@ export default function VideoScriptCreator() {
                           {t('remotionCheckStatus')}
                         </button>
                       )}
+                      <button
+                        onClick={handleBuildPreview}
+                        disabled={buildingPreview}
+                        title={t('previewBuildHint')}
+                        className="px-3 py-1.5 text-xs bg-bg2 text-aC border border-aC/40 rounded hover:bg-aC/10 transition-colors disabled:opacity-50"
+                      >
+                        {buildingPreview ? t('previewBuilding') : t('previewBuildBtn')}
+                      </button>
                       <button onClick={handleGenerateRemotion} disabled={generatingRemotion || selectedScript.heygenStatus !== 'done'} className="px-4 py-1.5 text-xs bg-aO text-white rounded hover:bg-aO/80 transition-colors disabled:opacity-50">
                         {generatingRemotion ? t('remotionGenerating') : selectedScript.remotionVideoUrl ? t('remotionRegenerate') : t('remotionGenerate')}
                       </button>

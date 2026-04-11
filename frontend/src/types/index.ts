@@ -184,8 +184,10 @@ export interface VideoScript {
   avatarId?: string;
   orientation: string;
   theme: string;
+  pattern: string;
   heygenVideoId?: string;
   heygenVideoUrl?: string;
+  previewVideoUrl?: string;
   heygenStatus: string;
   remotionJobId?: string;
   remotionVideoUrl?: string;

@@ -15,6 +15,7 @@ import {
   checkHeygenVideoStatus,
   generateRemotionVideo,
   checkRemotionVideoStatus,
+  buildVideoPreview,
 } from '../controllers/videoGenController';
 import { authenticate } from '../middleware/auth';
 
@@ -30,6 +31,7 @@ router.patch('/:id/settings', updateVideoSettings);
 router.post('/:id/tts', generateTts);
 router.post('/:id/heygen', generateHeygenVideo);
 router.post('/:id/heygen-status', checkHeygenVideoStatus);
+router.post('/:id/build-preview', buildVideoPreview);
 router.post('/:id/remotion', generateRemotionVideo);
 router.post('/:id/remotion-status', checkRemotionVideoStatus);
 router.patch('/sections/:id', updateVideoScriptSection);
