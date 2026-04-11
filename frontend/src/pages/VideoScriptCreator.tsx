@@ -238,7 +238,7 @@ export default function VideoScriptCreator() {
     }
   }
 
-  async function handleUpdateSettings(data: { avatarId?: string; orientation?: string; theme?: string }) {
+  async function handleUpdateSettings(data: { avatarId?: string; orientation?: string; theme?: string; pattern?: string }) {
     if (!selectedScript) return;
     try {
       const updated = await updateVideoSettingsApi(selectedScript.id, data);
