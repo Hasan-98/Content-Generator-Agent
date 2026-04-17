@@ -114,22 +114,33 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
     saveCustomVariations(next);
   }
 
+  // Track whether the user is actively editing so we don't clobber their input
+  // when the debounced save's response triggers a parent state update.
+  const editingRef = useRef(false);
+
   // Sync local prompt when image prop changes externally (taste change, reset, etc.)
+  // but NOT when the change came from the user's own debounced save.
   useEffect(() => {
-    setLocalPrompt(image.prompt);
+    if (!editingRef.current) {
+      setLocalPrompt(image.prompt);
+    }
   }, [image.prompt]);
 
   const debouncedPromptSave = useCallback((prompt: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    editingRef.current = true;
     debounceRef.current = setTimeout(async () => {
       try {
-        const updated = await updateImage(articleId, image.index, { prompt });
-        onUpdate(updated);
+        await updateImage(articleId, image.index, { prompt });
+        // Don't call onUpdate here — it would trigger the useEffect sync
+        // and clobber any characters typed after the debounce fired.
       } catch {
         toast.error(t('toastUpdateFailed'));
+      } finally {
+        editingRef.current = false;
       }
     }, 600);
-  }, [articleId, image.index, onUpdate, t]);
+  }, [articleId, image.index, t]);
 
   async function handleSelectHistory(historyId: string) {
     setSelectingHistory(true);
