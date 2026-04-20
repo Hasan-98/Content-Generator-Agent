@@ -34,17 +34,22 @@ export function applyDictionary(
  * Generate TTS audio using OpenAI TTS API.
  * Returns the filename of the saved MP3.
  */
+export type TtsVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'fable' | 'nova' | 'onyx' | 'sage' | 'shimmer';
+
+export const TTS_VOICES: TtsVoice[] = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer'];
+
 export async function generateTtsAudio(
   narration: string,
   scriptId: string,
-  apiKey?: string
+  apiKey?: string,
+  voice: TtsVoice = 'onyx'
 ): Promise<string> {
   const client = getClient(apiKey);
 
   const response = await client.audio.speech.create({
     model: 'tts-1-hd',
     input: narration,
-    voice: 'onyx',
+    voice,
     response_format: 'mp3',
   });
 

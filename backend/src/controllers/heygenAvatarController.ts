@@ -90,22 +90,31 @@ async function runAvatarCreationWorker(avatarRowId: string, userId: string): Pro
 }
 
 // POST /api/heygen-avatars — create a new avatar and start training
+// Accepts either:
+//   - multipart/form-data with `image` file + `name` field (file upload)
+//   - JSON body with `name` + `imageUrl` (legacy URL mode)
 export async function createAvatar(req: AuthRequest, res: Response): Promise<void> {
-  const { name, imageUrl } = req.body || {};
-  if (typeof name !== 'string' || !name.trim()) {
+  const name = (req.body?.name as string) || '';
+  if (!name.trim()) {
     res.status(400).json({ error: 'name is required' });
     return;
   }
-  if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
-    res.status(400).json({ error: 'imageUrl is required' });
-    return;
-  }
 
-  // Validate URL format up-front so the client gets an immediate error.
-  try {
-    new URL(imageUrl.trim());
-  } catch {
-    res.status(400).json({ error: 'imageUrl must be a valid URL' });
+  // Determine image URL: uploaded file takes priority over imageUrl body field
+  let imageUrl: string;
+  const file = (req as any).file as Express.Multer.File | undefined;
+
+  if (file) {
+    // File was uploaded — build a server-relative URL
+    imageUrl = `/uploads/${file.filename}`;
+  } else if (typeof req.body?.imageUrl === 'string' && req.body.imageUrl.trim()) {
+    imageUrl = req.body.imageUrl.trim();
+    try { new URL(imageUrl); } catch {
+      res.status(400).json({ error: 'imageUrl must be a valid URL' });
+      return;
+    }
+  } else {
+    res.status(400).json({ error: 'image file or imageUrl is required' });
     return;
   }
 
@@ -113,7 +122,7 @@ export async function createAvatar(req: AuthRequest, res: Response): Promise<voi
     data: {
       userId: req.user!.id,
       name: name.trim(),
-      imageUrl: imageUrl.trim(),
+      imageUrl,
       status: HeygenAvatarStatus.PENDING,
     },
   });

@@ -186,6 +186,8 @@ export interface VideoScript {
   orientation: string;
   theme: string;
   pattern: string;
+  voice: string;
+  customAudioUrl?: string;
   heygenVideoId?: string;
   heygenVideoUrl?: string;
   previewVideoUrl?: string;

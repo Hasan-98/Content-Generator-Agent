@@ -6,8 +6,17 @@ export async function listHeygenAvatars(): Promise<HeygenTrainedAvatar[]> {
   return res.data;
 }
 
-export async function createHeygenAvatar(data: { name: string; imageUrl: string }): Promise<HeygenTrainedAvatar> {
-  const res = await client.post('/heygen-avatars', data);
+export async function createHeygenAvatar(data: { name: string; imageFile?: File; imageUrl?: string }): Promise<HeygenTrainedAvatar> {
+  if (data.imageFile) {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('image', data.imageFile);
+    const res = await client.post('/heygen-avatars', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  }
+  const res = await client.post('/heygen-avatars', { name: data.name, imageUrl: data.imageUrl });
   return res.data;
 }
 

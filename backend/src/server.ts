@@ -47,6 +47,9 @@ app.use('/api/heygen-avatars', heygenAvatarRoutes);
 // Serve audio files
 app.use('/audio', express.static(path.join(__dirname, '..', 'audio')));
 
+// Serve uploaded files (avatars, recordings, etc.)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

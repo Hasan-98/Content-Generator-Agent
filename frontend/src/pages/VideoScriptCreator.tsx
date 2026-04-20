@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import type { TopLevel, VideoScript, TtsDictionary, HeygenAvatar } from '../types';
 import { getTopLevels } from '../api/topics';
 import {
   listVideoScripts, generateVideoScriptApi, deleteVideoScript, updateVideoScriptSection,
-  generateTtsApi, listTtsDictionary, addTtsDictionaryEntry, deleteTtsDictionaryEntry,
+  generateTtsApi, uploadCustomAudio, listTtsDictionary, addTtsDictionaryEntry, deleteTtsDictionaryEntry,
   generateHeygenVideoApi, checkHeygenStatusApi,
   generateRemotionVideoApi, checkRemotionStatusApi, buildVideoPreviewApi,
   listAvatarsApi, updateVideoSettingsApi, generateSectionImageApi,
 } from '../api/videoScripts';
 import { IMEInput, IMETextarea } from '../components/common/IMEInput';
+import VoiceRecorder from '../components/common/VoiceRecorder';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,6 +26,19 @@ const VISUAL_TYPE_CONFIG: Record<string, { color: string; icon: string; label: s
   closeup: { color: '#f85149', icon: '🔍', label: 'Closeup' },
   split:   { color: '#bc8cff', icon: '◧', label: 'Split' },
 };
+
+const TTS_VOICES = [
+  { id: 'alloy',   label: 'Alloy',   desc: 'Neutral, balanced' },
+  { id: 'ash',     label: 'Ash',     desc: 'Warm, conversational' },
+  { id: 'ballad',  label: 'Ballad',  desc: 'Expressive, dramatic' },
+  { id: 'coral',   label: 'Coral',   desc: 'Smooth, clear' },
+  { id: 'echo',    label: 'Echo',    desc: 'Soft, gentle' },
+  { id: 'fable',   label: 'Fable',   desc: 'Story-like, warm' },
+  { id: 'nova',    label: 'Nova',    desc: 'Energetic, bright' },
+  { id: 'onyx',    label: 'Onyx',    desc: 'Deep, authoritative' },
+  { id: 'sage',    label: 'Sage',    desc: 'Wise, calm' },
+  { id: 'shimmer', label: 'Shimmer', desc: 'Light, friendly' },
+] as const;
 
 const AUDIO_STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
   pending:    { color: '#8b949e', labelKey: 'vsStatusPending' },
@@ -65,6 +79,8 @@ export default function VideoScriptCreator() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingTts, setGeneratingTts] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const audioFileRef = useRef<HTMLInputElement>(null);
   const [generatingHeygen, setGeneratingHeygen] = useState(false);
   const [generatingRemotion, setGeneratingRemotion] = useState(false);
   const [buildingPreview, setBuildingPreview] = useState(false);
@@ -143,6 +159,26 @@ export default function VideoScriptCreator() {
     } finally {
       setGeneratingTts(false);
     }
+  }
+
+  async function handleUploadAudioFile(file: File) {
+    if (!selectedScript) return;
+    setUploadingAudio(true);
+    toast.loading(t('ttsUploading'), { id: 'upload-audio' });
+    try {
+      const updated = await uploadCustomAudio(selectedScript.id, file);
+      updateScriptInState(updated);
+      toast.success(t('ttsUploadDone'), { id: 'upload-audio' });
+    } catch {
+      toast.error(t('ttsUploadFailed'), { id: 'upload-audio' });
+    } finally {
+      setUploadingAudio(false);
+    }
+  }
+
+  function handleRecordingComplete(blob: Blob) {
+    const file = new File([blob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+    handleUploadAudioFile(file);
   }
 
   async function handleGenerateHeygen() {
@@ -238,7 +274,7 @@ export default function VideoScriptCreator() {
     }
   }
 
-  async function handleUpdateSettings(data: { avatarId?: string; orientation?: string; theme?: string; pattern?: string }) {
+  async function handleUpdateSettings(data: { avatarId?: string; orientation?: string; theme?: string; pattern?: string; voice?: string }) {
     if (!selectedScript) return;
     try {
       const updated = await updateVideoSettingsApi(selectedScript.id, data);
@@ -549,6 +585,26 @@ export default function VideoScriptCreator() {
                   )}
                 </div>
 
+                {/* Voice Selector */}
+                <div>
+                  <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsVoice')}</span>
+                  <div className="grid grid-cols-5 gap-2 mt-1">
+                    {TTS_VOICES.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => handleUpdateSettings({ voice: v.id })}
+                        className={`rounded-lg border-2 p-1.5 transition-all text-left ${
+                          selectedScript.voice === v.id ? 'border-aP ring-1 ring-aP' : 'border-bd hover:border-aP/50'
+                        }`}
+                        title={v.desc}
+                      >
+                        <div className="text-[11px] text-t1 font-semibold">{v.label}</div>
+                        <div className="text-[9px] text-tM leading-tight truncate">{v.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Theme Selector */}
                 <div>
                   <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsTheme')}</span>
@@ -618,10 +674,41 @@ export default function VideoScriptCreator() {
                         </div>
                       </div>
                     </div>
-                    <button onClick={handleGenerateTts} disabled={generatingTts} className="px-4 py-1.5 text-xs bg-aP text-white rounded hover:bg-aP/80 transition-colors disabled:opacity-50">
+                    <button onClick={handleGenerateTts} disabled={generatingTts || uploadingAudio} className="px-4 py-1.5 text-xs bg-aP text-white rounded hover:bg-aP/80 transition-colors disabled:opacity-50">
                       {generatingTts ? t('ttsGenerating') : selectedScript.audioUrl ? t('ttsRegenerate') : t('ttsGenerate')}
                     </button>
                   </div>
+
+                  {/* Custom audio: record or upload */}
+                  <div className="mt-3 pt-3 border-t border-bd">
+                    <div className="text-[10px] text-tM mb-2">{t('ttsOrRecord')}</div>
+                    <div className="flex items-center gap-3">
+                      <VoiceRecorder onRecordingComplete={handleRecordingComplete} disabled={generatingTts || uploadingAudio} />
+                      <span className="text-[10px] text-tM">or</span>
+                      <input
+                        ref={audioFileRef}
+                        type="file"
+                        accept="audio/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadAudioFile(file);
+                          e.target.value = '';
+                        }}
+                      />
+                      <button
+                        onClick={() => audioFileRef.current?.click()}
+                        disabled={generatingTts || uploadingAudio}
+                        className="px-3 py-1.5 text-xs bg-bg2 text-t2 rounded hover:bg-bg2/80 transition-colors disabled:opacity-50"
+                      >
+                        {uploadingAudio ? t('ttsUploading') : t('ttsUploadAudio')}
+                      </button>
+                    </div>
+                    {selectedScript.customAudioUrl && (
+                      <div className="text-[10px] text-aG mt-2">{t('ttsCustomLabel')}</div>
+                    )}
+                  </div>
+
                   {selectedScript.audioUrl && selectedScript.audioStatus === 'done' && (
                     <div className="mt-3">
                       <audio controls className="w-full h-8" src={`${apiBaseUrl}${selectedScript.audioUrl}`} />

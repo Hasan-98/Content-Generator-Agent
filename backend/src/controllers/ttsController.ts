@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
-import { applyDictionary, generateTtsAudio, deleteAudioFile } from '../services/ttsService';
+import { applyDictionary, generateTtsAudio, deleteAudioFile, TTS_VOICES, type TtsVoice } from '../services/ttsService';
 import { getUserApiKey } from './apiConfigController';
 
 const prisma = new PrismaClient();
@@ -47,7 +47,8 @@ export async function generateTts(req: AuthRequest, res: Response): Promise<void
   });
 
   try {
-    const filename = await generateTtsAudio(ttsNarration, scriptId, apiKey);
+    const voice = (TTS_VOICES.includes(script.voice as TtsVoice) ? script.voice : 'onyx') as TtsVoice;
+    const filename = await generateTtsAudio(ttsNarration, scriptId, apiKey, voice);
     const audioUrl = `/audio/${filename}`;
 
     const updated = await prisma.videoScript.update({
@@ -64,6 +65,46 @@ export async function generateTts(req: AuthRequest, res: Response): Promise<void
     });
     res.status(500).json({ error: error.message || 'TTS generation failed' });
   }
+}
+
+// POST /api/video-scripts/:id/upload-audio — upload a custom audio file (recording or file)
+export async function uploadAudio(req: AuthRequest, res: Response): Promise<void> {
+  const scriptId = String(req.params.id);
+  const file = (req as any).file as Express.Multer.File | undefined;
+
+  if (!file) {
+    res.status(400).json({ error: 'audio file is required' });
+    return;
+  }
+
+  const script = await prisma.videoScript.findUnique({ where: { id: scriptId } });
+  if (!script) {
+    res.status(404).json({ error: 'Video script not found' });
+    return;
+  }
+
+  // Delete old custom audio if replacing
+  if (script.customAudioUrl) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const oldPath = path.join(__dirname, '..', '..', script.customAudioUrl);
+    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+  }
+
+  const customAudioUrl = `/uploads/${file.filename}`;
+
+  // Also set this as the main audioUrl so the HeyGen pipeline picks it up
+  const updated = await prisma.videoScript.update({
+    where: { id: scriptId },
+    data: {
+      customAudioUrl,
+      audioUrl: customAudioUrl,
+      audioStatus: 'done',
+    },
+    include: { sections: { orderBy: { sectionNumber: 'asc' } } },
+  });
+
+  res.json(updated);
 }
 
 // --- TTS Dictionary CRUD ---

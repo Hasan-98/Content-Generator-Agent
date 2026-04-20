@@ -84,10 +84,10 @@ async function resolveTalkingPhotoId(userId: string, scriptAvatarId: string | nu
   return process.env.HEYGEN_TALKING_PHOTO_ID || 'dc6f8523169144439a0414ec787340cd';
 }
 
-// PATCH /api/video-scripts/:id/settings — update avatar, orientation, theme, pattern
+// PATCH /api/video-scripts/:id/settings — update avatar, orientation, theme, pattern, voice
 export async function updateVideoSettings(req: AuthRequest, res: Response): Promise<void> {
   const scriptId = String(req.params.id);
-  const { avatarId, orientation, theme, pattern } = req.body;
+  const { avatarId, orientation, theme, pattern, voice } = req.body;
 
   const updated = await prisma.videoScript.update({
     where: { id: scriptId },
@@ -96,6 +96,7 @@ export async function updateVideoSettings(req: AuthRequest, res: Response): Prom
       ...(orientation !== undefined && { orientation }),
       ...(theme !== undefined && { theme }),
       ...(pattern !== undefined && { pattern }),
+      ...(voice !== undefined && { voice }),
     },
     include: { sections: { orderBy: { sectionNumber: 'asc' } } },
   });
@@ -130,11 +131,16 @@ export async function generateHeygenVideo(req: AuthRequest, res: Response): Prom
     return;
   }
 
-  // Locate the combined mp3 on disk. WF2 stores it under /audio/<filename>.
-  const audioFilename = script.audioUrl.split('/').pop() || '';
-  const audioFilepath = path.join(AUDIO_DIR, audioFilename);
-  if (!audioFilename || !fs.existsSync(audioFilepath)) {
-    res.status(400).json({ error: `Audio file not found on disk: ${audioFilename}. Re-run WF2.` });
+  // Locate audio file on disk. Can be in /audio/ (TTS) or /uploads/ (custom recording).
+  let audioFilepath: string;
+  if (script.audioUrl.startsWith('/uploads/')) {
+    audioFilepath = path.join(__dirname, '..', '..', script.audioUrl);
+  } else {
+    const audioFilename = script.audioUrl.split('/').pop() || '';
+    audioFilepath = path.join(AUDIO_DIR, audioFilename);
+  }
+  if (!fs.existsSync(audioFilepath)) {
+    res.status(400).json({ error: `Audio file not found on disk. Re-generate or re-upload audio.` });
     return;
   }
 

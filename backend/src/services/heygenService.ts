@@ -30,9 +30,19 @@ function detectImageMime(buffer: Buffer): string {
 }
 
 /**
- * Download an image from a URL as a Buffer.
+ * Download an image from a URL or read from local uploads directory.
  */
 export async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
+  // Handle local uploads (from file upload feature)
+  if (url.startsWith('/uploads/')) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const localPath = path.join(__dirname, '..', '..', url);
+    const buffer = fs.readFileSync(localPath);
+    const contentType = detectImageMime(buffer);
+    return { buffer, contentType };
+  }
+
   const response = await axios.get<ArrayBuffer>(url, {
     responseType: 'arraybuffer',
     timeout: 30000,

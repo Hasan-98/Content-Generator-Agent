@@ -7,7 +7,7 @@ import {
   generateSectionImage,
   deleteVideoScript,
 } from '../controllers/videoScriptController';
-import { generateTts } from '../controllers/ttsController';
+import { generateTts, uploadAudio } from '../controllers/ttsController';
 import {
   listAvatars,
   updateVideoSettings,
@@ -18,6 +18,7 @@ import {
   buildVideoPreview,
 } from '../controllers/videoGenController';
 import { authenticate } from '../middleware/auth';
+import { uploadAudio as uploadAudioMiddleware } from '../middleware/upload';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.get('/:id', getVideoScript);
 router.post('/generate', generateVideoScriptHandler);
 router.patch('/:id/settings', updateVideoSettings);
 router.post('/:id/tts', generateTts);
+router.post('/:id/upload-audio', uploadAudioMiddleware.single('audio'), uploadAudio);
 router.post('/:id/heygen', generateHeygenVideo);
 router.post('/:id/heygen-status', checkHeygenVideoStatus);
 router.post('/:id/build-preview', buildVideoPreview);

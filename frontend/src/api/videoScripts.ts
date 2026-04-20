@@ -21,6 +21,15 @@ export async function generateTtsApi(scriptId: string): Promise<VideoScript> {
   return res.data;
 }
 
+export async function uploadCustomAudio(scriptId: string, audioFile: File): Promise<VideoScript> {
+  const formData = new FormData();
+  formData.append('audio', audioFile);
+  const res = await client.post(`/video-scripts/${scriptId}/upload-audio`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
 export async function updateVideoScriptSection(
   sectionId: string,
   data: Partial<Pick<VideoScriptSection, 'heading' | 'narration' | 'points' | 'type' | 'backgroundKeyword' | 'section' | 'visualType' | 'visualNote' | 'imagePrompt'>>
@@ -47,7 +56,7 @@ export async function listAvatarsApi(): Promise<HeygenAvatar[]> {
 // Settings
 export async function updateVideoSettingsApi(
   scriptId: string,
-  data: { avatarId?: string; orientation?: string; theme?: string; pattern?: string }
+  data: { avatarId?: string; orientation?: string; theme?: string; pattern?: string; voice?: string }
 ): Promise<VideoScript> {
   const res = await client.patch(`/video-scripts/${scriptId}/settings`, data);
   return res.data;
