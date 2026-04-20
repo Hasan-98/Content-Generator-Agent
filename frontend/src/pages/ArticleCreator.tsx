@@ -233,7 +233,7 @@ export default function ArticleCreator() {
                     disabled={generatingAllImages}
                     className="text-xs px-3 py-1.5 rounded border border-aP/50 text-aP hover:bg-aP/10 disabled:opacity-50 transition-colors font-medium"
                   >
-                    {generatingAllImages ? '生成中…' : t('imageBulkGenBtn')}
+                    {generatingAllImages ? t('detailGenerating') : t('imageBulkGenBtn')}
                   </button>
                   <div className="absolute bottom-full right-0 mb-2 w-64 p-2.5 rounded-lg bg-bg2 border border-bd shadow-lg text-[11px] text-t2 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-30">
                     {t('imageBulkGenTooltip')}

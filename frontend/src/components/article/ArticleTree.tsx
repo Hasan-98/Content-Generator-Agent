@@ -20,13 +20,13 @@ const ARTICLE_STATUS_COLOR: Record<string, string> = {
   UPLOADED:     '#f85149',
 };
 
-const ARTICLE_STATUS_LABEL: Record<string, string> = {
-  READY:        '未作成',
-  WRITING:      '作成中',
-  ARTICLE_DONE: '記事OK',
-  IMAGING:      '画像生成中',
-  IMAGE_DONE:   '画像OK',
-  UPLOADED:     'アップ済',
+const ARTICLE_STATUS_LABEL_KEY: Record<string, string> = {
+  READY:        'articleStatusReady',
+  WRITING:      'articleStatusWriting',
+  ARTICLE_DONE: 'articleStatusArticleDone',
+  IMAGING:      'articleStatusImaging',
+  IMAGE_DONE:   'articleStatusImageDone',
+  UPLOADED:     'articleStatusUploaded',
 };
 
 type FilterValue = 'ALL' | 'NO_ARTICLE' | 'WRITING' | 'ARTICLE_DONE' | 'IMAGE_DONE' | 'UPLOADED';
@@ -136,7 +136,8 @@ export default function ArticleTree({ topLevels, selectedResultId, onSelect, onO
                         {kwItems.map(({ result }) => {
                           const articleStatus = result.article?.status ?? 'READY';
                           const color = ARTICLE_STATUS_COLOR[articleStatus] ?? '#8b949e';
-                          const label = ARTICLE_STATUS_LABEL[articleStatus] ?? articleStatus;
+                          const labelKey = ARTICLE_STATUS_LABEL_KEY[articleStatus];
+                          const label = labelKey ? t(labelKey as any) : articleStatus;
                           const isSelected = result.id === selectedResultId;
 
                           return (
@@ -163,7 +164,7 @@ export default function ArticleTree({ topLevels, selectedResultId, onSelect, onO
                                     <button
                                       onClick={(e) => { e.stopPropagation(); onOpenRef(result); }}
                                       className="text-[10px] text-tM hover:text-t2 transition-colors"
-                                      title="ペルソナ・構成を参照"
+                                      title={t('articleRefHint')}
                                     >
                                       ℹ
                                     </button>

@@ -20,13 +20,13 @@ const TYPE_COLOR: Record<string, string> = {
   matome:  '#f778ba',
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  intro:   'イントロ',
-  nayami:  '悩み',
-  point:   'ポイント',
-  common:  '誤解',
-  cta:     'CTA',
-  matome:  'まとめ',
+const TYPE_LABEL_KEY: Record<string, string> = {
+  intro:   'sectionTypeIntro',
+  nayami:  'sectionTypeNayami',
+  point:   'sectionTypePoint',
+  common:  'sectionTypeCommon',
+  cta:     'sectionTypeCta',
+  matome:  'sectionTypeMatome',
 };
 
 export default function SectionCard({ section, onRegenerate, onContentChange, onHeadingChange, onRegenerateHeading }: Props) {
@@ -49,7 +49,8 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
   }, [onContentChange, section.index]);
 
   const color = TYPE_COLOR[section.type] ?? '#8b949e';
-  const typeLabel = TYPE_LABEL[section.type] ?? section.type;
+  const typeLabelKey = TYPE_LABEL_KEY[section.type];
+  const typeLabel = typeLabelKey ? t(typeLabelKey as any) : section.type;
 
   async function handleRegen(withInstruction?: boolean) {
     setLoading(true);
@@ -167,7 +168,7 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
               disabled={loading}
               className="text-xs px-3 py-1.5 rounded border border-aP/50 text-aP hover:bg-aP/10 disabled:opacity-50 transition-colors"
             >
-              {loading ? '再生成中…' : t('sectionRegenBtn')}
+              {loading ? t('detailRegenerating') : t('sectionRegenBtn')}
             </button>
             <button
               onClick={() => setShowInstruction(!showInstruction)}

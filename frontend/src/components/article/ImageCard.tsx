@@ -147,9 +147,9 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
     try {
       const updated = await selectHistoryImage(articleId, image.index, historyId);
       onUpdate(updated);
-      toast.success('画像を選択しました');
+      toast.success(t('imageSelected'));
     } catch {
-      toast.error('画像の選択に失敗しました');
+      toast.error(t('imageSelectFailed'));
     } finally {
       setSelectingHistory(false);
     }
@@ -214,7 +214,7 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
     <div className={`rounded-lg border border-bd bg-bg1 mb-3 overflow-hidden ${!image.enabled ? 'opacity-50' : ''}`}>
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-bd">
-        <span className="text-xs font-mono text-tM">画像{image.index + 1}</span>
+        <span className="text-xs font-mono text-tM">{t('imageLabel')}{image.index + 1}</span>
         <span className="text-xs text-t2 flex-1 truncate">{sectionHeading}</span>
         <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: `${color}22`, color }}>
           {sectionType}
@@ -332,7 +332,7 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
               disabled={loading}
               className="text-xs px-3 py-1.5 rounded bg-aP/20 text-aP border border-aP/40 hover:bg-aP/30 disabled:opacity-50 transition-colors"
             >
-              {loading ? '生成中…' : image.imageUrl ? t('imageRegenBtn') : t('imageGenBtn')}
+              {loading ? t('detailGenerating') : image.imageUrl ? t('imageRegenBtn') : t('imageGenBtn')}
             </button>
           </div>
 
@@ -346,7 +346,7 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
             ) : (
               <div className="text-center">
                 <div className="text-2xl mb-1">🖼</div>
-                <div className="text-[10px] text-tM">未生成</div>
+                <div className="text-[10px] text-tM">{t('imageNotGenerated')}</div>
               </div>
             )}
           </div>
@@ -355,7 +355,7 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
         {/* History thumbnails */}
         {image.history && image.history.length > 0 && (
           <div className="mt-3 pt-3 border-t border-bd">
-            <div className="text-[10px] text-t2 mb-2">過去の生成画像 ({image.history.length})</div>
+            <div className="text-[10px] text-t2 mb-2">{t('imageHistoryTitle')} ({image.history.length})</div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {image.history.map((h) => (
                 <button
@@ -368,7 +368,7 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
                 >
                   <img src={h.imageUrl} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-bg0/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-[9px] text-t1 font-medium">選択</span>
+                    <span className="text-[9px] text-t1 font-medium">{t('imageHistorySelect')}</span>
                   </div>
                 </button>
               ))}

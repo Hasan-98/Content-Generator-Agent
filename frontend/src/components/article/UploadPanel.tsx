@@ -50,7 +50,7 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
         scheduleDate: pubStatus === 'SCHEDULE' ? scheduleDate : undefined,
       });
       onArticleUpdate({ ...article, uploadMeta: updated });
-      toast.success('保存しました');
+      toast.success(t('acctSaved'));
     } catch {
       toast.error(t('toastUpdateFailed'));
     }
@@ -310,7 +310,7 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
               disabled={!canPublish || publishing}
               className="w-full py-2.5 rounded-lg text-sm font-semibold bg-aG/20 text-aG border border-aG/40 hover:bg-aG/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {publishing ? '投稿中…' : t('uploadPublishBtn')}
+              {publishing ? t('detailGenerating') : t('uploadPublishBtn')}
             </button>
           </div>
         )}

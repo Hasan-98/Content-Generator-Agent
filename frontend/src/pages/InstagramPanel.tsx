@@ -4,14 +4,15 @@ import type { TopLevel, GeneratedResult, Article } from '../types';
 import { getTopLevels } from '../api/topics';
 import { getArticle } from '../api/articles';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const IG_STATUS_COLOR: Record<string, string> = {
   IMAGE_DONE: '#3fb950',
   UPLOADED:   '#bc8cff',
 };
-const IG_STATUS_LABEL: Record<string, string> = {
-  IMAGE_DONE: '画像OK',
-  UPLOADED:   '投稿済',
+const IG_STATUS_LABEL_KEY: Record<string, string> = {
+  IMAGE_DONE: 'articleStatusImageDone',
+  UPLOADED:   'articleStatusUploaded',
 };
 
 function buildCaption(result: GeneratedResult, article: Article): string {
@@ -31,6 +32,7 @@ function buildCaption(result: GeneratedResult, article: Article): string {
 
 export default function InstagramPanel() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [topLevels, setTopLevels] = useState<TopLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedResult, setSelectedResult] = useState<GeneratedResult | null>(null);
@@ -122,7 +124,8 @@ export default function InstagramPanel() {
                         {kwItems.map(({ result }) => {
                           const st = result.article?.status ?? 'IMAGE_DONE';
                           const color = IG_STATUS_COLOR[st] ?? '#8b949e';
-                          const label = IG_STATUS_LABEL[st] ?? st;
+                          const labelKey = IG_STATUS_LABEL_KEY[st];
+                          const label = labelKey ? t(labelKey as any) : st;
                           const isSelected = result.id === selectedResult?.id;
                           return (
                             <div

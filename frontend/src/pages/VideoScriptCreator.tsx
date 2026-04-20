@@ -26,15 +26,15 @@ const VISUAL_TYPE_CONFIG: Record<string, { color: string; icon: string; label: s
   split:   { color: '#bc8cff', icon: '◧', label: 'Split' },
 };
 
-const AUDIO_STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  pending:    { color: '#8b949e', label: '未生成' },
-  generating: { color: '#d29922', label: '生成中…' },
-  preparing:  { color: '#d29922', label: '準備中…' },
-  processing: { color: '#d29922', label: '処理中…' },
-  rendering:  { color: '#d29922', label: 'レンダリング中…' },
-  done:       { color: '#3fb950', label: '生成済' },
-  completed:  { color: '#3fb950', label: '完了' },
-  failed:     { color: '#f85149', label: '失敗' },
+const AUDIO_STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
+  pending:    { color: '#8b949e', labelKey: 'vsStatusPending' },
+  generating: { color: '#d29922', labelKey: 'vsStatusGenerating' },
+  preparing:  { color: '#d29922', labelKey: 'vsStatusPreparing' },
+  processing: { color: '#d29922', labelKey: 'vsStatusProcessing' },
+  rendering:  { color: '#d29922', labelKey: 'vsStatusRendering' },
+  done:       { color: '#3fb950', labelKey: 'vsStatusDone' },
+  completed:  { color: '#3fb950', labelKey: 'vsStatusCompleted' },
+  failed:     { color: '#f85149', labelKey: 'vsStatusFailed' },
 };
 
 const THEMES: { id: string; name: string; colors: [string, string]; desc: string }[] = [
@@ -393,7 +393,7 @@ export default function VideoScriptCreator() {
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-tM mt-0.5 pl-[22px]">
                       <span>{vs.sections.length} {t('vsSections')}</span>
-                      <span style={{ color: audioSt.color }}>{audioSt.label}</span>
+                      <span style={{ color: audioSt.color }}>{t(audioSt.labelKey as any)}</span>
                     </div>
                   </button>
                 );
@@ -613,7 +613,7 @@ export default function VideoScriptCreator() {
                         <div className="mt-0.5">
                           {(() => {
                             const st = AUDIO_STATUS_CONFIG[selectedScript.audioStatus] || AUDIO_STATUS_CONFIG.pending;
-                            return <span className="text-[10px]" style={{ color: st.color }}>{st.label}</span>;
+                            return <span className="text-[10px]" style={{ color: st.color }}>{t(st.labelKey as any)}</span>;
                           })()}
                         </div>
                       </div>
@@ -639,7 +639,7 @@ export default function VideoScriptCreator() {
                         <div className="mt-0.5">
                           {(() => {
                             const st = AUDIO_STATUS_CONFIG[selectedScript.heygenStatus] || AUDIO_STATUS_CONFIG.pending;
-                            return <span className="text-[10px]" style={{ color: st.color }}>{st.label}</span>;
+                            return <span className="text-[10px]" style={{ color: st.color }}>{t(st.labelKey as any)}</span>;
                           })()}
                         </div>
                       </div>
@@ -679,7 +679,7 @@ export default function VideoScriptCreator() {
                         <div className="mt-0.5">
                           {(() => {
                             const st = AUDIO_STATUS_CONFIG[selectedScript.remotionStatus] || AUDIO_STATUS_CONFIG.pending;
-                            return <span className="text-[10px]" style={{ color: st.color }}>{st.label}</span>;
+                            return <span className="text-[10px]" style={{ color: st.color }}>{t(st.labelKey as any)}</span>;
                           })()}
                         </div>
                       </div>

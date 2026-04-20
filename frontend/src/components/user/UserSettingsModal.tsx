@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { updateMe } from '../../api/auth';
 import toast from 'react-hot-toast';
 
@@ -9,6 +10,7 @@ interface Props {
 
 export default function UserSettingsModal({ onClose }: Props) {
   const { user, updateUser } = useAuth();
+  const { t } = useLanguage();
 
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
@@ -19,11 +21,11 @@ export default function UserSettingsModal({ onClose }: Props) {
 
   async function handleSave() {
     if (newPassword && newPassword !== confirmPassword) {
-      toast.error('新しいパスワードが一致しません');
+      toast.error(t('settingsPasswordMismatch'));
       return;
     }
     if (newPassword && newPassword.length < 6) {
-      toast.error('パスワードは6文字以上で入力してください');
+      toast.error(t('settingsPasswordTooShort'));
       return;
     }
 
@@ -38,19 +40,19 @@ export default function UserSettingsModal({ onClose }: Props) {
       }
 
       if (Object.keys(payload).length === 0) {
-        toast('変更がありません');
+        toast(t('acctNoChanges'));
         return;
       }
 
       const updated = await updateMe(payload);
       updateUser(updated);
-      toast.success('設定を保存しました');
+      toast.success(t('acctSaved'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg || '保存に失敗しました');
+      toast.error(msg || t('acctSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -66,7 +68,7 @@ export default function UserSettingsModal({ onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-bd">
           <div>
-            <div className="text-sm font-semibold text-t1">アカウント設定</div>
+            <div className="text-sm font-semibold text-t1">{t('acctSettingsTitle')}</div>
             <div className="text-[11px] text-tM mt-0.5">{user?.email} · {user?.role}</div>
           </div>
           <button onClick={onClose} className="text-t2 hover:text-t1 text-lg transition-colors">✕</button>
@@ -75,10 +77,10 @@ export default function UserSettingsModal({ onClose }: Props) {
         <div className="p-5 space-y-5">
           {/* Profile section */}
           <div>
-            <div className="text-[11px] font-semibold text-aB uppercase tracking-wider mb-3">プロフィール</div>
+            <div className="text-[11px] font-semibold text-aB uppercase tracking-wider mb-3">{t('acctProfileSection')}</div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-t2 mb-1 block">名前</label>
+                <label className="text-xs text-t2 mb-1 block">{t('acctNameLabel')}</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -86,7 +88,7 @@ export default function UserSettingsModal({ onClose }: Props) {
                 />
               </div>
               <div>
-                <label className="text-xs text-t2 mb-1 block">メールアドレス</label>
+                <label className="text-xs text-t2 mb-1 block">{t('acctEmailLabel')}</label>
                 <input
                   type="email"
                   value={email}
@@ -99,35 +101,35 @@ export default function UserSettingsModal({ onClose }: Props) {
 
           {/* Password section */}
           <div>
-            <div className="text-[11px] font-semibold text-aO uppercase tracking-wider mb-3">パスワード変更</div>
+            <div className="text-[11px] font-semibold text-aO uppercase tracking-wider mb-3">{t('acctPasswordSection')}</div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-t2 mb-1 block">現在のパスワード</label>
+                <label className="text-xs text-t2 mb-1 block">{t('settingsCurrentPassword')}</label>
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="変更する場合のみ入力"
+                  placeholder={t('acctCurrentPasswordPlaceholder')}
                   className="w-full bg-bg0 border border-bd rounded px-3 py-2 text-sm text-t1 focus:outline-none focus:border-aO transition-colors placeholder:text-tM"
                 />
               </div>
               <div>
-                <label className="text-xs text-t2 mb-1 block">新しいパスワード</label>
+                <label className="text-xs text-t2 mb-1 block">{t('settingsNewPassword')}</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="6文字以上"
+                  placeholder={t('acctNewPasswordPlaceholder')}
                   className="w-full bg-bg0 border border-bd rounded px-3 py-2 text-sm text-t1 focus:outline-none focus:border-aO transition-colors placeholder:text-tM"
                 />
               </div>
               <div>
-                <label className="text-xs text-t2 mb-1 block">新しいパスワード（確認）</label>
+                <label className="text-xs text-t2 mb-1 block">{t('acctConfirmPasswordLabel')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="もう一度入力"
+                  placeholder={t('acctConfirmPlaceholder')}
                   className="w-full bg-bg0 border border-bd rounded px-3 py-2 text-sm text-t1 focus:outline-none focus:border-aO transition-colors placeholder:text-tM"
                 />
               </div>
@@ -141,14 +143,14 @@ export default function UserSettingsModal({ onClose }: Props) {
             onClick={onClose}
             className="px-4 py-2 text-xs text-t2 hover:text-t1 rounded border border-bd hover:border-t2 transition-colors"
           >
-            キャンセル
+            {t('detailCancelBtnLabel')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-4 py-2 text-xs rounded bg-aB/20 text-aB border border-aB/40 hover:bg-aB/30 disabled:opacity-50 transition-colors font-medium"
           >
-            {saving ? '保存中…' : '保存'}
+            {saving ? t('settingsSaving') : t('detailSaveBtnLabel')}
           </button>
         </div>
       </div>

@@ -15,27 +15,27 @@ interface Props {
 
 type Tab = 'all' | 'persona' | 'structure' | 'comment';
 
-const PERSONA_FIELDS = [
-  { key: 'demographic', label: 'デモグラフィック' },
-  { key: 'persona1', label: 'ペルソナ1' },
-  { key: 'persona2', label: 'ペルソナ2' },
-  { key: 'persona3', label: 'ペルソナ3' },
-  { key: 'demoSize1', label: 'デモグラ予想サイズ①' },
-  { key: 'demoSize2', label: 'デモグラ予想サイズ②' },
-  { key: 'demoSize3', label: 'デモグラ予想サイズ③' },
-];
+const PERSONA_FIELD_KEYS = [
+  { key: 'demographic', labelKey: 'detailFieldDemographic' },
+  { key: 'persona1', labelKey: 'detailFieldPersona1' },
+  { key: 'persona2', labelKey: 'detailFieldPersona2' },
+  { key: 'persona3', labelKey: 'detailFieldPersona3' },
+  { key: 'demoSize1', labelKey: 'detailFieldDemoSize1' },
+  { key: 'demoSize2', labelKey: 'detailFieldDemoSize2' },
+  { key: 'demoSize3', labelKey: 'detailFieldDemoSize3' },
+] as const;
 
-const STRUCT_FIELDS = [
-  { key: 'structIntro', label: 'イントロ' },
-  { key: 'structNayami', label: '悩み' },
-  { key: 'structP1', label: 'ポイント1' },
-  { key: 'structP2', label: 'ポイント2' },
-  { key: 'structP3', label: 'ポイント3' },
-  { key: 'structCommon', label: 'よくある誤解' },
-  { key: 'structCta', label: 'CTA' },
-  { key: 'structMatome', label: 'まとめ' },
-  { key: 'structH2', label: 'H2キーワード' },
-];
+const STRUCT_FIELD_KEYS = [
+  { key: 'structIntro', labelKey: 'detailFieldStructIntro' },
+  { key: 'structNayami', labelKey: 'detailFieldStructNayami' },
+  { key: 'structP1', labelKey: 'detailFieldStructP1' },
+  { key: 'structP2', labelKey: 'detailFieldStructP2' },
+  { key: 'structP3', labelKey: 'detailFieldStructP3' },
+  { key: 'structCommon', labelKey: 'detailFieldStructCommon' },
+  { key: 'structCta', labelKey: 'detailFieldStructCta' },
+  { key: 'structMatome', labelKey: 'detailFieldStructMatome' },
+  { key: 'structH2', labelKey: 'detailFieldStructH2' },
+] as const;
 
 function FieldRow({
   label,
@@ -43,12 +43,18 @@ function FieldRow({
   value,
   result,
   onUpdate,
+  regenTitle,
+  successMsg,
+  failMsg,
 }: {
   label: string;
   fieldKey: string;
   value: string | undefined;
   result: GeneratedResult;
   onUpdate: (updated: GeneratedResult) => void;
+  regenTitle: string;
+  successMsg: string;
+  failMsg: string;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -57,9 +63,9 @@ function FieldRow({
     try {
       const updated = await regenerateField(result.id, fieldKey);
       onUpdate(updated);
-      toast.success('再生成しました');
+      toast.success(successMsg);
     } catch {
-      toast.error('再生成に失敗しました');
+      toast.error(failMsg);
     } finally {
       setLoading(false);
     }
@@ -73,7 +79,7 @@ function FieldRow({
           onClick={handleRegen}
           disabled={loading}
           className="text-xs text-aP hover:text-t1 disabled:opacity-40 ml-1 transition-colors"
-          title="再生成"
+          title={regenTitle}
         >
           {loading ? '…' : '🔄'}
         </button>
@@ -153,10 +159,10 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
     try {
       const updated = await updateResult(result.id, { title: titleDraft.trim() });
       onUpdate(updated);
-      toast.success('タイトルを更新しました');
+      toast.success(t('detailTitleUpdated'));
       setEditingTitle(false);
     } catch {
-      toast.error('タイトル更新に失敗しました');
+      toast.error(t('detailTitleUpdateFailed'));
     } finally {
       setTitleSaving(false);
     }
@@ -168,15 +174,17 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
     try {
       const updated = await regenerateField(result.id, 'title');
       onUpdate(updated);
-      toast.success('タイトルを再生成しました');
+      toast.success(t('detailTitleRegenSuccess'));
     } catch {
-      toast.error('タイトル再生成に失敗しました');
+      toast.error(t('detailTitleRegenFailed'));
     } finally {
       setTitleRegenLoading(false);
     }
   }
 
-  const allFields = [{ key: 'title', label: 'タイトル' }, ...PERSONA_FIELDS, ...STRUCT_FIELDS];
+  const PERSONA_FIELDS = PERSONA_FIELD_KEYS.map(f => ({ key: f.key, label: t(f.labelKey as any) }));
+  const STRUCT_FIELDS = STRUCT_FIELD_KEYS.map(f => ({ key: f.key, label: t(f.labelKey as any) }));
+  const allFields = [{ key: 'title', label: t('detailFieldTitle') }, ...PERSONA_FIELDS, ...STRUCT_FIELDS];
 
   return (
     <div className="fixed inset-0 z-40 flex" onClick={onClose}>
@@ -228,13 +236,13 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                   disabled={titleSaving}
                   className="text-[10px] px-2 py-0.5 rounded bg-aG text-bg0 font-medium hover:opacity-90 disabled:opacity-50"
                 >
-                  {titleSaving ? '…' : '保存'}
+                  {titleSaving ? '…' : t('detailSaveBtnLabel')}
                 </button>
                 <button
                   onClick={() => setEditingTitle(false)}
                   className="text-[10px] px-2 py-0.5 rounded bg-bg2 text-t2 hover:text-t1"
                 >
-                  キャンセル
+                  {t('detailCancelBtnLabel')}
                 </button>
               </div>
             </div>
@@ -244,7 +252,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                 className="text-sm text-t1 font-medium break-words cursor-pointer hover:text-aB transition-colors flex-1"
                 style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                 onClick={startEditTitle}
-                title="クリックして編集"
+                title={t('detailClickToEdit')}
               >
                 {result.title}
               </div>
@@ -252,7 +260,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                 <button
                   onClick={startEditTitle}
                   className="text-xs text-t2 hover:text-aB opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="タイトルを編集"
+                  title={t('detailEditTitle')}
                 >
                   ✏️
                 </button>
@@ -260,7 +268,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                   onClick={handleRegenTitle}
                   disabled={titleRegenLoading}
                   className="text-xs text-aP hover:text-t1 disabled:opacity-40 transition-colors"
-                  title="タイトルを再生成"
+                  title={t('detailRegenTitle')}
                 >
                   {titleRegenLoading ? '…' : '🔄'}
                 </button>
@@ -280,7 +288,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                 disabled={genLoading}
                 className="w-full text-sm py-2 rounded bg-aP text-bg0 font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
-                {genLoading ? '生成中…' : t('detailGeneratePersonaBtn')}
+                {genLoading ? t('detailGenerating') : t('detailGeneratePersonaBtn')}
               </button>
             </div>
           )}
@@ -299,6 +307,9 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                   value={(result as unknown as Record<string, unknown>)[f.key] as string | undefined}
                   result={result}
                   onUpdate={onUpdate}
+                  regenTitle={t('detailRegenTitle')}
+                  successMsg={t('detailRegenSuccess')}
+                  failMsg={t('detailRegenFailed')}
                 />
               ))}
             </div>
@@ -313,8 +324,8 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
               {Object.entries(result.factCheck).map(([key, val], idx) => {
                 const verdictColor = val.verdict === 'confirmed' ? 'text-aG' : val.verdict === 'incorrect' ? 'text-aR' : 'text-aO';
                 const verdictBg = val.verdict === 'confirmed' ? 'bg-aG/10' : val.verdict === 'incorrect' ? 'bg-aR/10' : 'bg-aO/10';
-                const verdictLabel = val.verdict === 'confirmed' ? '✓ 確認済み' : val.verdict === 'incorrect' ? '✗ 不正確' : '? 不確実';
-                const sizeLabel = ['デモグラ予想サイズ①', 'デモグラ予想サイズ②', 'デモグラ予想サイズ③'][idx] ?? key;
+                const verdictLabel = val.verdict === 'confirmed' ? t('detailFactConfirmed') : val.verdict === 'incorrect' ? t('detailFactIncorrect') : t('detailFactUncertain');
+                const sizeLabel = [t('detailFieldDemoSize1'), t('detailFieldDemoSize2'), t('detailFieldDemoSize3')][idx] ?? key;
                 return (
                   <div key={key} className="mb-3 p-2 rounded border border-bd bg-bg0">
                     <div className="flex items-center gap-2 mb-1.5">
@@ -374,6 +385,9 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                   value={(result as unknown as Record<string, unknown>)[f.key] as string | undefined}
                   result={result}
                   onUpdate={onUpdate}
+                  regenTitle={t('detailRegenTitle')}
+                  successMsg={t('detailRegenSuccess')}
+                  failMsg={t('detailRegenFailed')}
                 />
               ))}
             </div>
@@ -392,7 +406,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                   onChange={(e) => setTargetField(e.target.value)}
                   className="w-full text-xs bg-bg0 border border-bd rounded px-2 py-1.5 text-t1"
                 >
-                  <option value="">-- フィールドを選択 --</option>
+                  <option value="">{t('detailSelectField')}</option>
                   {allFields.map((f) => (
                     <option key={f.key} value={f.key}>{f.label}</option>
                   ))}
@@ -413,7 +427,7 @@ export default function DetailPanel({ result, onClose, onUpdate }: Props) {
                 disabled={regenLoading || !targetField}
                 className="w-full text-sm py-2 rounded bg-aO text-bg0 font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
-                {regenLoading ? '再生成中…' : t('detailRegenWithComment')}
+                {regenLoading ? t('detailRegenerating') : t('detailRegenWithComment')}
               </button>
             </div>
           )}

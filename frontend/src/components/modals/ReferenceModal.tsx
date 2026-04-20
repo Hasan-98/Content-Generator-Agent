@@ -28,7 +28,7 @@ export default function ReferenceModal({ result, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backdropFilter: 'blur(4px)', background: 'rgba(13,17,23,0.7)' }}
+      style={{ backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.3)' }}
       onClick={onClose}
     >
       <div
@@ -69,9 +69,9 @@ export default function ReferenceModal({ result, onClose }: Props) {
           {activeTab === 'persona' && (
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: 'ペルソナ1', value: result.persona1 },
-                { label: 'ペルソナ2', value: result.persona2 },
-                { label: 'ペルソナ3', value: result.persona3 },
+                { label: t('detailFieldPersona1'), value: result.persona1 },
+                { label: t('detailFieldPersona2'), value: result.persona2 },
+                { label: t('detailFieldPersona3'), value: result.persona3 },
               ].map((p) => (
                 <div key={p.label} className="bg-bg0 rounded-lg p-3 border border-bd">
                   <div className="text-xs font-semibold text-aP mb-2">{p.label}</div>
@@ -85,25 +85,25 @@ export default function ReferenceModal({ result, onClose }: Props) {
 
           {activeTab === 'structure' && (
             <div className="space-y-0">
-              <RefField label="イントロ" value={result.structIntro} />
-              <RefField label="悩み" value={result.structNayami} />
-              <RefField label="ポイント1" value={result.structP1} />
-              <RefField label="ポイント2" value={result.structP2} />
-              <RefField label="ポイント3" value={result.structP3} />
-              <RefField label="よくある誤解" value={result.structCommon} />
-              <RefField label="CTA" value={result.structCta} />
-              <RefField label="まとめ" value={result.structMatome} />
-              <RefField label="H2キーワード" value={result.structH2} />
+              <RefField label={t('detailFieldStructIntro')} value={result.structIntro} />
+              <RefField label={t('detailFieldStructNayami')} value={result.structNayami} />
+              <RefField label={t('detailFieldStructP1')} value={result.structP1} />
+              <RefField label={t('detailFieldStructP2')} value={result.structP2} />
+              <RefField label={t('detailFieldStructP3')} value={result.structP3} />
+              <RefField label={t('detailFieldStructCommon')} value={result.structCommon} />
+              <RefField label={t('detailFieldStructCta')} value={result.structCta} />
+              <RefField label={t('detailFieldStructMatome')} value={result.structMatome} />
+              <RefField label={t('detailFieldStructH2')} value={result.structH2} />
             </div>
           )}
 
           {activeTab === 'demographics' && (
             <div>
-              <RefField label="デモグラフィック" value={result.demographic} />
+              <RefField label={t('detailFieldDemographic')} value={result.demographic} />
               <div className="grid grid-cols-3 gap-3 mt-2">
                 {[1, 2, 3].map((n) => (
                   <div key={n} className="bg-bg0 rounded-lg p-3 border border-bd">
-                    <div className="text-xs font-semibold text-aO mb-1">デモサイズ{n}</div>
+                    <div className="text-xs font-semibold text-aO mb-1">{t('detailDemoSize')}{n}</div>
                     <div className="text-xs text-t1">
                       {(result as unknown as Record<string, unknown>)[`demoSize${n}`] as string || <span className="text-tM italic">—</span>}
                     </div>
@@ -112,13 +112,13 @@ export default function ReferenceModal({ result, onClose }: Props) {
               </div>
               {result.factCheck && (
                 <div className="mt-4">
-                  <div className="text-xs font-semibold text-aG mb-2 uppercase tracking-wider">ファクトチェック</div>
+                  <div className="text-xs font-semibold text-aG mb-2 uppercase tracking-wider">{t('detailFactCheckLabel')}</div>
                   {Object.entries(result.factCheck).map(([key, val]) => (
                     <div key={key} className="mb-3 p-3 rounded border border-bd bg-bg0">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs text-t2 font-medium capitalize">{key}</span>
                         <span className={`text-xs px-1.5 py-0.5 rounded-full ${val.verified ? 'bg-aG/20 text-aG' : 'bg-aO/20 text-aO'}`}>
-                          {val.verified ? '✓ 確認済' : '? 要確認'}
+                          {val.verified ? t('detailFactVerified') : t('detailFactNeedsReview')}
                         </span>
                       </div>
                       {val.searchResults?.slice(0, 3).map((sr, i) => (
@@ -138,7 +138,7 @@ export default function ReferenceModal({ result, onClose }: Props) {
               )}
               {result.targetDecision && (
                 <div className="mt-3 p-3 rounded-lg border border-aG bg-aG/10">
-                  <div className="text-xs font-semibold text-aG mb-1">ターゲット判定</div>
+                  <div className="text-xs font-semibold text-aG mb-1">{t('detailTargetDecision')}</div>
                   <div className="text-xs text-t1">{result.targetDecision}</div>
                 </div>
               )}

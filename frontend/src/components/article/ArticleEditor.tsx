@@ -41,7 +41,7 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onResu
       });
       toast.success(t('toastSectionRegenDone'));
     } catch {
-      toast.error('セクションの再生成に失敗しました');
+      toast.error(t('detailRegenFailed'));
     }
   }
 
@@ -78,7 +78,7 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onResu
       });
       toast.success(t('toastHeadingRegenDone'));
     } catch {
-      toast.error('タイトルの再生成に失敗しました');
+      toast.error(t('detailTitleRegenFailed'));
     }
   }
 
