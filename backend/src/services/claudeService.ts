@@ -206,23 +206,34 @@ export async function generateArticle(result: {
 },
   apiKey?: string
 ): Promise<ArticleSection[]> {
-  const prompt = `You are a professional Japanese blog writer.
+  const prompt = `You are an expert Japanese blog writer and SEO specialist. Your goal is to write a comprehensive, in-depth article that provides real value to readers.
 
-Write a full blog article based on:
-- Keyword: ${result.keywordText}
+Article context:
+- Target keyword: ${result.keywordText}
 - Title: ${result.title}
 - Target demographic: ${result.demographic || 'General audience'}
-- Persona: ${result.persona1 || ''}
+- Primary persona: ${result.persona1 || ''}
+${result.persona2 ? `- Secondary persona: ${result.persona2}` : ''}
 
-Article structure guidance:
+Article structure guidance (expand on each section with depth and detail):
 - Intro: ${result.structIntro || ''}
-- Problem: ${result.structNayami || ''}
+- Problem/悩み: ${result.structNayami || ''}
 - Point 1: ${result.structP1 || ''}
 - Point 2: ${result.structP2 || ''}
 - Point 3: ${result.structP3 || ''}
 - Common misconceptions: ${result.structCommon || ''}
 - CTA: ${result.structCta || ''}
-- Summary: ${result.structMatome || ''}
+- Summary/まとめ: ${result.structMatome || ''}
+
+Writing requirements:
+1. Each section must be 500-800 characters (Japanese). This is critical — do NOT write shorter sections.
+2. Include specific examples, data points, or actionable advice in every section.
+3. For "point" sections, provide step-by-step explanations, real-world scenarios, or concrete tips.
+4. For "nayami" section, deeply empathize with the reader's pain points and show you understand their situation.
+5. For "common" section, address 2-3 specific misconceptions with clear corrections.
+6. Use natural, conversational Japanese that feels helpful and trustworthy.
+7. Naturally incorporate the target keyword and related terms for SEO.
+8. Use paragraph breaks within each section for readability (use \\n\\n between paragraphs).
 
 Generate exactly 8 article sections. Each section has a type, heading, and content.
 Types: intro, nayami, point, common, cta, matome (use these exactly)
@@ -239,9 +250,9 @@ Output ONLY valid JSON array with exactly 8 objects:
   { "type": "matome", "heading": "...", "content": "..." }
 ]
 
-Write all content in Japanese. Each content section should be 150-300 characters.`;
+Write all content in Japanese. Remember: each section MUST be 500-800 characters minimum. Short sections are unacceptable.`;
 
-  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 8192);
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 16384);
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error('Failed to parse OpenAI article response');
 
@@ -455,7 +466,7 @@ export async function regenerateSection(
   instruction?: string,
   apiKey?: string
 ): Promise<string> {
-  const prompt = `You are a professional Japanese blog writer.
+  const prompt = `You are an expert Japanese blog writer and SEO specialist.
 
 Article title: ${articleTitle}
 Section type: ${section.type}
@@ -463,11 +474,15 @@ Section heading: ${section.heading}
 Current content: ${section.content}
 ${instruction ? `Special instruction: ${instruction}` : ''}
 
-Rewrite this section with fresh, improved content.
+Rewrite this section with fresh, improved, and more detailed content.
+- Include specific examples, data points, or actionable advice.
+- Use natural, conversational Japanese that feels helpful.
+- Use paragraph breaks (\\n\\n) for readability.
+- Target length: 500-800 characters.
 Output ONLY the new content as plain text (no JSON, no quotes, no heading).
-Write in Japanese. 150-300 characters.`;
+Write in Japanese.`;
 
-  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 1024);
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 4096);
   return text.trim() || section.content;
 }
 
@@ -609,6 +624,33 @@ visual_note: 演出意図を簡潔に。
   enforceVisualTypeRules(parsed.sections);
 
   return parsed;
+}
+
+export async function regenerateTitle(
+  keyword: string,
+  currentTitle: string,
+  demographic?: string | null,
+  persona?: string | null,
+  apiKey?: string
+): Promise<string> {
+  const prompt = `You are a Japanese SEO and content marketing expert.
+
+Keyword: ${keyword}
+Current title: ${currentTitle}
+${demographic ? `Target demographic: ${demographic}` : ''}
+${persona ? `Persona: ${persona}` : ''}
+
+Generate a new, compelling blog title for this keyword that:
+- Is different from the current title
+- Drives clicks and curiosity
+- Is SEO-optimized for the target keyword
+- Appeals to the target audience
+- Is written in Japanese
+
+Output ONLY the new title as plain text (no JSON, no quotes, no explanation).`;
+
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 256);
+  return text.trim() || currentTitle;
 }
 
 export async function regenerateSectionHeading(

@@ -6,6 +6,7 @@ import {
   generateArticleHandler,
   regenerateSectionHandler,
   regenerateSectionHeadingHandler,
+  regenerateTitleHandler,
   generateImageHandler,
   generateImagesBulk,
   formatArticleHandler,
@@ -22,6 +23,7 @@ router.post('/persona-field', regenerateFieldHandler);
 router.post('/article', generateArticleHandler);
 router.post('/article-section', regenerateSectionHandler);
 router.post('/article-section-heading', regenerateSectionHeadingHandler);
+router.post('/regenerate-title', regenerateTitleHandler);
 router.post('/image', generateImageHandler);
 router.post('/images-bulk', generateImagesBulk);
 router.post('/format-article', formatArticleHandler);

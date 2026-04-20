@@ -205,6 +205,18 @@ export default function ArticleCreator() {
               article={article}
               result={selectedResult}
               onArticleUpdate={setArticle}
+              onResultUpdate={(updated) => {
+                setSelectedResult(updated);
+                setTopLevels(prev =>
+                  prev.map(tl => ({
+                    ...tl,
+                    keywords: tl.keywords.map(kw => ({
+                      ...kw,
+                      results: kw.results.map(r => r.id === updated.id ? { ...r, ...updated } : r),
+                    })),
+                  }))
+                );
+              }}
               onNext={() => setPhase('image')}
               onOpenRef={() => setRefResult(selectedResult)}
             />
@@ -215,13 +227,18 @@ export default function ArticleCreator() {
                   {t('articleBackToEdit')}
                 </button>
                 <div className="flex-1" />
-                <button
-                  onClick={handleGenerateAllImages}
-                  disabled={generatingAllImages}
-                  className="text-xs px-3 py-1.5 rounded border border-aP/50 text-aP hover:bg-aP/10 disabled:opacity-50 transition-colors"
-                >
-                  {generatingAllImages ? '生成中…' : t('imageGenAllBtn')}
-                </button>
+                <div className="relative group">
+                  <button
+                    onClick={handleGenerateAllImages}
+                    disabled={generatingAllImages}
+                    className="text-xs px-3 py-1.5 rounded border border-aP/50 text-aP hover:bg-aP/10 disabled:opacity-50 transition-colors font-medium"
+                  >
+                    {generatingAllImages ? '生成中…' : t('imageBulkGenBtn')}
+                  </button>
+                  <div className="absolute bottom-full right-0 mb-2 w-64 p-2.5 rounded-lg bg-bg2 border border-bd shadow-lg text-[11px] text-t2 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-30">
+                    {t('imageBulkGenTooltip')}
+                  </div>
+                </div>
                 <button
                   onClick={() => setPhase('upload')}
                   className="text-xs px-3 py-1.5 rounded bg-aG/20 text-aG border border-aG/40 hover:bg-aG/30 transition-colors font-medium"

@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Article, GeneratedResult } from '../../types';
 import SectionCard from './SectionCard';
-import { regenerateSection, regenerateSectionHeading } from '../../api/generate';
+import { regenerateSection, regenerateSectionHeading, regenerateTitle } from '../../api/generate';
 import { updateSection } from '../../api/articles';
 import toast from 'react-hot-toast';
 
@@ -9,12 +10,27 @@ interface Props {
   article: Article;
   result: GeneratedResult;
   onArticleUpdate: (article: Article) => void;
+  onResultUpdate: (result: GeneratedResult) => void;
   onNext: () => void;
   onOpenRef: () => void;
 }
 
-export default function ArticleEditor({ article, result, onArticleUpdate, onNext, onOpenRef }: Props) {
+export default function ArticleEditor({ article, result, onArticleUpdate, onResultUpdate, onNext, onOpenRef }: Props) {
   const { t } = useLanguage();
+  const [regeneratingTitle, setRegeneratingTitle] = useState(false);
+
+  async function handleRegenTitle() {
+    setRegeneratingTitle(true);
+    try {
+      const updated = await regenerateTitle(result.id);
+      onResultUpdate(updated);
+      toast.success(t('toastTitleRegenDone'));
+    } catch {
+      toast.error(t('toastTitleRegenFailed'));
+    } finally {
+      setRegeneratingTitle(false);
+    }
+  }
 
   async function handleRegenSection(index: number, instruction?: string) {
     try {
@@ -74,7 +90,17 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onNext
       <div className="px-5 py-3 border-b border-bd flex items-center gap-3 shrink-0 bg-bg1">
         <div className="flex-1 min-w-0">
           <div className="text-[11px] text-t2 font-mono truncate">{result.keywordText}</div>
-          <div className="text-sm text-t1 font-semibold truncate">{result.title}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-t1 font-semibold truncate">{result.title}</div>
+            <button
+              onClick={handleRegenTitle}
+              disabled={regeneratingTitle}
+              className="shrink-0 text-[10px] px-2 py-0.5 rounded border border-aO/50 text-aO hover:bg-aO/10 disabled:opacity-50 transition-colors"
+              title={t('titleRegenTooltip')}
+            >
+              {regeneratingTitle ? '…' : t('titleRegenBtn')}
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs text-tM">{totalChars.toLocaleString()} 文字</span>

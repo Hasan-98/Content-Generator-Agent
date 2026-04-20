@@ -9,6 +9,7 @@ import {
   generateArticle,
   regenerateSection,
   regenerateSectionHeading,
+  regenerateTitle,
   generateTitleImagePrompt,
   generateInfographicPrompt,
   formatArticleForPublish,
@@ -257,6 +258,36 @@ export async function regenerateSectionHeadingHandler(req: AuthRequest, res: Res
   const updated = await prisma.articleSection.update({
     where: { id: section.id },
     data: { heading: newHeading },
+  });
+  res.json(updated);
+}
+
+// STEP A3 — Regenerate the result title
+export async function regenerateTitleHandler(req: AuthRequest, res: Response): Promise<void> {
+  const { resultId } = req.body;
+  if (!resultId) { res.status(400).json({ error: 'resultId is required' }); return; }
+
+  const result = await prisma.generatedResult.findFirst({
+    where: { id: resultId },
+    include: { keyword: { include: { topLevel: true } } },
+  });
+  if (!result || result.keyword.topLevel.userId !== req.user!.id) {
+    res.status(404).json({ error: 'Result not found' });
+    return;
+  }
+
+  const { claudeApi } = await getUserKeys(req.user!.id);
+  const newTitle = await regenerateTitle(
+    result.keywordText,
+    result.title,
+    result.demographic,
+    result.persona1,
+    claudeApi
+  );
+
+  const updated = await prisma.generatedResult.update({
+    where: { id: resultId },
+    data: { title: newTitle },
   });
   res.json(updated);
 }

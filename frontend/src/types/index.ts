@@ -106,6 +106,7 @@ export interface ArticleImage {
   taste: ImageTaste;
   prompt: string;
   imageUrl?: string;
+  textInside: boolean;
   articleId: string;
   history?: ImageHistory[];
 }

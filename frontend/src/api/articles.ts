@@ -23,7 +23,7 @@ export async function updateSection(
 export async function updateImage(
   articleId: string,
   index: number,
-  data: { enabled?: boolean; taste?: string; prompt?: string; imageUrl?: string }
+  data: { enabled?: boolean; taste?: string; prompt?: string; imageUrl?: string; textInside?: boolean }
 ): Promise<ArticleImage> {
   const res = await client.patch(`/articles/${articleId}/images/${index}`, data);
   return res.data;

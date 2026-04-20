@@ -29,12 +29,24 @@ const ARTICLE_STATUS_LABEL: Record<string, string> = {
   UPLOADED:     'アップ済',
 };
 
+type FilterValue = 'ALL' | 'NO_ARTICLE' | 'WRITING' | 'ARTICLE_DONE' | 'IMAGE_DONE' | 'UPLOADED';
+
+const FILTER_OPTIONS: { value: FilterValue; colorKey: string }[] = [
+  { value: 'ALL',          colorKey: '#8b949e' },
+  { value: 'NO_ARTICLE',   colorKey: '#58a6ff' },
+  { value: 'WRITING',      colorKey: '#d29922' },
+  { value: 'ARTICLE_DONE', colorKey: '#39d2c0' },
+  { value: 'IMAGE_DONE',   colorKey: '#3fb950' },
+  { value: 'UPLOADED',     colorKey: '#f85149' },
+];
+
 export default function ArticleTree({ topLevels, selectedResultId, onSelect, onOpenRef }: Props) {
   const { t } = useLanguage();
   const [wpConfigTopic, setWpConfigTopic] = useState<{ id: string; name: string } | null>(null);
   const [shopifyConfigTopic, setShopifyConfigTopic] = useState<{ id: string; name: string } | null>(null);
+  const [filter, setFilter] = useState<FilterValue>('ALL');
 
-  const articleItems = topLevels.flatMap((tl) =>
+  const allItems = topLevels.flatMap((tl) =>
     tl.keywords.flatMap((kw) =>
       kw.results
         .filter((r) => r.status === 'STRUCT_DONE' || r.status === 'PUBLISHED')
@@ -42,11 +54,45 @@ export default function ArticleTree({ topLevels, selectedResultId, onSelect, onO
     )
   );
 
+  const articleItems = filter === 'ALL'
+    ? allItems
+    : allItems.filter(({ result }) => {
+        const artStatus = result.article?.status;
+        if (filter === 'NO_ARTICLE') return !artStatus || artStatus === 'READY';
+        if (filter === 'WRITING') return artStatus === 'WRITING' || artStatus === 'ARTICLE_DONE';
+        if (filter === 'ARTICLE_DONE') return artStatus === 'ARTICLE_DONE';
+        if (filter === 'IMAGE_DONE') return artStatus === 'IMAGING' || artStatus === 'IMAGE_DONE';
+        if (filter === 'UPLOADED') return artStatus === 'UPLOADED' || artStatus === 'FORMAT_DONE' || artStatus === 'FORMATTING';
+        return true;
+      });
+
   return (
     <div className="w-72 bg-bg1 border-r border-bd flex flex-col overflow-hidden shrink-0">
       {/* Header */}
       <div className="h-8 border-b border-bd flex items-center px-3 shrink-0">
         <span className="text-[11px] font-mono text-tM uppercase tracking-wider">{t('articleSidebarHeader')}</span>
+        <span className="ml-auto text-[10px] text-tM">{articleItems.length}/{allItems.length}</span>
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-bd shrink-0">
+        {FILTER_OPTIONS.map((opt) => {
+          const active = filter === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => setFilter(opt.value)}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                active
+                  ? 'border-current bg-current/15'
+                  : 'border-bd text-tM hover:text-t2 hover:border-t2'
+              }`}
+              style={active ? { color: opt.colorKey } : undefined}
+            >
+              {t(`articleFilter${opt.value}` as any)}
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">

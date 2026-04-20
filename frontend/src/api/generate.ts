@@ -42,6 +42,11 @@ export async function regenerateSectionHeading(
   return res.data;
 }
 
+export async function regenerateTitle(resultId: string): Promise<import('../types').GeneratedResult> {
+  const res = await client.post('/generate/regenerate-title', { resultId });
+  return res.data;
+}
+
 export async function generateImage(
   articleId: string,
   imageIndex: number

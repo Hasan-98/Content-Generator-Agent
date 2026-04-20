@@ -164,6 +164,15 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
     }
   }
 
+  async function handleToggleTextInside(textInside: boolean) {
+    try {
+      const updated = await updateImage(articleId, image.index, { textInside });
+      onUpdate(updated);
+    } catch {
+      toast.error(t('toastUpdateFailed'));
+    }
+  }
+
   async function handleTasteChange(taste: ImageTaste) {
     try {
       const updated = await updateImage(articleId, image.index, { taste, prompt: DEFAULT_PROMPTS[taste] });
@@ -210,6 +219,21 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
         <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: `${color}22`, color }}>
           {sectionType}
         </span>
+        {/* Text inside/outside toggle */}
+        <div className="flex rounded-md overflow-hidden border border-bd" title={t('imageTextPositionTooltip')}>
+          <button
+            onClick={() => handleToggleTextInside(true)}
+            className={`text-[10px] px-2 py-0.5 transition-colors ${image.textInside ? 'bg-aB/20 text-aB' : 'text-tM hover:text-t2'}`}
+          >
+            {t('imageTextInsideBtn')}
+          </button>
+          <button
+            onClick={() => handleToggleTextInside(false)}
+            className={`text-[10px] px-2 py-0.5 transition-colors border-l border-bd ${!image.textInside ? 'bg-aB/20 text-aB' : 'text-tM hover:text-t2'}`}
+          >
+            {t('imageTextOutsideBtn')}
+          </button>
+        </div>
         {/* Enable/Disable toggle */}
         <div className="flex rounded-md overflow-hidden border border-bd">
           <button
