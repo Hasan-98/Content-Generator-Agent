@@ -114,7 +114,7 @@ export default function TopicTree({
           <div key={tl.id} className="mb-0.5">
             {/* TopLevel row */}
             <div
-              className="flex items-center gap-1 px-2 py-1.5 mx-1 rounded cursor-pointer hover:bg-[#292e36] group transition-colors"
+              className="flex items-center gap-1 px-2 py-1.5 mx-1 rounded cursor-pointer hover:bg-bg2 group transition-colors"
               onClick={() => toggleTL(tl.id)}
             >
               <svg
@@ -282,7 +282,7 @@ function KeywordCard({
     }`}>
       {/* Header row */}
       <div
-        className="flex items-center gap-1.5 px-2.5 py-2 cursor-pointer hover:bg-[#292e36] transition-colors group"
+        className="flex items-center gap-1.5 px-2.5 py-2 cursor-pointer hover:bg-bg2 transition-colors group"
         onClick={onToggle}
       >
         <svg
@@ -385,7 +385,7 @@ function KeywordCard({
 
           <button
             onClick={onViewResults}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] text-t1 bg-bg2 border border-bd hover:bg-[#292e36] transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] text-t1 bg-bg2 border border-bd hover:bg-bg2 transition-colors cursor-pointer"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />

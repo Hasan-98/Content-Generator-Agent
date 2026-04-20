@@ -80,6 +80,10 @@ export async function publish(req: AuthRequest, res: Response): Promise<void> {
       : article.uploadMeta.publishStatus === 'SCHEDULE' ? 'future'
       : 'draft';
 
+    // Use the first enabled image as the featured thumbnail
+    const firstImage = article.images.find(img => img.enabled && img.imageUrl);
+    const featuredImageUrl = firstImage?.imageUrl || undefined;
+
     postUrl = await publishToWordpress(
       {
         title: publishTitle,
@@ -90,6 +94,7 @@ export async function publish(req: AuthRequest, res: Response): Promise<void> {
         category: article.uploadMeta.category,
         publishStatus: wpStatus,
         scheduleDate: article.uploadMeta.scheduleDate?.toISOString(),
+        featuredImageUrl,
       },
       credentials
     );
