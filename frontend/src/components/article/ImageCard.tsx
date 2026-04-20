@@ -10,6 +10,7 @@ interface Props {
   sectionHeading: string;
   sectionType: string;
   articleId: string;
+  articleTitle?: string;
   onUpdate: (image: ArticleImage) => void;
 }
 
@@ -67,7 +68,7 @@ function saveCustomVariations(v: Record<ImageTaste, Variation[]>) {
   try { localStorage.setItem(VARIATIONS_KEY, JSON.stringify(v)); } catch { /* ignore */ }
 }
 
-export default function ImageCard({ image, sectionHeading, sectionType, articleId, onUpdate }: Props) {
+export default function ImageCard({ image, sectionHeading, sectionType, articleId, articleTitle, onUpdate }: Props) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [selectingHistory, setSelectingHistory] = useState(false);
@@ -342,7 +343,14 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
             style={{ width: 200, height: 140 }}
           >
             {image.imageUrl ? (
-              <img src={image.imageUrl} alt={sectionHeading} className="w-full h-full object-cover" />
+              <div className="relative w-full h-full">
+                <img src={image.imageUrl} alt={sectionHeading} className="w-full h-full object-cover" />
+                {image.index === 0 && articleTitle && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <span className="text-xs font-bold text-white text-center px-3 drop-shadow-lg leading-snug" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{articleTitle}</span>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="text-center">
                 <div className="text-2xl mb-1">🖼</div>

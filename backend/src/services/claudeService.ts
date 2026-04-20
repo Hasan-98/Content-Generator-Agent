@@ -226,14 +226,34 @@ Article structure guidance (expand on each section with depth and detail):
 - Summary/まとめ: ${result.structMatome || ''}
 
 Writing requirements:
-1. Each section must be 500-800 characters (Japanese). This is critical — do NOT write shorter sections.
-2. Include specific examples, data points, or actionable advice in every section.
-3. For "point" sections, provide step-by-step explanations, real-world scenarios, or concrete tips.
-4. For "nayami" section, deeply empathize with the reader's pain points and show you understand their situation.
-5. For "common" section, address 2-3 specific misconceptions with clear corrections.
-6. Use natural, conversational Japanese that feels helpful and trustworthy.
-7. Naturally incorporate the target keyword and related terms for SEO.
-8. Use paragraph breaks within each section for readability (use \\n\\n between paragraphs).
+1. Each section MUST be 1500-2500 characters (Japanese). This is the #1 priority — short, thin sections are completely unacceptable. Aim for the upper end of the range. The total article should be 12,000-20,000 characters.
+2. Write like a seasoned journalist: provide in-depth analysis, not surface-level summaries.
+3. Include at least 2-3 specific examples, case studies, statistics, or data points per section. Use concrete numbers (e.g., 「約80%のユーザーが…」「2024年の調査によると…」).
+4. For "point" sections:
+   - Provide detailed step-by-step explanations with sub-points
+   - Include real-world scenarios and use cases the reader can relate to
+   - Give concrete, actionable tips the reader can apply immediately
+   - Compare different approaches or options when relevant
+   - Add expert insights or industry perspectives
+5. For "nayami" (problem) section:
+   - Deeply empathize with the reader's pain points — describe their daily frustrations in vivid detail
+   - Show you understand their situation with specific scenarios they experience
+   - Validate their feelings before transitioning to solutions
+   - Include common questions they might be asking themselves
+6. For "common" (misconceptions) section:
+   - Address 3-4 specific misconceptions with detailed corrections
+   - Explain WHY each misconception is wrong with evidence
+   - Provide the correct understanding with supporting facts
+7. For "intro" section:
+   - Hook the reader with a compelling opening (surprising fact, relatable question, or bold statement)
+   - Clearly preview what the article will cover and what value they'll get
+8. For "matome" (summary) section:
+   - Recap all key takeaways with specific action items
+   - Provide a clear next step the reader should take
+9. Use natural, conversational Japanese that feels helpful and trustworthy — like advice from a knowledgeable friend.
+10. Naturally incorporate the target keyword and semantically related terms throughout for SEO.
+11. Use paragraph breaks within each section for readability (use \\n\\n between paragraphs). Each section should have 4-6 paragraphs.
+12. Use concrete language — avoid vague statements like 「様々な」「いろいろな」「たくさんの」. Be specific.
 
 Generate exactly 8 article sections. Each section has a type, heading, and content.
 Types: intro, nayami, point, common, cta, matome (use these exactly)
@@ -250,7 +270,7 @@ Output ONLY valid JSON array with exactly 8 objects:
   { "type": "matome", "heading": "...", "content": "..." }
 ]
 
-Write all content in Japanese. Remember: each section MUST be 500-800 characters minimum. Short sections are unacceptable.`;
+Write all content in Japanese. CRITICAL REMINDER: each section MUST be 1500-2500 characters. If a section is under 1500 characters, expand it with more examples, details, and explanations until it reaches the target length. A 500-character section is a failure.`;
 
   const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 16384);
   const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -309,9 +329,11 @@ export async function generateTitleImagePrompt(
   keyword: string,
   title: string,
   contentSummary: string,
-  apiKey?: string
+  apiKey?: string,
+  textInside: boolean = true
 ): Promise<string> {
-  const systemPrompt = `You are an expert at writing image generation prompts for blog TITLE thumbnails (YouTube-style title cards).
+  if (textInside) {
+    const systemPrompt = `You are an expert at writing image generation prompts for blog TITLE thumbnails (YouTube-style title cards).
 Your output must be a single image generation prompt string only — no explanation, no preamble, no JSON.
 
 The image MUST clearly display the exact Japanese title given by the user as bold, perfectly legible Japanese typography. Treat the title text as the main subject of the image — like a YouTube thumbnail or magazine cover.
@@ -325,13 +347,37 @@ Design rules (MUST follow):
 - Optional small accent icon or shape relating to the topic, but keep the title as the dominant focal point
 - High quality, sharp, professional`;
 
-  const userPrompt = `Keyword: ${keyword}
+    const userPrompt = `Keyword: ${keyword}
 Japanese title to render verbatim in the image: 「${title}」
 Article summary (for background mood only): ${contentSummary}
 
 Write an image generation prompt for this title thumbnail. The prompt MUST instruct the image model to render the exact Japanese title 「${title}」 as the main bold typography.`;
 
-  return (await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 1024)).trim();
+    return (await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 1024)).trim();
+  } else {
+    // Text outside mode: generate a beautiful background image without any text
+    const systemPrompt = `You are an expert at writing image generation prompts for blog header/hero images.
+Your output must be a single image generation prompt string only — no explanation, no preamble, no JSON.
+
+This image will be used as a background/hero image for a blog post. The title text will be overlaid separately by the application, so the image itself must NOT contain any text, words, letters, or typography.
+
+Design rules (MUST follow):
+- 16:9 wide landscape format
+- Beautiful, high-quality conceptual photograph or illustration related to the topic
+- DO NOT include any text, words, letters, numbers, or typography in the image
+- Clean composition with space for text overlay (slightly darker or blurred area in center)
+- Soft, professional color palette that works well with white or light text overlaid on top
+- Modern editorial / magazine cover background aesthetic
+- High quality, sharp, professional`;
+
+    const userPrompt = `Keyword: ${keyword}
+Blog title (for topic context only, do NOT render text in image): 「${title}」
+Article summary (for mood/theme): ${contentSummary}
+
+Write an image generation prompt for a hero background image related to this topic. The image must NOT contain any text — it will be used as a background with text overlaid separately.`;
+
+    return (await chat(getClient(apiKey), 'gpt-4o', systemPrompt, userPrompt, 1024)).trim();
+  }
 }
 
 export async function generateInfographicPrompt(
@@ -474,15 +520,18 @@ Section heading: ${section.heading}
 Current content: ${section.content}
 ${instruction ? `Special instruction: ${instruction}` : ''}
 
-Rewrite this section with fresh, improved, and more detailed content.
-- Include specific examples, data points, or actionable advice.
-- Use natural, conversational Japanese that feels helpful.
-- Use paragraph breaks (\\n\\n) for readability.
-- Target length: 500-800 characters.
+Rewrite this section with fresh, improved, and substantially more detailed content.
+- Target length: 1500-2500 characters (Japanese). This is critical — do NOT write a short section.
+- Include at least 2-3 specific examples, statistics, data points, or case studies.
+- Provide step-by-step explanations, real-world scenarios, and concrete actionable tips.
+- Use concrete numbers and facts, avoid vague language like 「様々な」「いろいろな」.
+- Use natural, conversational Japanese that feels helpful and trustworthy.
+- Use paragraph breaks (\\n\\n) for readability — aim for 4-6 paragraphs.
+- Write with depth and nuance like a seasoned journalist, not surface-level summaries.
 Output ONLY the new content as plain text (no JSON, no quotes, no heading).
 Write in Japanese.`;
 
-  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 4096);
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 8192);
   return text.trim() || section.content;
 }
 

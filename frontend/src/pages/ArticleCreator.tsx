@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import type { TopLevel, GeneratedResult, Article } from '../types';
 import { getTopLevels } from '../api/topics';
-import { generateArticle } from '../api/generate';
+import { generateArticle, regenerateTitle } from '../api/generate';
 import { generateImagesBulk } from '../api/generate';
 import { getArticle, updateImage } from '../api/articles';
 import { useLanguage } from '../context/LanguageContext';
@@ -29,6 +29,30 @@ export default function ArticleCreator() {
   const [refResult, setRefResult] = useState<GeneratedResult | null>(null);
   const [masterPrompt, setMasterPrompt] = useState('');
   const [applyingMaster, setApplyingMaster] = useState(false);
+  const [regeneratingTitle, setRegeneratingTitle] = useState(false);
+
+  async function handleRegenTitle() {
+    if (!selectedResult) return;
+    setRegeneratingTitle(true);
+    try {
+      const updated = await regenerateTitle(selectedResult.id);
+      setSelectedResult(updated);
+      setTopLevels(prev =>
+        prev.map(tl => ({
+          ...tl,
+          keywords: tl.keywords.map(kw => ({
+            ...kw,
+            results: kw.results.map(r => r.id === updated.id ? { ...r, ...updated } : r),
+          })),
+        }))
+      );
+      toast.success(t('toastTitleRegenDone'));
+    } catch {
+      toast.error(t('toastTitleRegenFailed'));
+    } finally {
+      setRegeneratingTitle(false);
+    }
+  }
 
   useEffect(() => {
     getTopLevels()
@@ -226,7 +250,20 @@ export default function ArticleCreator() {
                 <button onClick={() => setPhase('edit')} className="text-xs text-t2 hover:text-t1 transition-colors">
                   {t('articleBackToEdit')}
                 </button>
-                <div className="flex-1" />
+                <div className="flex-1 min-w-0 mx-3">
+                  <div className="text-[11px] text-t2 font-mono truncate">{selectedResult.keywordText}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-t1 font-semibold truncate">{selectedResult.title}</div>
+                    <button
+                      onClick={handleRegenTitle}
+                      disabled={regeneratingTitle}
+                      className="shrink-0 text-[10px] px-2 py-0.5 rounded border border-aO/50 text-aO hover:bg-aO/10 disabled:opacity-50 transition-colors"
+                      title={t('titleRegenTooltip')}
+                    >
+                      {regeneratingTitle ? '…' : t('titleRegenBtn')}
+                    </button>
+                  </div>
+                </div>
                 <div className="relative group">
                   <button
                     onClick={handleGenerateAllImages}
@@ -235,7 +272,7 @@ export default function ArticleCreator() {
                   >
                     {generatingAllImages ? t('detailGenerating') : t('imageBulkGenBtn')}
                   </button>
-                  <div className="absolute bottom-full right-0 mb-2 w-64 p-2.5 rounded-lg bg-bg2 border border-bd shadow-lg text-[11px] text-t2 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-30">
+                  <div className="absolute bottom-full right-0 mb-2 w-72 p-3 rounded-lg bg-bg2 border border-bd shadow-lg text-[11px] text-t2 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-30 whitespace-pre-line">
                     {t('imageBulkGenTooltip')}
                   </div>
                 </div>
@@ -276,6 +313,7 @@ export default function ArticleCreator() {
                       sectionHeading={section?.heading ?? `Section ${image.index + 1}`}
                       sectionType={section?.type ?? 'intro'}
                       articleId={article.id}
+                      articleTitle={selectedResult.title}
                       onUpdate={handleImageUpdate}
                     />
                   );

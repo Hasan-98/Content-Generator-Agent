@@ -152,9 +152,23 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
         {/* Preview */}
         {tab === 'preview' && (
           <div className="prose prose-invert max-w-none">
-            <h1 className="text-xl font-bold text-t1 mb-4">{result.title}</h1>
+            {/* Title image — always show title text on the photo */}
+            {(() => {
+              const titleImg = article.images.find(im => im.index === 0 && im.enabled && im.imageUrl);
+              if (titleImg) {
+                return (
+                  <div className="relative w-full rounded-lg mb-4 overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                    <img src={titleImg.imageUrl!} alt={result.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <h1 className="text-2xl font-bold text-white text-center px-8" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.9)' }}>{result.title}</h1>
+                    </div>
+                  </div>
+                );
+              }
+              return <h1 className="text-xl font-bold text-t1 mb-4">{result.title}</h1>;
+            })()}
             {article.sections.map((s, i) => {
-              const img = article.images.find(im => im.index === i && im.enabled && im.imageUrl);
+              const img = article.images.find(im => im.index === i && im.enabled && im.imageUrl && im.index !== 0);
               return (
                 <div key={s.id} className="mb-6">
                   {img && (

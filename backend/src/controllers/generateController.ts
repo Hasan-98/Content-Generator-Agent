@@ -371,7 +371,7 @@ export async function generateImagesBulk(req: AuthRequest, res: Response): Promi
       if (image.index === 0) {
         // Title thumbnail — 16:9, YouTube style
         aspectRatio = '16:9';
-        prompt = await generateTitleImagePrompt(keyword, title, contentSummary, claudeApi);
+        prompt = await generateTitleImagePrompt(keyword, title, contentSummary, claudeApi, image.textInside);
       } else {
         // Section infographic — 1:1, flat design
         aspectRatio = '1:1';
