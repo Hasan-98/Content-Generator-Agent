@@ -182,7 +182,7 @@ export default function HeygenAvatarsPage() {
         </div>
       )}
 
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} initialSection="heygenApi" />}
     </div>
   );
 }

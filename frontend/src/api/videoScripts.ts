@@ -107,9 +107,10 @@ export interface BackgroundResult {
 
 export async function searchSectionBackgroundsApi(
   sectionId: string,
-  query?: string
+  query?: string,
+  searchType?: 'all' | 'photo' | 'video'
 ): Promise<{ results: BackgroundResult[]; query: string }> {
-  const res = await client.post(`/video-scripts/sections/${sectionId}/search-backgrounds`, { query });
+  const res = await client.post(`/video-scripts/sections/${sectionId}/search-backgrounds`, { query, searchType });
   return res.data;
 }
 

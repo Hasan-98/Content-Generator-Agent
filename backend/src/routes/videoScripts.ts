@@ -26,10 +26,17 @@ const router = Router();
 
 router.use(authenticate);
 
+// Static & section routes BEFORE /:id wildcard
 router.get('/', listVideoScripts);
 router.get('/avatars', listAvatars);
-router.get('/:id', getVideoScript);
 router.post('/generate', generateVideoScriptHandler);
+router.patch('/sections/:id', updateVideoScriptSection);
+router.post('/sections/:id/generate-image', generateSectionImage);
+router.post('/sections/:id/search-backgrounds', searchSectionBackgrounds);
+router.patch('/sections/:id/set-background', setSectionBackground);
+
+// Wildcard /:id routes
+router.get('/:id', getVideoScript);
 router.patch('/:id/settings', updateVideoSettings);
 router.post('/:id/tts', generateTts);
 router.post('/:id/upload-audio', uploadAudioMiddleware.single('audio'), uploadAudio);
@@ -38,10 +45,6 @@ router.post('/:id/heygen-status', checkHeygenVideoStatus);
 router.post('/:id/build-preview', buildVideoPreview);
 router.post('/:id/remotion', generateRemotionVideo);
 router.post('/:id/remotion-status', checkRemotionVideoStatus);
-router.patch('/sections/:id', updateVideoScriptSection);
-router.post('/sections/:id/generate-image', generateSectionImage);
-router.post('/sections/:id/search-backgrounds', searchSectionBackgrounds);
-router.patch('/sections/:id/set-background', setSectionBackground);
 router.delete('/:id', deleteVideoScript);
 
 export default router;

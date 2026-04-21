@@ -42,7 +42,7 @@ const JAPANESE_FALLBACKS: string[] = [
  *   2. If already contains "japan", use as-is
  *   3. Otherwise prefix with "japan "
  */
-function resolveJapaneseKeyword(raw: string): string {
+export function resolveJapaneseKeyword(raw: string): string {
   const keyword = (raw || 'nature').toLowerCase().trim();
   const mapped = JAPANESE_KEYWORDS[keyword];
   if (mapped) return mapped;

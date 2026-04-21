@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import { generateVideoScript } from '../services/claudeService';
 import { getUserApiKey } from './apiConfigController';
 import { generateImageWithKie } from '../services/imageService';
-import { searchBackgrounds } from '../services/remotionService';
+import { searchBackgrounds, searchPexelsPhotos, searchPexelsVideos, searchPixabayVideos, resolveJapaneseKeyword, type BackgroundResult } from '../services/remotionService';
 
 const prisma = new PrismaClient();
 
@@ -188,6 +188,7 @@ export async function generateSectionImage(req: AuthRequest, res: Response): Pro
 }
 
 // POST /api/video-scripts/sections/:id/search-backgrounds — search free images & videos
+// body.searchType: "all" (default) | "photo" | "video"
 export async function searchSectionBackgrounds(req: AuthRequest, res: Response): Promise<void> {
   const id = String(req.params.id);
   const section = await prisma.videoScriptSection.findUnique({
@@ -199,11 +200,26 @@ export async function searchSectionBackgrounds(req: AuthRequest, res: Response):
     return;
   }
 
-  const query = (req.body?.query as string) || section.backgroundKeyword || section.heading;
+  const rawQuery = (req.body?.query as string) || section.backgroundKeyword || section.heading;
+  const searchType = (req.body?.searchType as string) || 'all';
   const orientation = section.videoScript.orientation || 'horizontal';
+  const pexelsOrientation = orientation === 'vertical' ? 'portrait' as const : 'landscape' as const;
+  const query = resolveJapaneseKeyword(rawQuery);
 
-  const results = await searchBackgrounds(query, orientation);
-  res.json({ results, query });
+  let results: BackgroundResult[];
+  if (searchType === 'photo') {
+    results = await searchPexelsPhotos(query, pexelsOrientation, 20);
+  } else if (searchType === 'video') {
+    const [pVids, pixVids] = await Promise.all([
+      searchPexelsVideos(query, pexelsOrientation, 12),
+      searchPixabayVideos(query, 8),
+    ]);
+    results = [...pVids, ...pixVids];
+  } else {
+    results = await searchBackgrounds(rawQuery, orientation);
+  }
+
+  res.json({ results, query: rawQuery });
 }
 
 // PATCH /api/video-scripts/sections/:id/set-background — pick a background from search results

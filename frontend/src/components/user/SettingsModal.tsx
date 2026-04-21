@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 
 interface Props {
   onClose: () => void;
+  initialSection?: 'password' | ApiKeyName;
 }
 
 const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; placeholder: string }[] = [
@@ -19,9 +20,9 @@ const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; place
   { key: 'heygenApi', label: 'HeyGen API', labelJa: 'HeyGen API', placeholder: 'sk_V2_hgu_...' },
 ];
 
-export default function SettingsModal({ onClose }: Props) {
+export default function SettingsModal({ onClose, initialSection }: Props) {
   const { t } = useLanguage();
-  const [activeSection, setActiveSection] = useState<'password' | ApiKeyName>('password');
+  const [activeSection, setActiveSection] = useState<'password' | ApiKeyName>(initialSection || 'password');
   const [config, setConfig] = useState<ApiConfigStatus | null>(null);
   const [loading, setLoading] = useState(true);
 

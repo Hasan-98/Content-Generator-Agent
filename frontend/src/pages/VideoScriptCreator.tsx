@@ -861,6 +861,20 @@ export default function VideoScriptCreator() {
                         </svg>
                       </button>
                     </div>
+                    {/* Background image thumbnail — always visible */}
+                    {sec.imageUrl && (
+                      <div className="px-4 pt-3">
+                        <div className="relative rounded border border-bd overflow-hidden" style={{ height: 120 }}>
+                          <img src={sec.imageUrl} alt={sec.heading} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => setBgPickerSection(sec.id)}
+                            className="absolute bottom-1.5 right-1.5 text-[9px] px-2 py-0.5 rounded bg-bg0/80 text-t1 hover:bg-bg0 transition-colors border border-bd"
+                          >
+                            {t('bgPickerChange')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <div className="px-4 py-3 space-y-2">
                       {editingSection === sec.id ? (
                         <>

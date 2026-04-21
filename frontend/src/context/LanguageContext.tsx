@@ -623,6 +623,7 @@ const en = {
   bgPickerAiGenerating: 'Generating…',
   bgPickerAiDone: 'AI background generated',
   bgPickerAiFailed: 'AI generation failed',
+  bgPickerChange: 'Change',
   avatarLoadFailed: 'Failed to load avatars',
   settingsSaveFailed: 'Failed to save settings',
 
@@ -1337,6 +1338,7 @@ const ja: Record<TKey, string> = {
   bgPickerAiGenerating: '生成中…',
   bgPickerAiDone: 'AI背景を生成しました',
   bgPickerAiFailed: 'AI生成に失敗しました',
+  bgPickerChange: '変更',
   avatarLoadFailed: 'アバターの読み込みに失敗しました',
   settingsSaveFailed: '設定の保存に失敗しました',
 

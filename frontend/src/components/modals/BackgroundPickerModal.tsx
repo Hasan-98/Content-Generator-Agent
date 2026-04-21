@@ -22,30 +22,31 @@ const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
   pixabay_video: { label: 'Pixabay Video', color: '#d29922' },
 };
 
+type SearchType = 'all' | 'photo' | 'video';
+
 export default function BackgroundPickerModal({ section, onClose, onPicked }: Props) {
   const { t } = useLanguage();
   const [query, setQuery] = useState(section.backgroundKeyword || section.heading || '');
   const [results, setResults] = useState<BackgroundResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [picking, setPicking] = useState<string | null>(null);
+  const [searchType, setSearchType] = useState<SearchType>('all');
 
   // AI generation
   const [aiPrompt, setAiPrompt] = useState(section.imagePrompt || '');
   const [generatingAi, setGeneratingAi] = useState(false);
 
-  // Filter
-  const [filter, setFilter] = useState<'all' | 'photo' | 'video'>('all');
-
   useEffect(() => {
-    handleSearch();
+    doSearch('all');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleSearch() {
+  async function doSearch(type: SearchType) {
     if (!query.trim()) return;
+    setSearchType(type);
     setLoading(true);
     try {
-      const data = await searchSectionBackgroundsApi(section.id, query.trim());
+      const data = await searchSectionBackgroundsApi(section.id, query.trim(), type);
       setResults(data.results);
     } catch {
       toast.error(t('bgPickerSearchFailed'));
@@ -83,12 +84,6 @@ export default function BackgroundPickerModal({ section, onClose, onPicked }: Pr
     }
   }
 
-  const filtered = results.filter(r => {
-    if (filter === 'photo') return r.source === 'pexels_photo';
-    if (filter === 'video') return r.source.includes('video');
-    return true;
-  });
-
   const photoCount = results.filter(r => r.source === 'pexels_photo').length;
   const videoCount = results.filter(r => r.source.includes('video')).length;
 
@@ -107,47 +102,54 @@ export default function BackgroundPickerModal({ section, onClose, onPicked }: Pr
           <button onClick={onClose} className="text-tM hover:text-t1 transition-colors text-lg leading-none">&times;</button>
         </div>
 
-        {/* Search bar */}
-        <div className="px-5 py-3 border-b border-bd flex gap-2 shrink-0">
-          <IMEInput
-            value={query}
-            onValueChange={setQuery}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder={t('bgPickerSearchPlaceholder')}
-            className="flex-1 bg-bg0 border border-bd rounded px-3 py-1.5 text-sm text-t1 focus:outline-none focus:border-aB"
-          />
-          <button
-            onClick={handleSearch}
-            disabled={loading}
-            className="px-4 py-1.5 text-xs bg-aB/20 text-aB border border-aB/40 rounded hover:bg-aB/30 disabled:opacity-50 transition-colors font-medium"
-          >
-            {loading ? t('bgPickerSearching') : t('bgPickerSearchBtn')}
-          </button>
-        </div>
-
-        {/* Filter tabs */}
-        {results.length > 0 && (
-          <div className="px-5 py-2 border-b border-bd flex gap-2 shrink-0">
+        {/* Search bar + type selector */}
+        <div className="px-5 py-3 border-b border-bd shrink-0 space-y-2">
+          <div className="flex gap-2">
+            <IMEInput
+              value={query}
+              onValueChange={setQuery}
+              onKeyDown={e => e.key === 'Enter' && doSearch(searchType)}
+              placeholder={t('bgPickerSearchPlaceholder')}
+              className="flex-1 bg-bg0 border border-bd rounded px-3 py-1.5 text-sm text-t1 focus:outline-none focus:border-aB"
+            />
             <button
-              onClick={() => setFilter('all')}
-              className={`text-[11px] px-2.5 py-1 rounded transition-colors ${filter === 'all' ? 'bg-bg2 text-t1' : 'text-tM hover:text-t2'}`}
+              onClick={() => doSearch(searchType)}
+              disabled={loading}
+              className="px-4 py-1.5 text-xs bg-aB/20 text-aB border border-aB/40 rounded hover:bg-aB/30 disabled:opacity-50 transition-colors font-medium"
             >
-              {t('bgPickerAll')} ({results.length})
-            </button>
-            <button
-              onClick={() => setFilter('photo')}
-              className={`text-[11px] px-2.5 py-1 rounded transition-colors ${filter === 'photo' ? 'bg-aG/15 text-aG' : 'text-tM hover:text-t2'}`}
-            >
-              {t('bgPickerPhotos')} ({photoCount})
-            </button>
-            <button
-              onClick={() => setFilter('video')}
-              className={`text-[11px] px-2.5 py-1 rounded transition-colors ${filter === 'video' ? 'bg-aB/15 text-aB' : 'text-tM hover:text-t2'}`}
-            >
-              {t('bgPickerVideos')} ({videoCount})
+              {loading ? t('bgPickerSearching') : t('bgPickerSearchBtn')}
             </button>
           </div>
-        )}
+          {/* Search type tabs */}
+          <div className="flex gap-1.5">
+            {(['all', 'photo', 'video'] as const).map(type => {
+              const isActive = searchType === type;
+              const styles: Record<SearchType, string> = {
+                all: isActive ? 'bg-bg2 text-t1 border-t2' : 'text-tM border-transparent hover:text-t2',
+                photo: isActive ? 'bg-aG/15 text-aG border-aG/40' : 'text-tM border-transparent hover:text-t2',
+                video: isActive ? 'bg-aB/15 text-aB border-aB/40' : 'text-tM border-transparent hover:text-t2',
+              };
+              const labels: Record<SearchType, string> = {
+                all: t('bgPickerAll'),
+                photo: t('bgPickerPhotos'),
+                video: t('bgPickerVideos'),
+              };
+              return (
+                <button
+                  key={type}
+                  onClick={() => doSearch(type)}
+                  disabled={loading}
+                  className={`text-[11px] px-3 py-1 rounded border transition-colors disabled:opacity-50 ${styles[type]}`}
+                >
+                  {labels[type]}
+                  {results.length > 0 && type === 'photo' && ` (${photoCount})`}
+                  {results.length > 0 && type === 'video' && ` (${videoCount})`}
+                  {results.length > 0 && type === 'all' && ` (${results.length})`}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Results grid */}
         <div className="flex-1 overflow-y-auto p-4">
@@ -160,13 +162,13 @@ export default function BackgroundPickerModal({ section, onClose, onPicked }: Pr
             </div>
           ) : (
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
-              {filtered.map((r, i) => {
+              {results.map((r, i) => {
                 const src = SOURCE_LABELS[r.source];
                 const isVideo = r.source.includes('video');
                 return (
                   <button
                     key={`${r.source}-${i}`}
-                    onClick={() => handlePick(isVideo ? r.url : r.url)}
+                    onClick={() => handlePick(r.url)}
                     disabled={picking !== null}
                     className={`group relative rounded-lg border overflow-hidden text-left transition-all ${
                       picking === r.url
