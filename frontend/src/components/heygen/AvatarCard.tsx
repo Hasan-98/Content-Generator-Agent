@@ -5,6 +5,7 @@ interface Props {
   avatar: HeygenTrainedAvatar;
   onDelete: (id: string) => void;
   onRefresh: (id: string) => void;
+  onRetry: (id: string) => void;
 }
 
 const STATUS_STYLE: Record<HeygenTrainedAvatarStatus, { bg: string; color: string }> = {
@@ -15,11 +16,12 @@ const STATUS_STYLE: Record<HeygenTrainedAvatarStatus, { bg: string; color: strin
   FAILED:    { bg: '#f8514922', color: '#f85149' },
 };
 
-export default function AvatarCard({ avatar, onDelete, onRefresh }: Props) {
+export default function AvatarCard({ avatar, onDelete, onRefresh, onRetry }: Props) {
   const { t } = useLanguage();
   const style = STATUS_STYLE[avatar.status];
   const statusLabel = t(`heygenAvatarStatus${avatar.status}` as 'heygenAvatarStatusPENDING');
   const canRefresh = avatar.status === 'TRAINING' || avatar.status === 'UPLOADING';
+  const canRetry = avatar.status === 'FAILED';
 
   return (
     <div className="rounded-lg border border-bd bg-bg1 overflow-hidden flex flex-col">
@@ -57,6 +59,14 @@ export default function AvatarCard({ avatar, onDelete, onRefresh }: Props) {
         )}
 
         <div className="flex gap-1.5 mt-1">
+          {canRetry && (
+            <button
+              onClick={() => onRetry(avatar.id)}
+              className="text-[11px] px-2 py-1 rounded border border-bd text-t2 hover:border-aO hover:text-aO transition-colors flex-1"
+            >
+              {t('heygenAvatarRetry')}
+            </button>
+          )}
           {canRefresh && (
             <button
               onClick={() => onRefresh(avatar.id)}

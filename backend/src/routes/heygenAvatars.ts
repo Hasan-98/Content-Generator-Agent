@@ -4,6 +4,7 @@ import {
   listAvatars,
   getAvatar,
   refreshAvatar,
+  retryAvatar,
   deleteAvatar,
 } from '../controllers/heygenAvatarController';
 import { authenticate } from '../middleware/auth';
@@ -17,6 +18,7 @@ router.get('/', listAvatars);
 router.post('/', uploadImage.single('image'), createAvatar);
 router.get('/:id', getAvatar);
 router.post('/:id/refresh', refreshAvatar);
+router.post('/:id/retry', retryAvatar);
 router.delete('/:id', deleteAvatar);
 
 export default router;

@@ -30,6 +30,11 @@ export async function refreshHeygenAvatar(id: string): Promise<HeygenTrainedAvat
   return res.data;
 }
 
+export async function retryHeygenAvatar(id: string): Promise<HeygenTrainedAvatar> {
+  const res = await client.post(`/heygen-avatars/${id}/retry`);
+  return res.data;
+}
+
 export async function deleteHeygenAvatar(id: string): Promise<void> {
   await client.delete(`/heygen-avatars/${id}`);
 }

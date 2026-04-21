@@ -74,11 +74,13 @@ export async function checkHeygenStatusApi(scriptId: string): Promise<VideoScrip
 }
 
 // WF4: preview background builder (Pexels with Japan-aware keyword mapping)
+// bgSource: "free" (Pexels default) or "ai" (AI-generated via Kie.ai)
 export async function buildVideoPreviewApi(
   scriptId: string,
-  force: boolean = false
-): Promise<{ script: VideoScript; populatedCount: number; totalSections: number }> {
-  const res = await client.post(`/video-scripts/${scriptId}/build-preview`, { force });
+  force: boolean = false,
+  bgSource?: 'free' | 'ai'
+): Promise<{ script: VideoScript; populatedCount: number; totalSections: number; bgSource?: string }> {
+  const res = await client.post(`/video-scripts/${scriptId}/build-preview`, { force, bgSource });
   return res.data;
 }
 

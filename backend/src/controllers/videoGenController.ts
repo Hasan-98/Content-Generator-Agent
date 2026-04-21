@@ -17,6 +17,7 @@ import {
   checkRemotionStatus,
   fetchBackgroundImage,
 } from '../services/remotionService';
+import { generateImageWithKie } from '../services/imageService';
 
 const prisma = new PrismaClient();
 
@@ -243,13 +244,22 @@ export async function checkHeygenVideoStatus(req: AuthRequest, res: Response): P
 //
 // Safe to re-run: sections with an existing imageUrl are left alone by default
 // unless `force=true` is passed in the body.
+//
+// Campaign defaults: if the campaign's videoBgSource is "ai", uses AI (kie.ai)
+// to generate backgrounds from imagePrompt/backgroundKeyword. Otherwise uses
+// free Pexels stock images (default).
 export async function buildVideoPreview(req: AuthRequest, res: Response): Promise<void> {
   const scriptId = String(req.params.id);
   const force = req.body?.force === true;
+  // Allow overriding source per-request: "free" | "ai"
+  const sourceOverride = req.body?.bgSource as string | undefined;
 
   const script = await prisma.videoScript.findUnique({
     where: { id: scriptId },
-    include: { sections: { orderBy: { sectionNumber: 'asc' } } },
+    include: {
+      sections: { orderBy: { sectionNumber: 'asc' } },
+      article: { include: { result: { include: { keyword: true } } } },
+    },
   });
 
   if (!script) {
@@ -257,19 +267,44 @@ export async function buildVideoPreview(req: AuthRequest, res: Response): Promis
     return;
   }
 
+  // Resolve background source from request > campaign defaults > "free"
+  let bgSource = sourceOverride || 'free';
+  if (!sourceOverride && script.article?.result?.keyword?.topLevelId) {
+    const campaignDefaults = await prisma.campaignDefaults.findUnique({
+      where: { topLevelId: script.article.result.keyword.topLevelId },
+    });
+    if (campaignDefaults?.videoBgSource) {
+      bgSource = campaignDefaults.videoBgSource;
+    }
+  }
+
+  const kieApi = (await getUserApiKey(req.user!.id, 'kieApi')) || undefined;
+
   try {
-    // Fetch backgrounds for every section in parallel — Pexels is fine with that.
     const updates = await Promise.all(
       script.sections.map(async (section) => {
         // Respect manually-set or AI-generated per-section images unless force=true.
         if (!force && section.imageUrl) {
           return { id: section.id, imageUrl: section.imageUrl, skipped: true };
         }
-        const imageUrl = await fetchBackgroundImage(
-          section.backgroundKeyword || '',
-          script.orientation,
-          section.sectionNumber
-        );
+
+        let imageUrl = '';
+
+        if (bgSource === 'ai') {
+          // Use AI generation — prefer imagePrompt, fall back to backgroundKeyword
+          const prompt = section.imagePrompt?.trim()
+            || `Professional background image for: ${section.backgroundKeyword || section.heading}`;
+          const aspectRatio = script.orientation === 'vertical' ? '9:16' : '16:9';
+          imageUrl = await generateImageWithKie(prompt, aspectRatio, kieApi) || '';
+        } else {
+          // Default: free stock from Pexels
+          imageUrl = await fetchBackgroundImage(
+            section.backgroundKeyword || '',
+            script.orientation,
+            section.sectionNumber
+          );
+        }
+
         if (!imageUrl) {
           return { id: section.id, imageUrl: section.imageUrl, skipped: false };
         }
@@ -287,7 +322,7 @@ export async function buildVideoPreview(req: AuthRequest, res: Response): Promis
     });
 
     const populatedCount = updates.filter((u) => u.imageUrl && !u.skipped).length;
-    res.json({ script: updated, populatedCount, totalSections: script.sections.length });
+    res.json({ script: updated, populatedCount, totalSections: script.sections.length, bgSource });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Preview build failed' });
   }

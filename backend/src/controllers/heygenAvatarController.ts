@@ -181,6 +181,28 @@ export async function refreshAvatar(req: AuthRequest, res: Response): Promise<vo
   }
 }
 
+// POST /api/heygen-avatars/:id/retry — reset a FAILED avatar and re-run the worker
+export async function retryAvatar(req: AuthRequest, res: Response): Promise<void> {
+  const row = await prisma.heygenTrainedAvatar.findUnique({ where: { id: String(req.params.id) } });
+  if (!row || row.userId !== req.user!.id) {
+    res.status(404).json({ error: 'Avatar not found' });
+    return;
+  }
+  if (row.status !== HeygenAvatarStatus.FAILED) {
+    res.status(400).json({ error: 'Only failed avatars can be retried' });
+    return;
+  }
+
+  const updated = await prisma.heygenTrainedAvatar.update({
+    where: { id: row.id },
+    data: { status: HeygenAvatarStatus.PENDING, errorMsg: null, groupId: null, imageKey: null, avatarId: null },
+  });
+
+  setImmediate(() => { void runAvatarCreationWorker(row.id, req.user!.id); });
+
+  res.json(updated);
+}
+
 // DELETE /api/heygen-avatars/:id — remove the avatar row (HeyGen-side is left alone)
 export async function deleteAvatar(req: AuthRequest, res: Response): Promise<void> {
   const row = await prisma.heygenTrainedAvatar.findUnique({ where: { id: String(req.params.id) } });

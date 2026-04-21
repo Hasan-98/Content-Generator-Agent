@@ -600,8 +600,28 @@ const en = {
   previewBuildFailed: 'Failed to build preview',
   previewBuildForceConfirm: 'Overwrite existing per-section images? (Cancel = keep existing, only fill empty ones)',
   previewBuildHint: 'Pre-fill section backgrounds from Pexels (Japan-aware keywords) so you can review before rendering.',
+  previewBuildAiBtn: 'AI Backgrounds',
+  previewBuildAiHint: 'Generate section backgrounds with AI instead of free stock photos.',
   avatarLoadFailed: 'Failed to load avatars',
   settingsSaveFailed: 'Failed to save settings',
+
+  // Campaign Defaults
+  treeCampaignDefaults: 'Campaign Defaults',
+  campaignDefaultsTitle: 'Campaign Defaults',
+  campaignDefaultsImageTaste: 'Default Image Style',
+  campaignDefaultsVideoBg: 'Video Background Source',
+  campaignDefaultsTaste_PHOTO: 'Photo',
+  campaignDefaultsTaste_TEXT_OVERLAY: 'Text Overlay',
+  campaignDefaultsTaste_INFOGRAPHIC: 'Infographic',
+  campaignDefaultsTaste_ILLUSTRATION: 'Illustration',
+  campaignDefaultsTaste_CINEMATIC: 'Cinematic',
+  campaignDefaultsBg_free: 'Free Stock (Pexels)',
+  campaignDefaultsBg_free_desc: 'Use free stock photos from Pexels as default backgrounds. Replace individual sections with AI if needed.',
+  campaignDefaultsBg_ai: 'AI Generated',
+  campaignDefaultsBg_ai_desc: 'Generate backgrounds with AI (Kie.ai) for all sections. Requires Kie API key.',
+  campaignDefaultsSaveBtn: 'Save Defaults',
+  campaignDefaultsSaved: 'Campaign defaults saved',
+  campaignDefaultsSaveFailed: 'Failed to save campaign defaults',
 
   // Shopify Config
   treeShopifyConfig: 'Shopify Settings',
@@ -666,6 +686,12 @@ const en = {
   heygenAvatarStatusTRAINING: 'Training',
   heygenAvatarStatusREADY: 'Ready',
   heygenAvatarStatusFAILED: 'Failed',
+  heygenAvatarRetry: 'Retry',
+  heygenAvatarRetryStarted: 'Retrying avatar training…',
+  heygenAvatarRetryFailed: 'Failed to retry avatar',
+  heygenAvatarApiMissingTitle: 'HeyGen API Key Required',
+  heygenAvatarApiMissingDesc: 'Please configure your HeyGen API key in Settings before creating an avatar.',
+  heygenAvatarOpenSettings: 'Open Settings',
 } as const;
 
 type TKey = keyof typeof en;
@@ -1267,8 +1293,28 @@ const ja: Record<TKey, string> = {
   previewBuildFailed: 'プレビュー作成に失敗しました',
   previewBuildForceConfirm: '既存のセクション画像を上書きしますか？（キャンセル＝既存を保持し、空のみ埋める）',
   previewBuildHint: 'Pexels（日本語キーワード対応）からセクション背景を事前取得し、レンダリング前に確認できます。',
+  previewBuildAiBtn: 'AI背景',
+  previewBuildAiHint: '無料ストック写真の代わりにAIでセクション背景を生成します。',
   avatarLoadFailed: 'アバターの読み込みに失敗しました',
   settingsSaveFailed: '設定の保存に失敗しました',
+
+  // Campaign Defaults
+  treeCampaignDefaults: 'キャンペーン設定',
+  campaignDefaultsTitle: 'キャンペーン設定',
+  campaignDefaultsImageTaste: 'デフォルト画像スタイル',
+  campaignDefaultsVideoBg: '動画背景ソース',
+  campaignDefaultsTaste_PHOTO: '写真',
+  campaignDefaultsTaste_TEXT_OVERLAY: 'テキストオーバーレイ',
+  campaignDefaultsTaste_INFOGRAPHIC: 'インフォグラフィック',
+  campaignDefaultsTaste_ILLUSTRATION: 'イラスト',
+  campaignDefaultsTaste_CINEMATIC: 'シネマティック',
+  campaignDefaultsBg_free: '無料ストック（Pexels）',
+  campaignDefaultsBg_free_desc: 'Pexelsの無料ストック写真をデフォルト背景として使用。必要に応じて個別セクションをAI生成に置換可能。',
+  campaignDefaultsBg_ai: 'AI生成',
+  campaignDefaultsBg_ai_desc: 'AI（Kie.ai）で全セクションの背景を生成。Kie APIキーが必要です。',
+  campaignDefaultsSaveBtn: '設定を保存',
+  campaignDefaultsSaved: 'キャンペーン設定を保存しました',
+  campaignDefaultsSaveFailed: 'キャンペーン設定の保存に失敗しました',
 
   // Shopify Config
   treeShopifyConfig: 'Shopify設定',
@@ -1333,6 +1379,12 @@ const ja: Record<TKey, string> = {
   heygenAvatarStatusTRAINING: 'トレーニング中',
   heygenAvatarStatusREADY: '完了',
   heygenAvatarStatusFAILED: '失敗',
+  heygenAvatarRetry: '再試行',
+  heygenAvatarRetryStarted: 'アバターのトレーニングを再試行中…',
+  heygenAvatarRetryFailed: '再試行に失敗しました',
+  heygenAvatarApiMissingTitle: 'HeyGen APIキーが必要です',
+  heygenAvatarApiMissingDesc: 'アバターを作成する前に、設定でHeyGen APIキーを設定してください。',
+  heygenAvatarOpenSettings: '設定を開く',
 };
 
 const translations: Record<Lang, Record<TKey, string>> = { en, ja };

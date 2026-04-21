@@ -5,11 +5,14 @@ import {
   listHeygenAvatars,
   getHeygenAvatar,
   refreshHeygenAvatar,
+  retryHeygenAvatar,
   deleteHeygenAvatar,
 } from '../api/heygenAvatars';
+import { getApiConfig } from '../api/apiConfig';
 import type { HeygenTrainedAvatar } from '../types';
 import AvatarCard from '../components/heygen/AvatarCard';
 import CreateAvatarModal from '../components/heygen/CreateAvatarModal';
+import SettingsModal from '../components/user/SettingsModal';
 
 const POLL_INTERVAL_MS = 10_000; // Poll active avatars every 10s
 
@@ -18,6 +21,8 @@ export default function HeygenAvatarsPage() {
   const [avatars, setAvatars] = useState<HeygenTrainedAvatar[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiKeyMissingPrompt, setApiKeyMissingPrompt] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -82,6 +87,29 @@ export default function HeygenAvatarsPage() {
     }
   }
 
+  async function handleRetry(id: string) {
+    try {
+      const updated = await retryHeygenAvatar(id);
+      setAvatars(prev => prev.map(a => a.id === id ? updated : a));
+      toast.success(t('heygenAvatarRetryStarted'));
+    } catch {
+      toast.error(t('heygenAvatarRetryFailed'));
+    }
+  }
+
+  async function handleCreateClick() {
+    try {
+      const config = await getApiConfig();
+      if (!config.heygenApi) {
+        setApiKeyMissingPrompt(true);
+        return;
+      }
+    } catch {
+      // If we can't check, let user proceed anyway
+    }
+    setCreateOpen(true);
+  }
+
   function handleCreated(row: HeygenTrainedAvatar) {
     setAvatars(prev => [row, ...prev]);
   }
@@ -95,7 +123,7 @@ export default function HeygenAvatarsPage() {
           <span className="text-xs text-tM">({avatars.length})</span>
         </div>
         <button
-          onClick={() => setCreateOpen(true)}
+          onClick={handleCreateClick}
           className="text-xs px-3 py-1.5 rounded bg-aB/20 text-aB border border-aB/40 hover:bg-aB/30 transition-colors font-medium"
         >
           + {t('heygenAvatarCreateBtn')}
@@ -115,13 +143,46 @@ export default function HeygenAvatarsPage() {
         ) : (
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
             {avatars.map(a => (
-              <AvatarCard key={a.id} avatar={a} onDelete={handleDelete} onRefresh={handleRefresh} />
+              <AvatarCard key={a.id} avatar={a} onDelete={handleDelete} onRefresh={handleRefresh} onRetry={handleRetry} />
             ))}
           </div>
         )}
       </div>
 
       {createOpen && <CreateAvatarModal onClose={() => setCreateOpen(false)} onCreated={handleCreated} />}
+
+      {/* API key missing prompt */}
+      {apiKeyMissingPrompt && (
+        <div className="fixed inset-0 bg-bg0/80 z-50 flex items-center justify-center p-4" onClick={() => setApiKeyMissingPrompt(false)}>
+          <div className="bg-bg1 border border-bd rounded-lg w-full max-w-sm shadow-xl p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-aO">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span className="text-sm font-semibold text-t1">{t('heygenAvatarApiMissingTitle')}</span>
+            </div>
+            <p className="text-xs text-t2 mb-4">{t('heygenAvatarApiMissingDesc')}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setApiKeyMissingPrompt(false)}
+                className="text-xs px-3 py-1.5 rounded border border-bd text-t2 hover:text-t1 transition-colors"
+              >
+                {t('heygenAvatarCancel')}
+              </button>
+              <button
+                onClick={() => { setApiKeyMissingPrompt(false); setSettingsOpen(true); }}
+                className="text-xs px-3 py-1.5 rounded bg-aB/20 text-aB border border-aB/40 hover:bg-aB/30 transition-colors font-medium"
+              >
+                {t('heygenAvatarOpenSettings')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

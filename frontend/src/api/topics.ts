@@ -19,3 +19,18 @@ export async function updateTopLevel(id: string, name: string): Promise<TopLevel
 export async function deleteTopLevel(id: string): Promise<void> {
   await client.delete(`/top-levels/${id}`);
 }
+
+export interface CampaignDefaults {
+  imageTaste: string;
+  videoBgSource: 'free' | 'ai';
+}
+
+export async function getCampaignDefaults(topLevelId: string): Promise<CampaignDefaults> {
+  const res = await client.get(`/top-levels/${topLevelId}/defaults`);
+  return res.data;
+}
+
+export async function upsertCampaignDefaults(topLevelId: string, data: Partial<CampaignDefaults>): Promise<CampaignDefaults> {
+  const res = await client.put(`/top-levels/${topLevelId}/defaults`, data);
+  return res.data;
+}

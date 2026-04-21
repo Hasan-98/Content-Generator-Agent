@@ -211,7 +211,7 @@ export default function VideoScriptCreator() {
     }
   }
 
-  async function handleBuildPreview() {
+  async function handleBuildPreview(bgSource?: 'free' | 'ai') {
     if (!selectedScript) return;
     const force = window.confirm(t('previewBuildForceConfirm'));
     setBuildingPreview(true);
@@ -219,7 +219,8 @@ export default function VideoScriptCreator() {
     try {
       const { script: updated, populatedCount, totalSections } = await buildVideoPreviewApi(
         selectedScript.id,
-        force
+        force,
+        bgSource
       );
       updateScriptInState(updated);
       toast.success(
@@ -778,12 +779,20 @@ export default function VideoScriptCreator() {
                         </button>
                       )}
                       <button
-                        onClick={handleBuildPreview}
+                        onClick={() => handleBuildPreview()}
                         disabled={buildingPreview}
                         title={t('previewBuildHint')}
                         className="px-3 py-1.5 text-xs bg-bg2 text-aC border border-aC/40 rounded hover:bg-aC/10 transition-colors disabled:opacity-50"
                       >
                         {buildingPreview ? t('previewBuilding') : t('previewBuildBtn')}
+                      </button>
+                      <button
+                        onClick={() => handleBuildPreview('ai')}
+                        disabled={buildingPreview}
+                        title={t('previewBuildAiHint')}
+                        className="px-3 py-1.5 text-xs bg-bg2 text-aP border border-aP/40 rounded hover:bg-aP/10 transition-colors disabled:opacity-50"
+                      >
+                        {t('previewBuildAiBtn')}
                       </button>
                       <button onClick={handleGenerateRemotion} disabled={generatingRemotion || selectedScript.heygenStatus !== 'done'} className="px-4 py-1.5 text-xs bg-aO text-white rounded hover:bg-aO/80 transition-colors disabled:opacity-50">
                         {generatingRemotion ? t('remotionGenerating') : selectedScript.remotionVideoUrl ? t('remotionRegenerate') : t('remotionGenerate')}

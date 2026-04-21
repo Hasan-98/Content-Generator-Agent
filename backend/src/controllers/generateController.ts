@@ -163,6 +163,12 @@ export async function generateArticleHandler(req: AuthRequest, res: Response): P
   const { claudeApi } = await getUserKeys(req.user!.id);
   const sections = await generateArticle(existing, claudeApi);
 
+  // Resolve campaign-level default image taste
+  const campaignDefaults = await prisma.campaignDefaults.findUnique({
+    where: { topLevelId: existing.keyword.topLevelId },
+  });
+  const defaultTaste = campaignDefaults?.imageTaste || 'INFOGRAPHIC';
+
   const titleImagePrompt = `YouTubeサムネイル風の16:9タイトル画像。背景はトピックに合った落ち着いたグラデーション/コンセプチュアルな背景。中央に日本語タイトル「${existing.title}」を太字の大きなゴシック体（Noto Sans JP）で、はっきり読めるように配置すること。タイトルは画像の主役。文字は鮮明・正確・崩れなしでレンダリングし、誤字や架空の文字は使わない。高コントラスト、編集デザイン風、プロフェッショナル品質。`;
 
   const article = await prisma.article.create({
@@ -181,8 +187,8 @@ export async function generateArticleHandler(req: AuthRequest, res: Response): P
         create: sections.map((_, i) => ({
           index: i,
           enabled: true,
-          taste: i === 0 ? 'TEXT_OVERLAY' : 'INFOGRAPHIC',
-          prompt: i === 0 ? titleImagePrompt : DEFAULT_PROMPTS.INFOGRAPHIC,
+          taste: i === 0 ? 'TEXT_OVERLAY' : defaultTaste,
+          prompt: i === 0 ? titleImagePrompt : (DEFAULT_PROMPTS[defaultTaste] || DEFAULT_PROMPTS.INFOGRAPHIC),
           overlayTitle: i === 0 ? existing.title : null,
         })),
       },

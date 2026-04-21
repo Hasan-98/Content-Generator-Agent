@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { IMEInput, IMETextarea } from '../common/IMEInput';
 import WpConfigModal from '../user/WpConfigModal';
 import ShopifyConfigModal from '../user/ShopifyConfigModal';
+import CampaignDefaultsModal from './CampaignDefaultsModal';
 
 interface Props {
   topLevels: TopLevel[];
@@ -42,6 +43,7 @@ export default function TopicTree({
   const [editTLName, setEditTLName] = useState('');
   const [wpConfigTopic, setWpConfigTopic] = useState<{ id: string; name: string } | null>(null);
   const [shopifyConfigTopic, setShopifyConfigTopic] = useState<{ id: string; name: string } | null>(null);
+  const [campaignDefaultsTopic, setCampaignDefaultsTopic] = useState<{ id: string; name: string } | null>(null);
 
   function toggleTL(id: string) {
     setCollapsedTL((prev) => {
@@ -170,6 +172,16 @@ export default function TopicTree({
                   </svg>
                 </button>
                 <button
+                  onClick={() => setCampaignDefaultsTopic({ id: tl.id, name: tl.name })}
+                  className="w-5 h-5 flex items-center justify-center rounded text-tM hover:bg-aP/15 hover:text-aP transition-colors border-0 bg-transparent"
+                  title={t('treeCampaignDefaults')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button
                   onClick={() => startEditTL(tl)}
                   className="w-5 h-5 flex items-center justify-center rounded text-tM hover:bg-bg2 hover:text-t1 transition-colors border-0 bg-transparent"
                   title={t('treeEdit')}
@@ -239,6 +251,13 @@ export default function TopicTree({
           topLevelId={shopifyConfigTopic.id}
           topicName={shopifyConfigTopic.name}
           onClose={() => setShopifyConfigTopic(null)}
+        />
+      )}
+      {campaignDefaultsTopic && (
+        <CampaignDefaultsModal
+          topLevelId={campaignDefaultsTopic.id}
+          topLevelName={campaignDefaultsTopic.name}
+          onClose={() => setCampaignDefaultsTopic(null)}
         />
       )}
     </div>

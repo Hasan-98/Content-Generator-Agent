@@ -1,8 +1,10 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ImageTaste } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
+
+const VALID_BG_SOURCES = ['free', 'ai'];
 
 export async function listTopLevels(req: AuthRequest, res: Response): Promise<void> {
   console.log(`[topLevels] listTopLevels → userId: ${req.user!.id}`);
@@ -79,4 +81,45 @@ export async function deleteTopLevel(req: AuthRequest, res: Response): Promise<v
   await prisma.topLevel.delete({ where: { id } });
   console.log(`[topLevels] deleteTopLevel success → id: ${id}`);
   res.status(204).send();
+}
+
+// GET /api/top-levels/:id/defaults — get campaign defaults
+export async function getCampaignDefaults(req: AuthRequest, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const existing = await prisma.topLevel.findFirst({ where: { id, userId: req.user!.id } });
+  if (!existing) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  const defaults = await prisma.campaignDefaults.findUnique({ where: { topLevelId: id } });
+  res.json(defaults || { imageTaste: 'INFOGRAPHIC', videoBgSource: 'free' });
+}
+
+// PUT /api/top-levels/:id/defaults — upsert campaign defaults
+export async function upsertCampaignDefaults(req: AuthRequest, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const existing = await prisma.topLevel.findFirst({ where: { id, userId: req.user!.id } });
+  if (!existing) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  const { imageTaste, videoBgSource } = req.body;
+
+  const data: any = {};
+  if (imageTaste && Object.values(ImageTaste).includes(imageTaste)) {
+    data.imageTaste = imageTaste;
+  }
+  if (videoBgSource && VALID_BG_SOURCES.includes(videoBgSource)) {
+    data.videoBgSource = videoBgSource;
+  }
+
+  const defaults = await prisma.campaignDefaults.upsert({
+    where: { topLevelId: id },
+    create: { topLevelId: id, ...data },
+    update: data,
+  });
+
+  res.json(defaults);
 }
