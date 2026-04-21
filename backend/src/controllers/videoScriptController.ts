@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import { generateVideoScript } from '../services/claudeService';
 import { getUserApiKey } from './apiConfigController';
 import { generateImageWithKie } from '../services/imageService';
+import { searchBackgrounds } from '../services/remotionService';
 
 const prisma = new PrismaClient();
 
@@ -181,6 +182,48 @@ export async function generateSectionImage(req: AuthRequest, res: Response): Pro
   const updated = await prisma.videoScriptSection.update({
     where: { id },
     data: { imageUrl, imagePrompt: prompt.trim() },
+  });
+
+  res.json(updated);
+}
+
+// POST /api/video-scripts/sections/:id/search-backgrounds — search free images & videos
+export async function searchSectionBackgrounds(req: AuthRequest, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const section = await prisma.videoScriptSection.findUnique({
+    where: { id },
+    include: { videoScript: true },
+  });
+  if (!section) {
+    res.status(404).json({ error: 'Section not found' });
+    return;
+  }
+
+  const query = (req.body?.query as string) || section.backgroundKeyword || section.heading;
+  const orientation = section.videoScript.orientation || 'horizontal';
+
+  const results = await searchBackgrounds(query, orientation);
+  res.json({ results, query });
+}
+
+// PATCH /api/video-scripts/sections/:id/set-background — pick a background from search results
+export async function setSectionBackground(req: AuthRequest, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const { imageUrl } = req.body;
+  if (!imageUrl) {
+    res.status(400).json({ error: 'imageUrl is required' });
+    return;
+  }
+
+  const section = await prisma.videoScriptSection.findUnique({ where: { id } });
+  if (!section) {
+    res.status(404).json({ error: 'Section not found' });
+    return;
+  }
+
+  const updated = await prisma.videoScriptSection.update({
+    where: { id },
+    data: { imageUrl },
   });
 
   res.json(updated);

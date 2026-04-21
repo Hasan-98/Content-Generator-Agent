@@ -5,6 +5,8 @@ import {
   generateVideoScriptHandler,
   updateVideoScriptSection,
   generateSectionImage,
+  searchSectionBackgrounds,
+  setSectionBackground,
   deleteVideoScript,
 } from '../controllers/videoScriptController';
 import { generateTts, uploadAudio } from '../controllers/ttsController';
@@ -38,6 +40,8 @@ router.post('/:id/remotion', generateRemotionVideo);
 router.post('/:id/remotion-status', checkRemotionVideoStatus);
 router.patch('/sections/:id', updateVideoScriptSection);
 router.post('/sections/:id/generate-image', generateSectionImage);
+router.post('/sections/:id/search-backgrounds', searchSectionBackgrounds);
+router.patch('/sections/:id/set-background', setSectionBackground);
 router.delete('/:id', deleteVideoScript);
 
 export default router;

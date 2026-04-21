@@ -95,6 +95,32 @@ export async function checkRemotionStatusApi(scriptId: string): Promise<VideoScr
   return res.data;
 }
 
+// Background search — returns multiple free image/video results to pick from
+export interface BackgroundResult {
+  url: string;
+  thumbnail: string;
+  source: 'pexels_photo' | 'pexels_video' | 'pixabay_video';
+  width: number;
+  height: number;
+  duration?: number;
+}
+
+export async function searchSectionBackgroundsApi(
+  sectionId: string,
+  query?: string
+): Promise<{ results: BackgroundResult[]; query: string }> {
+  const res = await client.post(`/video-scripts/sections/${sectionId}/search-backgrounds`, { query });
+  return res.data;
+}
+
+export async function setSectionBackgroundApi(
+  sectionId: string,
+  imageUrl: string
+): Promise<VideoScriptSection> {
+  const res = await client.patch(`/video-scripts/sections/${sectionId}/set-background`, { imageUrl });
+  return res.data;
+}
+
 // TTS Dictionary
 export async function listTtsDictionary(): Promise<TtsDictionary[]> {
   const res = await client.get('/tts-dictionary');

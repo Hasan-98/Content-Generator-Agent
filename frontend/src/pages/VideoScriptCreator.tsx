@@ -11,6 +11,7 @@ import {
 } from '../api/videoScripts';
 import { IMEInput, IMETextarea } from '../components/common/IMEInput';
 import VoiceRecorder from '../components/common/VoiceRecorder';
+import BackgroundPickerModal from '../components/modals/BackgroundPickerModal';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -97,6 +98,8 @@ export default function VideoScriptCreator() {
   // Section image generation
   const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
   const [imagePromptValues, setImagePromptValues] = useState<Record<string, string>>({});
+  // Background picker
+  const [bgPickerSection, setBgPickerSection] = useState<string | null>(null);
 
   // Load data
   useEffect(() => {
@@ -956,17 +959,25 @@ export default function VideoScriptCreator() {
                                 rows={2}
                                 className="flex-1 px-2 py-1.5 text-xs bg-bg1 border border-bd rounded text-t1 focus:border-aB outline-none resize-none"
                               />
-                              <button
-                                onClick={() => handleGenerateSectionImage(sec.id)}
-                                disabled={generatingImageFor === sec.id}
-                                className="self-end px-3 py-1.5 text-[10px] bg-aO text-white rounded hover:bg-aO/80 transition-colors disabled:opacity-50 whitespace-nowrap"
-                              >
-                                {generatingImageFor === sec.id
-                                  ? t('vsImageGenerating')
-                                  : sec.imageUrl
-                                    ? t('vsImageRegenerate')
-                                    : t('vsImageGenerate')}
-                              </button>
+                              <div className="self-end flex flex-col gap-1">
+                                <button
+                                  onClick={() => setBgPickerSection(sec.id)}
+                                  className="px-3 py-1.5 text-[10px] bg-aG/20 text-aG border border-aG/40 rounded hover:bg-aG/30 transition-colors whitespace-nowrap"
+                                >
+                                  {t('bgPickerSearchBtn')}
+                                </button>
+                                <button
+                                  onClick={() => handleGenerateSectionImage(sec.id)}
+                                  disabled={generatingImageFor === sec.id}
+                                  className="px-3 py-1.5 text-[10px] bg-aO text-white rounded hover:bg-aO/80 transition-colors disabled:opacity-50 whitespace-nowrap"
+                                >
+                                  {generatingImageFor === sec.id
+                                    ? t('vsImageGenerating')
+                                    : sec.imageUrl
+                                      ? t('vsImageRegenerate')
+                                      : t('vsImageGenerate')}
+                                </button>
+                              </div>
                             </div>
                             {sec.imageUrl && (
                               <div>
@@ -1061,6 +1072,22 @@ export default function VideoScriptCreator() {
           </div>
         </div>
       )}
+      {bgPickerSection && selectedScript && (() => {
+        const sec = selectedScript.sections.find(s => s.id === bgPickerSection);
+        if (!sec) return null;
+        return (
+          <BackgroundPickerModal
+            section={sec}
+            onClose={() => setBgPickerSection(null)}
+            onPicked={(updated) => {
+              updateScriptInState({
+                ...selectedScript,
+                sections: selectedScript.sections.map(s => s.id === updated.id ? updated : s),
+              });
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

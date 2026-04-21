@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { getCampaignDefaults, upsertCampaignDefaults } from '../../api/topics';
-import type { CampaignDefaults } from '../../api/topics';
 
 interface Props {
   topLevelId: string;

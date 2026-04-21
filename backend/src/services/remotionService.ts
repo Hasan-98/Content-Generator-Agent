@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY || '';
+const PIXABAY_API_KEY = process.env.PIXABAY_API_KEY || '';
 const REMOTION_RENDER_URL = process.env.REMOTION_RENDER_URL || '';
 
 // WF4 keyword mapping — English keywords from WF1's `background_keyword` field
@@ -104,6 +105,131 @@ export async function fetchBackgroundImage(
   const fallbackKeyword = JAPANESE_FALLBACKS[sectionIndex % JAPANESE_FALLBACKS.length];
   const fallbackUrl = await searchPexels(fallbackKeyword, pexelsOrientation, 3);
   return fallbackUrl || '';
+}
+
+// ============================================================================
+// Multi-result search — returns arrays of images/videos for the picker UI
+// ============================================================================
+
+export interface BackgroundResult {
+  url: string;          // direct link to image or video file
+  thumbnail: string;    // small preview
+  source: 'pexels_photo' | 'pexels_video' | 'pixabay_video';
+  width: number;
+  height: number;
+  duration?: number;    // seconds, videos only
+}
+
+/**
+ * Search Pexels photos — returns multiple results for the picker.
+ */
+export async function searchPexelsPhotos(
+  query: string,
+  orientation: 'landscape' | 'portrait',
+  perPage: number = 12
+): Promise<BackgroundResult[]> {
+  if (!PEXELS_API_KEY) return [];
+  try {
+    const response = await axios.get('https://api.pexels.com/v1/search', {
+      params: { query, orientation, per_page: perPage },
+      headers: { Authorization: PEXELS_API_KEY },
+      timeout: 15000,
+    });
+    const photos = response.data?.photos || [];
+    return photos.map((p: any) => ({
+      url: p.src?.landscape || p.src?.large || p.src?.original || '',
+      thumbnail: p.src?.medium || p.src?.small || '',
+      source: 'pexels_photo' as const,
+      width: p.width || 0,
+      height: p.height || 0,
+    })).filter((r: BackgroundResult) => r.url);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Search Pexels videos — returns multiple results for the picker.
+ */
+export async function searchPexelsVideos(
+  query: string,
+  orientation: 'landscape' | 'portrait',
+  perPage: number = 8
+): Promise<BackgroundResult[]> {
+  if (!PEXELS_API_KEY) return [];
+  try {
+    const response = await axios.get('https://api.pexels.com/videos/search', {
+      params: { query, orientation, per_page: perPage },
+      headers: { Authorization: PEXELS_API_KEY },
+      timeout: 15000,
+    });
+    const videos = response.data?.videos || [];
+    return videos.map((v: any) => {
+      // Pick the best quality file (HD preferred)
+      const files = v.video_files || [];
+      const hd = files.find((f: any) => f.quality === 'hd') || files[0];
+      return {
+        url: hd?.link || '',
+        thumbnail: v.image || '',
+        source: 'pexels_video' as const,
+        width: hd?.width || v.width || 0,
+        height: hd?.height || v.height || 0,
+        duration: v.duration || 0,
+      };
+    }).filter((r: BackgroundResult) => r.url);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Search Pixabay videos — returns multiple results for the picker.
+ */
+export async function searchPixabayVideos(
+  query: string,
+  perPage: number = 8
+): Promise<BackgroundResult[]> {
+  if (!PIXABAY_API_KEY) return [];
+  try {
+    const response = await axios.get('https://pixabay.com/api/videos/', {
+      params: { key: PIXABAY_API_KEY, q: query, per_page: perPage },
+      timeout: 15000,
+    });
+    const hits = response.data?.hits || [];
+    return hits.map((h: any) => {
+      const medium = h.videos?.medium || h.videos?.small || {};
+      return {
+        url: medium.url || '',
+        thumbnail: `https://i.vimeocdn.com/video/${h.picture_id}_295x166.jpg`,
+        source: 'pixabay_video' as const,
+        width: medium.width || 0,
+        height: medium.height || 0,
+        duration: h.duration || 0,
+      };
+    }).filter((r: BackgroundResult) => r.url);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Search all sources in parallel and return combined results.
+ * Japan-aware keyword mapping is applied automatically.
+ */
+export async function searchBackgrounds(
+  rawKeyword: string,
+  orientation: string = 'horizontal'
+): Promise<BackgroundResult[]> {
+  const query = resolveJapaneseKeyword(rawKeyword);
+  const pexelsOrientation = orientation === 'vertical' ? 'portrait' : 'landscape';
+
+  const [photos, pexelsVids, pixabayVids] = await Promise.all([
+    searchPexelsPhotos(query, pexelsOrientation, 12),
+    searchPexelsVideos(query, pexelsOrientation, 8),
+    searchPixabayVideos(query, 6),
+  ]);
+
+  return [...photos, ...pexelsVids, ...pixabayVids];
 }
 
 /**

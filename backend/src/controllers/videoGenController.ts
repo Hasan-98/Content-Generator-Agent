@@ -294,7 +294,7 @@ export async function buildVideoPreview(req: AuthRequest, res: Response): Promis
           // Use AI generation — prefer imagePrompt, fall back to backgroundKeyword
           const prompt = section.imagePrompt?.trim()
             || `Professional background image for: ${section.backgroundKeyword || section.heading}`;
-          const aspectRatio = script.orientation === 'vertical' ? '9:16' : '16:9';
+          const aspectRatio = '16:9';
           imageUrl = await generateImageWithKie(prompt, aspectRatio, kieApi) || '';
         } else {
           // Default: free stock from Pexels
