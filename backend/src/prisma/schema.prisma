@@ -127,16 +127,17 @@ model ArticleSection {
 }
 
 model ArticleImage {
-  id         String     @id @default(cuid())
-  index      Int
-  enabled    Boolean    @default(true)
-  taste      ImageTaste @default(PHOTO)
-  prompt     String     @db.Text
-  imageUrl   String?
-  textInside Boolean    @default(true)
-  articleId  String
-  article    Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  history    ImageHistory[]
+  id           String     @id @default(cuid())
+  index        Int
+  enabled      Boolean    @default(true)
+  taste        ImageTaste @default(PHOTO)
+  prompt       String     @db.Text
+  imageUrl     String?
+  textInside   Boolean    @default(true)
+  overlayTitle String?    @db.Text
+  articleId    String
+  article      Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  history      ImageHistory[]
 
   @@unique([articleId, index])
 }

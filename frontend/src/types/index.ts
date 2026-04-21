@@ -107,6 +107,7 @@ export interface ArticleImage {
   prompt: string;
   imageUrl?: string;
   textInside: boolean;
+  overlayTitle?: string;
   articleId: string;
   history?: ImageHistory[];
 }

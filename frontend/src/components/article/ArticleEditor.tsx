@@ -46,15 +46,11 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onResu
   }
 
   async function handleContentChange(index: number, content: string) {
-    try {
-      const updated = await updateSection(article.id, index, { content });
-      onArticleUpdate({
-        ...article,
-        sections: article.sections.map(s => s.index === index ? { ...s, ...updated } : s),
-      });
-    } catch {
-      toast.error(t('toastUpdateFailed'));
-    }
+    const updated = await updateSection(article.id, index, { content });
+    onArticleUpdate({
+      ...article,
+      sections: article.sections.map(s => s.index === index ? { ...s, ...updated } : s),
+    });
   }
 
   async function handleHeadingChange(index: number, heading: string) {

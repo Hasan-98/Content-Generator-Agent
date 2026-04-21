@@ -160,7 +160,7 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
                   <div className="relative w-full rounded-lg mb-4 overflow-hidden" style={{ aspectRatio: '16/9' }}>
                     <img src={titleImg.imageUrl!} alt={result.title} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <h1 className="text-2xl font-bold text-white text-center px-8" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.9)' }}>{result.title}</h1>
+                      <h1 className="text-2xl font-bold text-white text-center px-8" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.9)' }}>{titleImg.overlayTitle || result.title}</h1>
                     </div>
                   </div>
                 );

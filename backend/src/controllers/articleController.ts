@@ -65,7 +65,7 @@ export async function updateImage(req: AuthRequest, res: Response): Promise<void
   const image = article.images.find(img => img.index === imageIndex);
   if (!image) { res.status(404).json({ error: 'Image not found' }); return; }
 
-  const { enabled, taste, prompt, imageUrl, textInside } = req.body;
+  const { enabled, taste, prompt, imageUrl, textInside, overlayTitle } = req.body;
   const updated = await prisma.articleImage.update({
     where: { id: image.id },
     data: {
@@ -74,6 +74,7 @@ export async function updateImage(req: AuthRequest, res: Response): Promise<void
       ...(prompt !== undefined && { prompt }),
       ...(imageUrl !== undefined && { imageUrl }),
       ...(textInside !== undefined && { textInside }),
+      ...(overlayTitle !== undefined && { overlayTitle }),
     },
   });
   res.json(updated);

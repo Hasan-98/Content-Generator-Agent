@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleImage, ImageTaste } from '../../types';
-import { generateImage as generateImageApi } from '../../api/generate';
+import { generateImage as generateImageApi, regenerateOverlayTitle as regenerateOverlayTitleApi } from '../../api/generate';
 import { updateImage, selectHistoryImage } from '../../api/articles';
 import toast from 'react-hot-toast';
 
@@ -73,6 +73,10 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
   const [loading, setLoading] = useState(false);
   const [selectingHistory, setSelectingHistory] = useState(false);
   const [localPrompt, setLocalPrompt] = useState(image.prompt);
+  const [localOverlayTitle, setLocalOverlayTitle] = useState(image.overlayTitle || '');
+  const [regeneratingOverlay, setRegeneratingOverlay] = useState(false);
+  const overlayDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overlayEditingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openDropdown, setOpenDropdown] = useState<ImageTaste | null>(null);
   const [customVariations, setCustomVariations] = useState<Record<ImageTaste, Variation[]>>(loadCustomVariations);
@@ -126,6 +130,13 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
       setLocalPrompt(image.prompt);
     }
   }, [image.prompt]);
+
+  // Sync overlay title from prop
+  useEffect(() => {
+    if (!overlayEditingRef.current) {
+      setLocalOverlayTitle(image.overlayTitle || '');
+    }
+  }, [image.overlayTitle]);
 
   const debouncedPromptSave = useCallback((prompt: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -202,6 +213,33 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
       toast.error(t('toastImageGenFailed'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  const debouncedOverlaySave = useCallback((overlayTitle: string) => {
+    if (overlayDebounceRef.current) clearTimeout(overlayDebounceRef.current);
+    overlayEditingRef.current = true;
+    overlayDebounceRef.current = setTimeout(async () => {
+      try {
+        await updateImage(articleId, image.index, { overlayTitle });
+      } catch {
+        toast.error(t('toastUpdateFailed'));
+      } finally {
+        overlayEditingRef.current = false;
+      }
+    }, 600);
+  }, [articleId, image.index, t]);
+
+  async function handleRegenOverlayTitle() {
+    setRegeneratingOverlay(true);
+    try {
+      const updated = await regenerateOverlayTitleApi(articleId, image.index);
+      onUpdate(updated);
+      toast.success(t('toastOverlayTitleDone'));
+    } catch {
+      toast.error(t('toastOverlayTitleFailed'));
+    } finally {
+      setRegeneratingOverlay(false);
     }
   }
 
@@ -327,6 +365,31 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
               />
             </div>
 
+            {/* Overlay title */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] text-t2">{t('imageOverlayTitleLabel')}</span>
+                <button
+                  onClick={handleRegenOverlayTitle}
+                  disabled={regeneratingOverlay}
+                  className="text-[10px] px-2 py-0.5 rounded border border-aO/50 text-aO hover:bg-aO/10 disabled:opacity-50 transition-colors"
+                  title={t('imageOverlayTitleRegenTooltip')}
+                >
+                  {regeneratingOverlay ? '…' : t('imageOverlayTitleRegen')}
+                </button>
+              </div>
+              <input
+                type="text"
+                value={localOverlayTitle}
+                onChange={(e) => {
+                  setLocalOverlayTitle(e.target.value);
+                  debouncedOverlaySave(e.target.value);
+                }}
+                placeholder={t('imageOverlayTitlePlaceholder')}
+                className="w-full bg-bg0 border border-bd rounded px-2 py-1.5 text-xs text-t1 focus:outline-none focus:border-aB"
+              />
+            </div>
+
             {/* Generate button */}
             <button
               onClick={handleGenerate}
@@ -345,9 +408,9 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
             {image.imageUrl ? (
               <div className="relative w-full h-full">
                 <img src={image.imageUrl} alt={sectionHeading} className="w-full h-full object-cover" />
-                {image.index === 0 && articleTitle && (
+                {(image.overlayTitle || (image.index === 0 && articleTitle)) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                    <span className="text-xs font-bold text-white text-center px-3 drop-shadow-lg leading-snug" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{articleTitle}</span>
+                    <span className="text-xs font-bold text-white text-center px-3 drop-shadow-lg leading-snug" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{image.overlayTitle || articleTitle}</span>
                   </div>
                 )}
               </div>

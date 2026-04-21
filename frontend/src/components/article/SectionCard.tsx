@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleSection } from '../../types';
 import { IMEInput, IMETextarea } from '../common/IMEInput';
@@ -6,7 +6,7 @@ import { IMEInput, IMETextarea } from '../common/IMEInput';
 interface Props {
   section: ArticleSection;
   onRegenerate: (index: number, instruction?: string) => Promise<void>;
-  onContentChange: (index: number, content: string) => void;
+  onContentChange: (index: number, content: string) => Promise<void>;
   onHeadingChange: (index: number, heading: string) => void;
   onRegenerateHeading: (index: number) => Promise<void>;
 }
@@ -32,6 +32,7 @@ const TYPE_LABEL_KEY: Record<string, string> = {
 export default function SectionCard({ section, onRegenerate, onContentChange, onHeadingChange, onRegenerateHeading }: Props) {
   const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [showInstruction, setShowInstruction] = useState(false);
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,20 +40,53 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
   const [editingHeading, setEditingHeading] = useState(false);
   const [headingDraft, setHeadingDraft] = useState(section.heading);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Save state tracking
+  const [localContent, setLocalContent] = useState(section.content);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
   const contentDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local content when section prop changes externally (regen, etc.)
+  useEffect(() => {
+    setLocalContent(section.content);
+    setSaveStatus('saved');
+  }, [section.content]);
 
   const debouncedContentChange = useCallback((val: string) => {
     if (contentDebounceRef.current) clearTimeout(contentDebounceRef.current);
-    contentDebounceRef.current = setTimeout(() => {
-      onContentChange(section.index, val);
+    setSaveStatus('unsaved');
+    contentDebounceRef.current = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        await onContentChange(section.index, val);
+        setSaveStatus('saved');
+      } catch {
+        setSaveStatus('unsaved');
+      }
     }, 600);
   }, [onContentChange, section.index]);
+
+  async function handleManualSave() {
+    if (saveStatus !== 'unsaved') return;
+    if (contentDebounceRef.current) {
+      clearTimeout(contentDebounceRef.current);
+      contentDebounceRef.current = null;
+    }
+    setSaveStatus('saving');
+    try {
+      await onContentChange(section.index, localContent);
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('unsaved');
+    }
+  }
 
   const color = TYPE_COLOR[section.type] ?? '#8b949e';
   const typeLabelKey = TYPE_LABEL_KEY[section.type];
   const typeLabel = typeLabelKey ? t(typeLabelKey as any) : section.type;
 
   async function handleRegen(withInstruction?: boolean) {
+    if (loading) return;
     setLoading(true);
     try {
       await onRegenerate(section.index, withInstruction ? instruction : undefined);
@@ -120,6 +154,17 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
           </span>
         )}
 
+        {/* Save status indicator */}
+        <span className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+          saveStatus === 'saved' ? 'bg-aG/15 text-aG' :
+          saveStatus === 'saving' ? 'bg-aO/15 text-aO' :
+          'bg-aR/15 text-aR'
+        }`}>
+          {saveStatus === 'saved' ? t('sectionSaved') :
+           saveStatus === 'saving' ? t('sectionSaving') :
+           t('sectionUnsaved')}
+        </span>
+
         {/* Regenerate heading button */}
         <button
           onClick={(e) => { e.stopPropagation(); handleHeadingRegen(); }}
@@ -154,15 +199,28 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
         <div className="px-4 pb-4 border-t border-bd/50">
           {/* Content textarea */}
           <IMETextarea
-            value={section.content}
-            onValueChange={debouncedContentChange}
-            rows={4}
-            className="w-full mt-3 bg-bg0 border border-bd rounded-lg px-3 py-2 text-xs text-t1 resize-none focus:outline-none focus:border-aB transition-colors"
-            style={{ minHeight: 80 }}
+            value={localContent}
+            onValueChange={(val) => {
+              setLocalContent(val);
+              debouncedContentChange(val);
+            }}
+            rows={expanded ? undefined : 4}
+            className="w-full mt-3 bg-bg0 border border-bd rounded-lg px-3 py-2 text-xs text-t1 focus:outline-none focus:border-aB transition-colors"
+            style={{ minHeight: expanded ? 200 : 80, height: expanded ? 'auto' : undefined, resize: expanded ? 'vertical' : 'none' }}
           />
 
+          {/* Expand/Collapse toggle */}
+          <div className="flex justify-end mt-1">
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-[10px] text-tM hover:text-aB transition-colors"
+            >
+              {expanded ? t('sectionCollapseBtn') : t('sectionExpandBtn')}
+            </button>
+          </div>
+
           {/* Actions */}
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-1">
             <button
               onClick={() => handleRegen(false)}
               disabled={loading}
@@ -176,6 +234,18 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
             >
               {t('sectionRegenWithInstruction')}
             </button>
+            {/* Save button */}
+            <button
+              onClick={handleManualSave}
+              disabled={saveStatus !== 'unsaved'}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                saveStatus === 'unsaved'
+                  ? 'border-aG/50 text-aG hover:bg-aG/10'
+                  : 'border-bd text-tM cursor-default opacity-50'
+              }`}
+            >
+              {t('sectionSaveBtn')}
+            </button>
           </div>
 
           {showInstruction && (
@@ -185,7 +255,7 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
                 onValueChange={setInstruction}
                 placeholder={t('sectionInstructionPlaceholder')}
                 className="flex-1 bg-bg0 border border-bd rounded px-2 py-1.5 text-xs text-t1 focus:outline-none focus:border-aB"
-                onKeyDown={(e) => { if (e.key === 'Enter') handleRegen(true); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !loading) handleRegen(true); }}
               />
               <button
                 onClick={() => handleRegen(true)}

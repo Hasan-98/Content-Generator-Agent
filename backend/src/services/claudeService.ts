@@ -702,6 +702,37 @@ Output ONLY the new title as plain text (no JSON, no quotes, no explanation).`;
   return text.trim() || currentTitle;
 }
 
+export async function generateOverlayTitle(
+  keyword: string,
+  articleTitle: string,
+  sectionHeading: string,
+  currentOverlayTitle?: string,
+  apiKey?: string
+): Promise<string> {
+  const prompt = `You are a Japanese SEO and visual design expert specializing in blog imagery.
+
+Keyword: ${keyword}
+Article title: ${articleTitle}
+Image section: ${sectionHeading}
+${currentOverlayTitle ? `Current overlay title: ${currentOverlayTitle}` : ''}
+
+Generate a short, impactful overlay title text for a blog image.
+This text will be displayed directly ON the photo as a text overlay.
+
+Requirements:
+- Must be short and punchy (10-25 characters in Japanese)
+- Visually compelling — works as bold text on an image
+- Captures the essence of the section topic
+- Different from the article title — this is specifically for the image
+- Written in Japanese
+${currentOverlayTitle ? '- Must be different from the current overlay title' : ''}
+
+Output ONLY the overlay title text (no JSON, no quotes, no explanation).`;
+
+  const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 128);
+  return text.trim().replace(/^[「『"']|[」』"']$/g, '') || articleTitle;
+}
+
 export async function regenerateSectionHeading(
   section: { type: string; heading: string; content: string },
   articleTitle: string,

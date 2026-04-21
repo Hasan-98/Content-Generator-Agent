@@ -9,6 +9,7 @@ import {
   regenerateTitleHandler,
   generateImageHandler,
   generateImagesBulk,
+  regenerateOverlayTitleHandler,
   formatArticleHandler,
 } from '../controllers/generateController';
 import { authenticate } from '../middleware/auth';
@@ -26,6 +27,7 @@ router.post('/article-section-heading', regenerateSectionHeadingHandler);
 router.post('/regenerate-title', regenerateTitleHandler);
 router.post('/image', generateImageHandler);
 router.post('/images-bulk', generateImagesBulk);
+router.post('/regenerate-overlay-title', regenerateOverlayTitleHandler);
 router.post('/format-article', formatArticleHandler);
 
 export default router;

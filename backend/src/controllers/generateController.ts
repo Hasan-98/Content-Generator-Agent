@@ -10,6 +10,7 @@ import {
   regenerateSection,
   regenerateSectionHeading,
   regenerateTitle,
+  generateOverlayTitle,
   generateTitleImagePrompt,
   generateInfographicPrompt,
   formatArticleForPublish,
@@ -182,6 +183,7 @@ export async function generateArticleHandler(req: AuthRequest, res: Response): P
           enabled: true,
           taste: i === 0 ? 'TEXT_OVERLAY' : 'INFOGRAPHIC',
           prompt: i === 0 ? titleImagePrompt : DEFAULT_PROMPTS.INFOGRAPHIC,
+          overlayTitle: i === 0 ? existing.title : null,
         })),
       },
     },
@@ -421,6 +423,50 @@ export async function generateImagesBulk(req: AuthRequest, res: Response): Promi
     await prisma.article.update({ where: { id: articleId }, data: { status: 'ARTICLE_DONE' } });
     res.status(500).json({ error: err.message || 'Image generation failed' });
   }
+}
+
+// STEP B2 — Regenerate overlay title for an image
+export async function regenerateOverlayTitleHandler(req: AuthRequest, res: Response): Promise<void> {
+  const { articleId, imageIndex } = req.body;
+  if (articleId === undefined || imageIndex === undefined) {
+    res.status(400).json({ error: 'articleId and imageIndex are required' });
+    return;
+  }
+
+  const article = await prisma.article.findUnique({
+    where: { id: articleId },
+    include: {
+      result: { include: { keyword: { include: { topLevel: true } } } },
+      images: true,
+      sections: { orderBy: { index: 'asc' } },
+    },
+  });
+  if (!article || article.result.keyword.topLevel.userId !== req.user!.id) {
+    res.status(404).json({ error: 'Article not found' });
+    return;
+  }
+
+  const image = article.images.find(img => img.index === imageIndex);
+  if (!image) { res.status(404).json({ error: 'Image not found' }); return; }
+
+  const { claudeApi } = await getUserKeys(req.user!.id);
+  const section = article.sections.find(s => s.index === (imageIndex === 0 ? 0 : imageIndex - 1));
+  const sectionHeading = section?.heading || article.result.title;
+
+  const newOverlayTitle = await generateOverlayTitle(
+    article.result.keywordText,
+    article.result.title,
+    sectionHeading,
+    image.overlayTitle || undefined,
+    claudeApi
+  );
+
+  const updated = await prisma.articleImage.update({
+    where: { id: image.id },
+    data: { overlayTitle: newOverlayTitle },
+    include: { history: { orderBy: { createdAt: 'desc' } } },
+  });
+  res.json(updated);
 }
 
 // STEP C — Format article for WordPress/Shopify publishing using AI

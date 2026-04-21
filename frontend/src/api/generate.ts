@@ -55,6 +55,14 @@ export async function generateImage(
   return res.data;
 }
 
+export async function regenerateOverlayTitle(
+  articleId: string,
+  imageIndex: number
+): Promise<ArticleImage> {
+  const res = await client.post('/generate/regenerate-overlay-title', { articleId, imageIndex });
+  return res.data;
+}
+
 export async function generateImagesBulk(articleId: string): Promise<ArticleImage[]> {
   const res = await client.post('/generate/images-bulk', { articleId });
   return res.data;
