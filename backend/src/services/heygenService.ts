@@ -37,7 +37,8 @@ export async function downloadImage(url: string): Promise<{ buffer: Buffer; cont
   if (url.startsWith('/uploads/')) {
     const fs = await import('fs');
     const path = await import('path');
-    const localPath = path.join(__dirname, '..', '..', url);
+    // Strip leading slash so path.join doesn't treat it as absolute
+    const localPath = path.join(__dirname, '..', '..', url.slice(1));
     const buffer = fs.readFileSync(localPath);
     const contentType = detectImageMime(buffer);
     return { buffer, contentType };
