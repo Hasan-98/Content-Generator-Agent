@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Article, GeneratedResult } from '../../types';
 import { upsertUploadMeta } from '../../api/articles';
-import { publish } from '../../api/publish';
+import { publish, fixThumbnail, fixAllThumbnails } from '../../api/publish';
 import { getWpConfig } from '../../api/wpConfig';
 import WpConfigModal from '../user/WpConfigModal';
 import toast from 'react-hot-toast';
@@ -29,6 +29,8 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
   const [checks, setChecks] = useState([false, false, false, false]);
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [fixingThumb, setFixingThumb] = useState(false);
+  const [fixingAll, setFixingAll] = useState(false);
   const [postUrl, setPostUrl] = useState<string | null>(null);
   const [showWpConfig, setShowWpConfig] = useState(false);
 
@@ -85,8 +87,33 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
     }
   }
 
+  async function handleFixThumbnail() {
+    setFixingThumb(true);
+    try {
+      await fixThumbnail(article.id);
+      toast.success(t('uploadFixThumbDone'));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || t('uploadFixThumbFailed'));
+    } finally {
+      setFixingThumb(false);
+    }
+  }
+
+  async function handleFixAllThumbnails() {
+    setFixingAll(true);
+    try {
+      const res = await fixAllThumbnails();
+      toast.success(`${t('uploadFixAllDone')} (${res.fixed}/${res.total})`);
+    } catch {
+      toast.error(t('uploadFixThumbFailed'));
+    } finally {
+      setFixingAll(false);
+    }
+  }
+
   const allChecked = checks.every(Boolean);
   const canPublish = allChecked && platform;
+  const isUploaded = article.status === 'UPLOADED' && article.platform === 'wordpress';
 
   if (published) {
     return (
@@ -326,6 +353,29 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
             >
               {publishing ? t('detailGenerating') : t('uploadPublishBtn')}
             </button>
+
+            {/* Fix thumbnail for already-uploaded articles */}
+            {isUploaded && (
+              <div className="pt-3 border-t border-bd space-y-2">
+                <div className="text-[11px] text-tM">{t('uploadFixThumbHint')}</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleFixThumbnail}
+                    disabled={fixingThumb}
+                    className="flex-1 py-2 rounded-lg text-xs font-medium bg-aO/15 text-aO border border-aO/40 hover:bg-aO/25 disabled:opacity-50 transition-colors"
+                  >
+                    {fixingThumb ? t('bgPickerSelecting') : t('uploadFixThumbBtn')}
+                  </button>
+                  <button
+                    onClick={handleFixAllThumbnails}
+                    disabled={fixingAll}
+                    className="flex-1 py-2 rounded-lg text-xs font-medium bg-aP/15 text-aP border border-aP/40 hover:bg-aP/25 disabled:opacity-50 transition-colors"
+                  >
+                    {fixingAll ? t('bgPickerSelecting') : t('uploadFixAllBtn')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

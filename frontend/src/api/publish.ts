@@ -7,3 +7,13 @@ export async function publish(
   const res = await client.post('/publish', { articleId, platform });
   return res.data;
 }
+
+export async function fixThumbnail(articleId: string): Promise<{ success: boolean; error?: string }> {
+  const res = await client.post('/publish/fix-thumbnail', { articleId });
+  return res.data;
+}
+
+export async function fixAllThumbnails(): Promise<{ total: number; fixed: number; failed: number }> {
+  const res = await client.post('/publish/fix-all-thumbnails');
+  return res.data;
+}
