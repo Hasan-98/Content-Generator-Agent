@@ -329,7 +329,17 @@ export async function generateImageHandler(req: AuthRequest, res: Response): Pro
 
   const { kieApi } = await getUserKeys(req.user!.id);
   const aspectRatio = image.index === 0 ? '16:9' : '1:1';
-  const imageUrl = await generateImageWithKie(image.prompt, aspectRatio, kieApi);
+
+  // For TEXT_OVERLAY images with an overlay title, enhance the prompt to include the actual text
+  let finalPrompt = image.prompt;
+  if (image.taste === 'TEXT_OVERLAY' && image.overlayTitle) {
+    const hasTitle = image.prompt.includes(image.overlayTitle);
+    if (!hasTitle) {
+      finalPrompt = `${image.prompt}。中央に日本語テキスト「${image.overlayTitle}」を太字の大きなゴシック体で配置。文字は鮮明・正確・崩れなしでレンダリング。高コントラスト、プロフェッショナル品質。`;
+    }
+  }
+
+  const imageUrl = await generateImageWithKie(finalPrompt, aspectRatio, kieApi);
 
   const updated = await prisma.articleImage.update({
     where: { id: image.id },

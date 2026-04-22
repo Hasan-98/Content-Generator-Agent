@@ -186,8 +186,14 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
   }
 
   async function handleTasteChange(taste: ImageTaste) {
+    let prompt = DEFAULT_PROMPTS[taste];
+    // For TEXT_OVERLAY, auto-include overlay title in prompt if available
+    if (taste === 'TEXT_OVERLAY' && (image.overlayTitle || (image.index === 0 && articleTitle))) {
+      const title = image.overlayTitle || articleTitle || '';
+      prompt = `${prompt}。中央に日本語テキスト「${title}」を太字の大きなゴシック体で配置。文字は鮮明・正確・崩れなしでレンダリング。高コントラスト、プロフェッショナル品質。`;
+    }
     try {
-      const updated = await updateImage(articleId, image.index, { taste, prompt: DEFAULT_PROMPTS[taste] });
+      const updated = await updateImage(articleId, image.index, { taste, prompt });
       onUpdate(updated);
     } catch {
       toast.error(t('toastUpdateFailed'));

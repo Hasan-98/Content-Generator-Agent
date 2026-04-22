@@ -172,7 +172,7 @@ export default function UploadPanel({ article, result, topLevelId, topicName, on
               return (
                 <div key={s.id} className="mb-6">
                   {img && (
-                    <img src={img.imageUrl!} alt={s.heading} className="w-full rounded-lg mb-3 max-h-64 object-cover" />
+                    <img src={img.imageUrl!} alt={s.heading} className="w-full rounded-lg mb-3 object-contain bg-bg0" />
                   )}
                   <h2 className="text-base font-semibold text-t1 mb-2">{s.heading}</h2>
                   <p className="text-sm text-t2 leading-relaxed whitespace-pre-wrap">{s.content}</p>
