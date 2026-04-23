@@ -82,11 +82,14 @@ export async function uploadImageToHeygen(
     maxBodyLength: Infinity,
     timeout: 60000,
   });
+  console.log('[heygenService] uploadImageToHeygen response:', JSON.stringify(response.data).slice(0, 500));
   const data = response.data?.data || {};
-  const imageKey = data.image_key || '';
+  // HeyGen returns both `id` and `image_key` — the create avatar endpoint expects the asset `id`
+  const imageKey = data.id || data.image_key || '';
   if (!imageKey) {
-    throw new Error('HeyGen image upload returned no image_key: ' + JSON.stringify(response.data).slice(0, 300));
+    throw new Error('HeyGen image upload returned no image_key/id: ' + JSON.stringify(response.data).slice(0, 300));
   }
+  console.log('[heygenService] using image key:', imageKey);
   return imageKey;
 }
 
@@ -100,14 +103,17 @@ export async function createAvatarGroup(
   userApiKey?: string
 ): Promise<string> {
   const apiKey = resolveApiKey(userApiKey);
+  const body = { name, image_key: imageKey };
+  console.log('[heygenService] createAvatarGroup request body:', JSON.stringify(body));
   const response = await axios.post(
     'https://api.heygen.com/v2/photo_avatar/avatar_group/create',
-    { name, image_key: imageKey },
+    body,
     {
       headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
       timeout: 30000,
     }
   );
+  console.log('[heygenService] createAvatarGroup response:', JSON.stringify(response.data).slice(0, 500));
   const data = response.data?.data || {};
   const groupId = data.id || data.group_id || '';
   if (!groupId) {
