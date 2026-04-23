@@ -118,7 +118,7 @@ export async function publish(req: AuthRequest, res: Response): Promise<void> {
   // Update article and result status
   await prisma.article.update({
     where: { id: articleId },
-    data: { status: 'UPLOADED', platform, publishedUrl: postUrl, uploadedAt: new Date() },
+    data: { status: 'UPLOADED', platform, publishedUrl: typeof postUrl === 'string' ? postUrl : null, uploadedAt: new Date() },
   });
   await prisma.generatedResult.update({
     where: { id: article.resultId },

@@ -39,6 +39,9 @@ export async function downloadImage(url: string): Promise<{ buffer: Buffer; cont
     const path = await import('path');
     // Strip leading slash so path.join doesn't treat it as absolute
     const localPath = path.join(__dirname, '..', '..', url.slice(1));
+    if (!fs.existsSync(localPath)) {
+      throw new Error(`Upload file not found: ${url} — the file may have been deleted or lost during deployment. Please re-upload the image.`);
+    }
     const buffer = fs.readFileSync(localPath);
     const contentType = detectImageMime(buffer);
     return { buffer, contentType };

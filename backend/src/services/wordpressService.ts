@@ -208,7 +208,8 @@ export async function publishToWordpress(
       }
     );
 
-    return response.data?.link || null;
+    const link = response.data?.link;
+    return typeof link === 'string' ? link : null;
   } catch (err) {
     console.error('[wordpressService] publishToWordpress error:', err);
     return null;

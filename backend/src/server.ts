@@ -18,8 +18,15 @@ import shopifyConfigRoutes from './routes/shopifyConfig';
 import ttsDictionaryRoutes from './routes/ttsDictionary';
 import heygenAvatarRoutes from './routes/heygenAvatars';
 import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
+
+// Ensure upload/audio directories exist on startup
+for (const dir of ['uploads', 'audio']) {
+  const dirPath = path.join(__dirname, '..', dir);
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
