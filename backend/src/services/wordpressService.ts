@@ -207,10 +207,22 @@ export async function publishToWordpress(
       }
     );
 
-    const link = response.data?.link;
-    return typeof link === 'string' ? link : null;
-  } catch (err) {
-    console.error('[wordpressService] publishToWordpress error:', err);
+    const data = response.data || {};
+    const link = data.link || data.url || null;
+    console.log(`[wordpressService] Post created — id: ${data.id}, link: ${link}, slug: ${data.slug}`);
+
+    if (typeof link === 'string') return link;
+
+    // Fallback: construct URL from baseUrl + slug
+    const slug = data.slug || input.slug;
+    if (slug) return `${baseUrl}/${slug}/`;
+
+    return null;
+  } catch (err: any) {
+    console.error('[wordpressService] publishToWordpress error:', err?.message || err);
+    if (err?.response?.data) {
+      console.error('[wordpressService] WP response:', JSON.stringify(err.response.data).slice(0, 500));
+    }
     return null;
   }
 }
