@@ -140,8 +140,15 @@ export async function trainAvatarGroup(groupId: string, userApiKey?: string): Pr
       }
     );
   } catch (err: any) {
-    // HeyGen occasionally 400s if training is already in progress — don't fail the flow.
-    console.warn('[heygenService] trainAvatarGroup non-fatal error:', err?.response?.data || err?.message);
+    const errData = err?.response?.data;
+    const errMsg = errData?.error?.message || errData?.message || err?.message || '';
+    console.warn('[heygenService] trainAvatarGroup error:', errData || errMsg);
+
+    // Fatal errors — no point polling, fail immediately
+    if (errMsg.includes('No valid image') || errMsg.includes('invalid_parameter')) {
+      throw new Error(`HeyGen training rejected: ${errMsg}`);
+    }
+    // Otherwise treat as non-fatal (e.g. training already in progress)
   }
 }
 
