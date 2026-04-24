@@ -84,8 +84,8 @@ export async function uploadImageToHeygen(
   });
   console.log('[heygenService] uploadImageToHeygen response:', JSON.stringify(response.data).slice(0, 500));
   const data = response.data?.data || {};
-  // HeyGen returns both `id` and `image_key` — the create avatar endpoint expects the asset `id`
-  const imageKey = data.id || data.image_key || '';
+  // HeyGen returns both `id` and `image_key` — the create avatar endpoint expects `image_key`
+  const imageKey = data.image_key || data.id || '';
   if (!imageKey) {
     throw new Error('HeyGen image upload returned no image_key/id: ' + JSON.stringify(response.data).slice(0, 300));
   }
