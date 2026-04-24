@@ -188,29 +188,28 @@ export async function publishToWordpress(
     }
 
     const endpoint = `${baseUrl}/wp-json/wp/v2/posts`;
-    const response = await axios.post(
-      endpoint,
-      {
-        title: input.title,
-        content: input.content,
-        slug: input.slug,
-        excerpt: input.excerpt,
-        status: input.publishStatus,
-        ...(featuredMediaId ? { featured_media: featuredMediaId } : {}),
-        ...(input.publishStatus === 'future' && input.scheduleDate
-          ? { date: input.scheduleDate }
-          : {}),
-      },
-      {
-        headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
-        timeout: 30000,
-      }
-    );
+    console.log(`[wordpressService] Creating post at: ${endpoint}`);
+    const postBody = {
+      title: input.title,
+      content: input.content,
+      slug: input.slug,
+      excerpt: input.excerpt,
+      status: input.publishStatus,
+      ...(featuredMediaId ? { featured_media: featuredMediaId } : {}),
+      ...(input.publishStatus === 'future' && input.scheduleDate
+        ? { date: input.scheduleDate }
+        : {}),
+    };
+    const response = await axios.post(endpoint, postBody, {
+      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+      timeout: 30000,
+    });
 
     const data = response.data || {};
-    const link = data.link || data.url || null;
-    console.log(`[wordpressService] Post created — id: ${data.id}, link: ${link}, slug: ${data.slug}`);
+    console.log(`[wordpressService] WP response keys: ${Object.keys(data).join(', ')}`);
+    console.log(`[wordpressService] Post created — id: ${data.id}, link: ${data.link}, guid: ${data.guid?.rendered || data.guid}, slug: ${data.slug}`);
 
+    const link = data.link || data.guid?.rendered || data.url || null;
     if (typeof link === 'string') return link;
 
     // Fallback: construct URL from baseUrl + slug
@@ -219,9 +218,13 @@ export async function publishToWordpress(
 
     return null;
   } catch (err: any) {
-    console.error('[wordpressService] publishToWordpress error:', err?.message || err);
+    console.error('[wordpressService] publishToWordpress FAILED:', err?.message || err);
+    if (err?.response?.status) {
+      console.error('[wordpressService] Status:', err.response.status);
+    }
     if (err?.response?.data) {
-      console.error('[wordpressService] WP response:', JSON.stringify(err.response.data).slice(0, 500));
+      const respStr = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      console.error('[wordpressService] WP response:', respStr.slice(0, 800));
     }
     return null;
   }
