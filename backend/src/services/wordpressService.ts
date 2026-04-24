@@ -78,7 +78,7 @@ async function uploadMediaFromUrl(
 
     console.log(`[wordpressService] Uploading to WP media: ${filename} (${buffer.length} bytes, ${contentType})`);
 
-    const mediaEndpoint = `${baseUrl}/?rest_route=/wp/v2/media`;
+    const mediaEndpoint = `${baseUrl}/wp-json/wp/v2/media`;
     const response = await axios.post(mediaEndpoint, buffer, {
       headers: {
         Authorization: `Basic ${auth}`,
@@ -122,7 +122,7 @@ export async function updateWordpressThumbnail(
     const auth = Buffer.from(`${wpUser}:${wpPassword}`).toString('base64');
 
     // Find the post by slug
-    const searchRes = await axios.get(`${baseUrl}/?rest_route=/wp/v2/posts`, {
+    const searchRes = await axios.get(`${baseUrl}/wp-json/wp/v2/posts`, {
       params: { slug: postSlug, per_page: 1 },
       headers: { Authorization: `Basic ${auth}` },
       timeout: 15000,
@@ -142,7 +142,7 @@ export async function updateWordpressThumbnail(
 
     // Update the post with featured_media
     await axios.post(
-      `${baseUrl}/?rest_route=/wp/v2/posts/${postId}`,
+      `${baseUrl}/wp-json/wp/v2/posts/${postId}`,
       { featured_media: mediaId },
       {
         headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
@@ -187,8 +187,7 @@ export async function publishToWordpress(
       );
     }
 
-    // Use ?rest_route= format — works on all WP sites regardless of permalink settings
-    const endpoint = `${baseUrl}/?rest_route=/wp/v2/posts`;
+    const endpoint = `${baseUrl}/wp-json/wp/v2/posts`;
     const response = await axios.post(
       endpoint,
       {

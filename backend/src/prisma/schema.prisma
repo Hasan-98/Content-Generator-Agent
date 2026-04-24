@@ -113,7 +113,7 @@ model Article {
   id         String        @id @default(cuid())
   status     ArticleStatus @default(READY)
   platform     String?
-  publishedUrl String?
+  publishedUrl String? @db.Text
   uploadedAt   DateTime?
   resultId   String        @unique
   result     GeneratedResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
