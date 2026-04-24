@@ -1,4 +1,6 @@
 import axios from 'axios';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const FormData = require('form-data');
 import fs from 'fs';
 import path from 'path';
 
@@ -21,10 +23,17 @@ export interface WpCredentials {
 }
 
 function deriveBaseUrl(wpUrl: string): string {
-  return wpUrl
-    .replace(/\/wp-json\/wp\/v2.*$/i, '')
-    .replace(/\?rest_route=.*$/i, '')
-    .replace(/\/+$/, '');
+  try {
+    const u = new URL(wpUrl);
+    // Base URL is just the origin (protocol + host) — WP REST API is always at /wp-json/
+    return u.origin;
+  } catch {
+    // Fallback: strip known suffixes
+    return wpUrl
+      .replace(/\/wp-json\/wp\/v2.*$/i, '')
+      .replace(/\?rest_route=.*$/i, '')
+      .replace(/\/+$/, '');
+  }
 }
 
 /**
@@ -79,13 +88,18 @@ async function uploadMediaFromUrl(
     console.log(`[wordpressService] Uploading to WP media: ${filename} (${buffer.length} bytes, ${contentType})`);
 
     const mediaEndpoint = `${baseUrl}/wp-json/wp/v2/media`;
-    const response = await axios.post(mediaEndpoint, buffer, {
+
+    // Use multipart form upload — SiteGuard WAF blocks raw binary POSTs
+    const form = new FormData();
+    form.append('file', buffer, { filename, contentType });
+
+    const response = await axios.post(mediaEndpoint, form, {
       headers: {
         Authorization: `Basic ${auth}`,
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        ...form.getHeaders(),
       },
       timeout: 60000,
+      maxBodyLength: Infinity,
     });
 
     const mediaId = response.data?.id || null;
