@@ -110,6 +110,10 @@ export default function VideoScriptCreator() {
       })
       .catch(() => toast.error(t('vsLoadFailed')))
       .finally(() => setLoading(false));
+    // Auto-load avatars on mount
+    listAvatarsApi()
+      .then((list) => { setAvatars(list); setAvatarsLoaded(true); })
+      .catch(() => { /* silent — user can retry via button */ });
   }, [user?.id]);
 
   // Get articles that have content (ARTICLE_DONE or later)
