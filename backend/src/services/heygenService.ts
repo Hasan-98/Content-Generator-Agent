@@ -66,14 +66,13 @@ function resolveApiKey(userKey?: string): string {
 
 /**
  * Upload any file (image or video) to HeyGen's asset service.
- * Returns the asset key (image_key or video_key).
- * Mirrors WF0 steps "HeyGen asset upload" / "HeyGen video upload".
+ * Returns the asset key and the HeyGen-hosted URL.
  */
 export async function uploadAssetToHeygen(
   buffer: Buffer,
   contentType: string,
   userApiKey?: string
-): Promise<string> {
+): Promise<{ assetKey: string; hostedUrl: string }> {
   const apiKey = resolveApiKey(userApiKey);
   const response = await axios.post('https://upload.heygen.com/v1/asset', buffer, {
     headers: {
@@ -89,22 +88,30 @@ export async function uploadAssetToHeygen(
   if (!assetKey) {
     throw new Error('HeyGen asset upload returned no key: ' + JSON.stringify(response.data).slice(0, 300));
   }
-  console.log('[heygenService] using asset key:', assetKey);
-  return assetKey;
+  const hostedUrl = data.url || '';
+  console.log('[heygenService] asset key:', assetKey, 'url:', hostedUrl);
+  return { assetKey, hostedUrl };
 }
 
 /** @deprecated Use uploadAssetToHeygen instead */
-export const uploadImageToHeygen = uploadAssetToHeygen;
+export async function uploadImageToHeygen(
+  buffer: Buffer,
+  contentType: string,
+  userApiKey?: string
+): Promise<string> {
+  const { assetKey } = await uploadAssetToHeygen(buffer, contentType, userApiKey);
+  return assetKey;
+}
 
 /**
  * Create a photo_avatar group using a previously uploaded image_key.
- * Returns the group_id.
+ * Returns the group_id and the HeyGen-hosted image_url.
  */
 export async function createAvatarGroup(
   name: string,
   imageKey: string,
   userApiKey?: string
-): Promise<string> {
+): Promise<{ groupId: string; heygenImageUrl: string }> {
   const apiKey = resolveApiKey(userApiKey);
   const body = { name, image_key: imageKey };
   console.log('[heygenService] createAvatarGroup request body:', JSON.stringify(body));
@@ -122,7 +129,8 @@ export async function createAvatarGroup(
   if (!groupId) {
     throw new Error('HeyGen avatar_group/create returned no id: ' + JSON.stringify(response.data).slice(0, 300));
   }
-  return groupId;
+  const heygenImageUrl = data.image_url || '';
+  return { groupId, heygenImageUrl };
 }
 
 /**

@@ -1,6 +1,4 @@
 import { Response } from 'express';
-import fs from 'fs';
-import path from 'path';
 import { PrismaClient, HeygenAvatarStatus } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { getUserApiKey } from './apiConfigController';
@@ -11,31 +9,10 @@ import {
 
 const prisma = new PrismaClient();
 
-/**
- * Detect MIME type from file buffer magic bytes.
- */
-function detectMime(buffer: Buffer): string {
-  if (buffer.length < 12) return 'application/octet-stream';
-  // JPEG
-  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
-  // PNG
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return 'image/png';
-  // WEBP
-  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
-      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return 'image/webp';
-  // GIF
-  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) return 'image/gif';
-  // MP4/MOV (ftyp box at offset 4)
-  if (buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70) return 'video/mp4';
-  // WebM (EBML header)
-  if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) return 'video/webm';
-  return 'application/octet-stream';
-}
-
 // POST /api/heygen-avatars — create a new avatar (WF0 synchronous flow)
 //
 // Accepts multipart/form-data with:
-//   - `file` (image or video file)
+//   - `file` (image or video file — kept in memory, never saved to disk)
 //   - `name` (avatar name)
 //   - `avatarType` ("photo" or "video", default "photo")
 //
@@ -55,7 +32,7 @@ export async function createAvatar(req: AuthRequest, res: Response): Promise<voi
   }
 
   const file = (req as any).file as Express.Multer.File | undefined;
-  if (!file) {
+  if (!file || !file.buffer) {
     res.status(400).json({ error: 'file is required' });
     return;
   }
@@ -70,51 +47,46 @@ export async function createAvatar(req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
-  // Create DB row as PENDING
-  const fileUrl = `/uploads/${file.filename}`;
+  // Create DB row as PENDING (imageUrl will be updated with HeyGen URL after upload)
   const row = await prisma.heygenTrainedAvatar.create({
     data: {
       userId: req.user!.id,
       avatarType,
       name,
-      imageUrl: fileUrl,
+      imageUrl: '',
       fileName: file.originalname,
       status: HeygenAvatarStatus.PENDING,
     },
   });
 
-  // Run the WF0 pipeline synchronously
   try {
     const apiKey = (await getUserApiKey(req.user!.id, 'heygenApi')) || undefined;
 
-    // Read file from disk
-    const filePath = path.join(__dirname, '..', '..', 'uploads', file.filename);
-    const buffer = fs.readFileSync(filePath);
-    const contentType = file.mimetype || detectMime(buffer);
-
-    // Step 1: Upload to HeyGen
-    const assetKey = await uploadAssetToHeygen(buffer, contentType, apiKey);
+    // Step 1: Upload buffer directly to HeyGen (no local disk storage)
+    const { assetKey, hostedUrl } = await uploadAssetToHeygen(file.buffer, file.mimetype, apiKey);
 
     if (avatarType === 'photo') {
       // Step 2 (photo only): Create avatar group — group_id = talking_photo_id
-      const groupId = await createAvatarGroup(name, assetKey, apiKey);
+      const { groupId, heygenImageUrl } = await createAvatarGroup(name, assetKey, apiKey);
 
       const updated = await prisma.heygenTrainedAvatar.update({
         where: { id: row.id },
         data: {
           imageKey: assetKey,
           groupId,
-          avatarId: groupId, // group_id is usable as talking_photo_id
+          avatarId: groupId,
+          imageUrl: heygenImageUrl || hostedUrl,
           status: HeygenAvatarStatus.READY,
         },
       });
       res.status(201).json(updated);
     } else {
-      // Video path: just save the asset key, no group creation
+      // Video path: store HeyGen-hosted URL directly
       const updated = await prisma.heygenTrainedAvatar.update({
         where: { id: row.id },
         data: {
           imageKey: assetKey,
+          imageUrl: hostedUrl,
           status: HeygenAvatarStatus.READY,
         },
       });
@@ -150,7 +122,8 @@ export async function getAvatar(req: AuthRequest, res: Response): Promise<void> 
   res.json(row);
 }
 
-// POST /api/heygen-avatars/:id/retry — reset a FAILED avatar and re-run the WF0 pipeline
+// POST /api/heygen-avatars/:id/retry — reset a FAILED avatar
+// Note: retry requires re-uploading the file since we no longer store locally
 export async function retryAvatar(req: AuthRequest, res: Response): Promise<void> {
   const row = await prisma.heygenTrainedAvatar.findUnique({ where: { id: String(req.params.id) } });
   if (!row || row.userId !== req.user!.id) {
@@ -162,7 +135,13 @@ export async function retryAvatar(req: AuthRequest, res: Response): Promise<void
     return;
   }
 
-  // Reset fields
+  // Since we don't store files locally anymore, retry needs a new file upload
+  const file = (req as any).file as Express.Multer.File | undefined;
+  if (!file || !file.buffer) {
+    res.status(400).json({ error: 'File must be re-uploaded for retry (files are not stored locally)' });
+    return;
+  }
+
   await prisma.heygenTrainedAvatar.update({
     where: { id: row.id },
     data: { status: HeygenAvatarStatus.PENDING, errorMsg: null, groupId: null, imageKey: null, avatarId: null },
@@ -170,27 +149,31 @@ export async function retryAvatar(req: AuthRequest, res: Response): Promise<void
 
   try {
     const apiKey = (await getUserApiKey(req.user!.id, 'heygenApi')) || undefined;
-
-    // Read file from local uploads
-    const localPath = path.join(__dirname, '..', '..', row.imageUrl.startsWith('/') ? row.imageUrl.slice(1) : row.imageUrl);
-    if (!fs.existsSync(localPath)) {
-      throw new Error('Original upload file not found — please create a new avatar');
-    }
-    const buffer = fs.readFileSync(localPath);
-    const contentType = detectMime(buffer);
-    const assetKey = await uploadAssetToHeygen(buffer, contentType, apiKey);
+    const { assetKey, hostedUrl } = await uploadAssetToHeygen(file.buffer, file.mimetype, apiKey);
 
     if (row.avatarType === 'photo') {
-      const groupId = await createAvatarGroup(row.name, assetKey, apiKey);
+      const { groupId, heygenImageUrl } = await createAvatarGroup(row.name, assetKey, apiKey);
       const updated = await prisma.heygenTrainedAvatar.update({
         where: { id: row.id },
-        data: { imageKey: assetKey, groupId, avatarId: groupId, status: HeygenAvatarStatus.READY },
+        data: {
+          imageKey: assetKey,
+          groupId,
+          avatarId: groupId,
+          imageUrl: heygenImageUrl || hostedUrl,
+          fileName: file.originalname,
+          status: HeygenAvatarStatus.READY,
+        },
       });
       res.json(updated);
     } else {
       const updated = await prisma.heygenTrainedAvatar.update({
         where: { id: row.id },
-        data: { imageKey: assetKey, status: HeygenAvatarStatus.READY },
+        data: {
+          imageKey: assetKey,
+          imageUrl: hostedUrl,
+          fileName: file.originalname,
+          status: HeygenAvatarStatus.READY,
+        },
       });
       res.json(updated);
     }
