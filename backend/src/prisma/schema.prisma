@@ -212,8 +212,8 @@ model VideoScript {
   voice           String               @default("onyx")
   customAudioUrl  String?
   heygenVideoId    String?
-  heygenVideoUrl   String?
-  previewVideoUrl  String?
+  heygenVideoUrl   String?              @db.Text
+  previewVideoUrl  String?              @db.Text
   heygenStatus     String               @default("pending")
   remotionJobId   String?
   remotionVideoUrl String?
