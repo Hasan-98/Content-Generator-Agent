@@ -2,52 +2,72 @@ import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { createHeygenAvatar } from '../../api/heygenAvatars';
-import type { HeygenTrainedAvatar } from '../../types';
+import type { HeygenTrainedAvatar, HeygenAvatarType } from '../../types';
 
 interface Props {
   onClose: () => void;
   onCreated: (avatar: HeygenTrainedAvatar) => void;
 }
 
+const PHOTO_ACCEPT = '.jpg,.jpeg,.png';
+const VIDEO_ACCEPT = '.mp4,.mov,.webm';
+const PHOTO_MAX_MB = 10;
+const VIDEO_MAX_MB = 50;
+
 export default function CreateAvatarModal({ onClose, onCreated }: Props) {
   const { t } = useLanguage();
+  const [avatarType, setAvatarType] = useState<HeygenAvatarType>('photo');
   const [name, setName] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleFile(file: File) {
-    if (!file.type.startsWith('image/')) {
+  const isPhoto = avatarType === 'photo';
+  const maxMB = isPhoto ? PHOTO_MAX_MB : VIDEO_MAX_MB;
+  const acceptTypes = isPhoto ? PHOTO_ACCEPT : VIDEO_ACCEPT;
+
+  function clearFile() {
+    setFile(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function switchType(type: HeygenAvatarType) {
+    if (type === avatarType) return;
+    clearFile();
+    setAvatarType(type);
+  }
+
+  function handleFile(f: File) {
+    if (isPhoto && !f.type.startsWith('image/')) {
       toast.error(t('heygenAvatarErrorNotImage'));
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error(t('heygenAvatarErrorTooLarge'));
+    if (!isPhoto && !f.type.startsWith('video/')) {
+      toast.error(t('heygenAvatarErrorNotVideo'));
       return;
     }
-    setImageFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    if (f.size > maxMB * 1024 * 1024) {
+      toast.error(isPhoto ? t('heygenAvatarErrorTooLarge') : t('heygenAvatarErrorVideoTooLarge'));
+      return;
+    }
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
-  }
-
-  function clearImage() {
-    setImageFile(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    const f = e.target.files?.[0];
+    if (f) handleFile(f);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -56,13 +76,13 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
       toast.error(t('heygenAvatarErrorEmpty'));
       return;
     }
-    if (!imageFile) {
-      toast.error(t('heygenAvatarErrorNoImage'));
+    if (!file) {
+      toast.error(t('heygenAvatarErrorNoFile'));
       return;
     }
     setSubmitting(true);
     try {
-      const created = await createHeygenAvatar({ name: name.trim(), imageFile });
+      const created = await createHeygenAvatar({ name: name.trim(), avatarType, file });
       toast.success(t('heygenAvatarCreatedToast'));
       onCreated(created);
       onClose();
@@ -85,6 +105,36 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          {/* Avatar Type Toggle */}
+          <div>
+            <label className="block text-[11px] text-t2 mb-1.5">{t('heygenAvatarTypeLabel')}</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => switchType('photo')}
+                className={`flex-1 text-xs py-2 rounded border transition-colors font-medium ${
+                  isPhoto
+                    ? 'bg-aB/20 text-aB border-aB/40'
+                    : 'bg-bg0 text-t2 border-bd hover:border-aB/30'
+                }`}
+              >
+                {t('heygenAvatarTypePhoto')}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchType('video')}
+                className={`flex-1 text-xs py-2 rounded border transition-colors font-medium ${
+                  !isPhoto
+                    ? 'bg-aB/20 text-aB border-aB/40'
+                    : 'bg-bg0 text-t2 border-bd hover:border-aB/30'
+                }`}
+              >
+                {t('heygenAvatarTypeVideo')}
+              </button>
+            </div>
+          </div>
+
+          {/* Name */}
           <div>
             <label className="block text-[11px] text-t2 mb-1">{t('heygenAvatarFieldName')}</label>
             <input
@@ -97,23 +147,27 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
             />
           </div>
 
-          {/* Drag & drop / click to upload area */}
+          {/* File upload area */}
           <div>
-            <label className="block text-[11px] text-t2 mb-1">{t('heygenAvatarFieldImage')}</label>
+            <label className="block text-[11px] text-t2 mb-1">{t('heygenAvatarFieldFile')}</label>
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={acceptTypes}
               onChange={handleFileInput}
               className="hidden"
             />
 
-            {previewUrl ? (
+            {previewUrl && file ? (
               <div className="relative rounded border border-bd overflow-hidden bg-bg0 flex items-center justify-center" style={{ height: 180 }}>
-                <img src={previewUrl} alt="preview" className="max-w-full max-h-full object-contain" />
+                {isPhoto ? (
+                  <img src={previewUrl} alt="preview" className="max-w-full max-h-full object-contain" />
+                ) : (
+                  <video src={previewUrl} controls className="max-w-full max-h-full" />
+                )}
                 <button
                   type="button"
-                  onClick={clearImage}
+                  onClick={clearFile}
                   className="absolute top-2 right-2 w-6 h-6 rounded-full bg-bg0/80 text-aR hover:bg-aR/20 flex items-center justify-center text-sm transition-colors"
                 >
                   &times;
@@ -130,9 +184,13 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
                 }`}
                 style={{ height: 180 }}
               >
-                <div className="text-3xl text-tM mb-2">+</div>
-                <div className="text-xs text-t2">{t('heygenAvatarDropzone')}</div>
-                <div className="text-[10px] text-tM mt-1">{t('heygenAvatarDropzoneHint')}</div>
+                <div className="text-3xl text-tM mb-2">{isPhoto ? '+' : '\u25B6'}</div>
+                <div className="text-xs text-t2">
+                  {isPhoto ? t('heygenAvatarDropzonePhoto') : t('heygenAvatarDropzoneVideo')}
+                </div>
+                <div className="text-[10px] text-tM mt-1">
+                  {isPhoto ? t('heygenAvatarDropzoneHintPhoto') : t('heygenAvatarDropzoneHintVideo')}
+                </div>
               </div>
             )}
           </div>
@@ -151,7 +209,7 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
             </button>
             <button
               type="submit"
-              disabled={submitting || !imageFile}
+              disabled={submitting || !file}
               className="text-xs px-4 py-2 rounded bg-aB/20 text-aB border border-aB/40 hover:bg-aB/30 disabled:opacity-50 transition-colors font-medium"
             >
               {submitting ? t('heygenAvatarCreating') : t('heygenAvatarCreateBtn')}

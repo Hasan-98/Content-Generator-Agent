@@ -8,14 +8,14 @@ import {
   deleteAvatar,
 } from '../controllers/heygenAvatarController';
 import { authenticate } from '../middleware/auth';
-import { uploadImage } from '../middleware/upload';
+import { uploadAvatarFile } from '../middleware/upload';
 
 const router = Router();
 
 router.use(authenticate);
 
 router.get('/', listAvatars);
-router.post('/', uploadImage.single('image'), createAvatar);
+router.post('/', uploadAvatarFile.single('file'), createAvatar);
 router.get('/:id', getAvatar);
 router.post('/:id/refresh', refreshAvatar);
 router.post('/:id/retry', retryAvatar);

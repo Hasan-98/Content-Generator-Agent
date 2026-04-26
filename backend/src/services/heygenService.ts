@@ -65,10 +65,11 @@ function resolveApiKey(userKey?: string): string {
 }
 
 /**
- * Upload an image to HeyGen's asset service. Returns the image_key.
- * Mirrors WF0 step "HeyGen asset upload".
+ * Upload any file (image or video) to HeyGen's asset service.
+ * Returns the asset key (image_key or video_key).
+ * Mirrors WF0 steps "HeyGen asset upload" / "HeyGen video upload".
  */
-export async function uploadImageToHeygen(
+export async function uploadAssetToHeygen(
   buffer: Buffer,
   contentType: string,
   userApiKey?: string
@@ -80,20 +81,20 @@ export async function uploadImageToHeygen(
       'Content-Type': contentType,
     },
     maxBodyLength: Infinity,
-    timeout: 60000,
+    timeout: 120000,
   });
-  console.log('[heygenService] uploadImageToHeygen response:', JSON.stringify(response.data).slice(0, 500));
+  console.log('[heygenService] uploadAssetToHeygen response:', JSON.stringify(response.data).slice(0, 500));
   const data = response.data?.data || {};
-  // HeyGen returns both `id` and `image_key`
-  // The create avatar group endpoint expects `image_key` from the upload response
-  console.log('[heygenService] upload returned id:', data.id, 'image_key:', data.image_key);
-  const imageKey = data.image_key || data.id || '';
-  if (!imageKey) {
-    throw new Error('HeyGen image upload returned no image_key/id: ' + JSON.stringify(response.data).slice(0, 300));
+  const assetKey = data.image_key || data.video_key || data.id || '';
+  if (!assetKey) {
+    throw new Error('HeyGen asset upload returned no key: ' + JSON.stringify(response.data).slice(0, 300));
   }
-  console.log('[heygenService] using image key:', imageKey);
-  return imageKey;
+  console.log('[heygenService] using asset key:', assetKey);
+  return assetKey;
 }
+
+/** @deprecated Use uploadAssetToHeygen instead */
+export const uploadImageToHeygen = uploadAssetToHeygen;
 
 /**
  * Create a photo_avatar group using a previously uploaded image_key.

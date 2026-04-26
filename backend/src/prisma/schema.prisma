@@ -272,8 +272,10 @@ model HeygenTrainedAvatar {
   id         String              @id @default(cuid())
   userId     String
   user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarType String              @default("photo")
   name       String
   imageUrl   String              @db.Text
+  fileName   String?
   imageKey   String?             @db.Text
   groupId    String?
   avatarId   String?

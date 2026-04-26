@@ -1,22 +1,24 @@
 import client from './client';
-import type { HeygenTrainedAvatar } from '../types';
+import type { HeygenTrainedAvatar, HeygenAvatarType } from '../types';
 
 export async function listHeygenAvatars(): Promise<HeygenTrainedAvatar[]> {
   const res = await client.get('/heygen-avatars');
   return res.data;
 }
 
-export async function createHeygenAvatar(data: { name: string; imageFile?: File; imageUrl?: string }): Promise<HeygenTrainedAvatar> {
-  if (data.imageFile) {
-    const formData = new FormData();
-    formData.append('name', data.name);
-    formData.append('image', data.imageFile);
-    const res = await client.post('/heygen-avatars', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return res.data;
-  }
-  const res = await client.post('/heygen-avatars', { name: data.name, imageUrl: data.imageUrl });
+export async function createHeygenAvatar(data: {
+  name: string;
+  avatarType: HeygenAvatarType;
+  file: File;
+}): Promise<HeygenTrainedAvatar> {
+  const formData = new FormData();
+  formData.append('name', data.name);
+  formData.append('avatarType', data.avatarType);
+  formData.append('file', data.file);
+  const res = await client.post('/heygen-avatars', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  });
   return res.data;
 }
 

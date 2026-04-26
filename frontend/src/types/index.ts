@@ -164,11 +164,15 @@ export interface HeygenAvatar {
 
 export type HeygenTrainedAvatarStatus = 'PENDING' | 'UPLOADING' | 'TRAINING' | 'READY' | 'FAILED';
 
+export type HeygenAvatarType = 'photo' | 'video';
+
 export interface HeygenTrainedAvatar {
   id: string;
   userId: string;
+  avatarType: HeygenAvatarType;
   name: string;
   imageUrl: string;
+  fileName: string | null;
   imageKey: string | null;
   groupId: string | null;
   avatarId: string | null;

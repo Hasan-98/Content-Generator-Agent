@@ -25,6 +25,16 @@ export const uploadImage = multer({
   },
 });
 
+/** Accept image or video files up to 50 MB (for HeyGen avatar upload) */
+export const uploadAvatarFile = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) cb(null, true);
+    else cb(new Error('Only image or video files are allowed'));
+  },
+});
+
 /** Accept audio up to 25 MB */
 export const uploadAudio = multer({
   storage,

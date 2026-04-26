@@ -22,16 +22,31 @@ export default function AvatarCard({ avatar, onDelete, onRefresh, onRetry }: Pro
   const statusLabel = t(`heygenAvatarStatus${avatar.status}` as 'heygenAvatarStatusPENDING');
   const canRefresh = avatar.status === 'TRAINING' || avatar.status === 'UPLOADING';
   const canRetry = avatar.status === 'FAILED';
+  const isVideo = avatar.avatarType === 'video';
 
   return (
     <div className="rounded-lg border border-bd bg-bg1 overflow-hidden flex flex-col">
       {/* Preview */}
-      <div className="aspect-square bg-bg0 flex items-center justify-center overflow-hidden">
-        {avatar.imageUrl ? (
-          <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" />
+      <div className="aspect-square bg-bg0 flex items-center justify-center overflow-hidden relative">
+        {isVideo ? (
+          avatar.imageUrl ? (
+            <video src={avatar.imageUrl} className="w-full h-full object-cover" muted />
+          ) : (
+            <div className="text-4xl">&#x1F3AC;</div>
+          )
         ) : (
-          <div className="text-4xl">👤</div>
+          avatar.imageUrl ? (
+            <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-4xl">&#x1F464;</div>
+          )
         )}
+        {/* Type badge */}
+        <span className={`absolute top-2 left-2 text-[9px] px-1.5 py-0.5 rounded font-mono ${
+          isVideo ? 'bg-aP/20 text-aP' : 'bg-aC/20 text-aC'
+        }`}>
+          {isVideo ? t('heygenAvatarTypeVideo') : t('heygenAvatarTypePhoto')}
+        </span>
       </div>
 
       {/* Body */}
@@ -49,6 +64,12 @@ export default function AvatarCard({ avatar, onDelete, onRefresh, onRetry }: Pro
         {avatar.avatarId && (
           <div className="text-[10px] font-mono text-tM truncate" title={avatar.avatarId}>
             ID: {avatar.avatarId}
+          </div>
+        )}
+
+        {avatar.fileName && (
+          <div className="text-[10px] text-tM truncate" title={avatar.fileName}>
+            {avatar.fileName}
           </div>
         )}
 
