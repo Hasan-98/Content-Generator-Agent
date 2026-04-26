@@ -16,6 +16,14 @@ const STATUS_STYLE: Record<HeygenTrainedAvatarStatus, { bg: string; color: strin
   FAILED:    { bg: '#f8514922', color: '#f85149' },
 };
 
+const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api\/?$/, '');
+
+function resolveFileUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${BACKEND_URL}${url}`;
+}
+
 export default function AvatarCard({ avatar, onDelete, onRefresh, onRetry }: Props) {
   const { t } = useLanguage();
   const style = STATUS_STYLE[avatar.status];
@@ -23,20 +31,21 @@ export default function AvatarCard({ avatar, onDelete, onRefresh, onRetry }: Pro
   const canRefresh = avatar.status === 'TRAINING' || avatar.status === 'UPLOADING';
   const canRetry = avatar.status === 'FAILED';
   const isVideo = avatar.avatarType === 'video';
+  const fileUrl = resolveFileUrl(avatar.imageUrl);
 
   return (
     <div className="rounded-lg border border-bd bg-bg1 overflow-hidden flex flex-col">
       {/* Preview */}
       <div className="aspect-square bg-bg0 flex items-center justify-center overflow-hidden relative">
         {isVideo ? (
-          avatar.imageUrl ? (
-            <video src={avatar.imageUrl} className="w-full h-full object-cover" muted />
+          fileUrl ? (
+            <video src={fileUrl} className="w-full h-full object-cover" muted />
           ) : (
             <div className="text-4xl">&#x1F3AC;</div>
           )
         ) : (
-          avatar.imageUrl ? (
-            <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" />
+          fileUrl ? (
+            <img src={fileUrl} alt={avatar.name} className="w-full h-full object-cover" />
           ) : (
             <div className="text-4xl">&#x1F464;</div>
           )
