@@ -719,7 +719,7 @@ export default function VideoScriptCreator() {
 
                   {selectedScript.audioUrl && selectedScript.audioStatus === 'done' && (
                     <div className="mt-3">
-                      <audio controls className="w-full h-8" src={`${apiBaseUrl}${selectedScript.audioUrl}`} />
+                      <audio controls className="w-full h-8" src={selectedScript.audioUrl.startsWith('http') ? selectedScript.audioUrl : `${apiBaseUrl}${selectedScript.audioUrl}`} />
                     </div>
                   )}
                 </div>
@@ -755,7 +755,11 @@ export default function VideoScriptCreator() {
                       <video
                         controls
                         className="w-full rounded"
-                        src={selectedScript.previewVideoUrl || selectedScript.heygenVideoUrl}
+                        src={
+                          (selectedScript.previewVideoUrl?.startsWith('http') ? selectedScript.previewVideoUrl : null)
+                          || (selectedScript.heygenVideoUrl?.startsWith('http') ? selectedScript.heygenVideoUrl : null)
+                          || selectedScript.heygenVideoUrl || ''
+                        }
                       />
                     </div>
                   )}
