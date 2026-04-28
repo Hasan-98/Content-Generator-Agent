@@ -132,19 +132,6 @@ export async function generateHeygenVideo(req: AuthRequest, res: Response): Prom
     return;
   }
 
-  // Locate audio file on disk. Can be in /audio/ (TTS) or /uploads/ (custom recording).
-  let audioFilepath: string;
-  if (script.audioUrl.startsWith('/uploads/')) {
-    audioFilepath = path.join(__dirname, '..', '..', script.audioUrl);
-  } else {
-    const audioFilename = script.audioUrl.split('/').pop() || '';
-    audioFilepath = path.join(AUDIO_DIR, audioFilename);
-  }
-  if (!fs.existsSync(audioFilepath)) {
-    res.status(400).json({ error: `Audio file not found on disk. Re-generate or re-upload audio.` });
-    return;
-  }
-
   const heygenApiKey = (await getUserApiKey(req.user!.id, 'heygenApi')) || undefined;
   const talkingPhotoId = await resolveTalkingPhotoId(req.user!.id, script.avatarId);
 
@@ -154,8 +141,35 @@ export async function generateHeygenVideo(req: AuthRequest, res: Response): Prom
   });
 
   try {
-    // Step 1: Upload the combined audio to HeyGen as a single asset
-    const assetId = await uploadAudioToHeygen(audioFilepath, heygenApiKey);
+    // Step 1: Resolve the audio asset ID for HeyGen
+    let assetId: string;
+
+    if (script.audioUrl.startsWith('heygen-asset:')) {
+      // Audio was already uploaded to HeyGen during TTS — use stored asset ID
+      assetId = script.audioUrl.replace('heygen-asset:', '');
+    } else if (script.audioUrl.startsWith('https://')) {
+      // HeyGen hosted URL — download and re-upload to get a fresh asset ID
+      const axios = (await import('axios')).default;
+      const resp = await axios.get(script.audioUrl, { responseType: 'arraybuffer', timeout: 60000 });
+      const { uploadAudioBufferToHeygen } = await import('../services/heygenService');
+      const result = await uploadAudioBufferToHeygen(Buffer.from(resp.data), heygenApiKey);
+      assetId = result.assetId;
+    } else {
+      // Legacy: local file path — read from disk and upload
+      let audioFilepath: string;
+      if (script.audioUrl.startsWith('/uploads/')) {
+        audioFilepath = path.join(__dirname, '..', '..', script.audioUrl);
+      } else {
+        const audioFilename = script.audioUrl.split('/').pop() || '';
+        audioFilepath = path.join(AUDIO_DIR, audioFilename);
+      }
+      if (!fs.existsSync(audioFilepath)) {
+        throw new Error('Audio file not found on disk. Re-generate or re-upload audio.');
+      }
+      const result = await uploadAudioToHeygen(audioFilepath, heygenApiKey);
+      assetId = result.assetId;
+    }
+
     if (!assetId) {
       throw new Error('HeyGen audio upload returned no asset id');
     }

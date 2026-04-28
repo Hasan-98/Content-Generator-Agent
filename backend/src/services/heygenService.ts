@@ -207,7 +207,7 @@ export async function listTalkingPhotos(
 export async function uploadAudioToHeygen(
   audioFilePath: string,
   userApiKey?: string
-): Promise<string> {
+): Promise<{ assetId: string; hostedUrl: string }> {
   const audioBuffer = fs.readFileSync(audioFilePath);
   return uploadAudioBufferToHeygen(audioBuffer, userApiKey);
 }
@@ -215,7 +215,7 @@ export async function uploadAudioToHeygen(
 export async function uploadAudioBufferToHeygen(
   audioBuffer: Buffer,
   userApiKey?: string
-): Promise<string> {
+): Promise<{ assetId: string; hostedUrl: string }> {
   const apiKey = resolveApiKey(userApiKey);
   const response = await axios.post('https://upload.heygen.com/v1/asset', audioBuffer, {
     headers: {
@@ -226,8 +226,10 @@ export async function uploadAudioBufferToHeygen(
     timeout: 120000,
   });
   const data = response.data?.data || {};
-  // HeyGen returns the asset id under `.id`
-  return data.id || data.asset_id || '';
+  console.log('[heygenService] uploadAudioBuffer response:', JSON.stringify(data).slice(0, 500));
+  const assetId = data.id || data.asset_id || '';
+  const hostedUrl = data.url || '';
+  return { assetId, hostedUrl };
 }
 
 /**
@@ -389,7 +391,7 @@ export async function generateAndUploadSectionAudio(
     fs.writeFileSync(filepath, buffer);
 
     // Upload to HeyGen
-    const assetId = await uploadAudioToHeygen(filepath);
+    const { assetId } = await uploadAudioToHeygen(filepath);
     assetIds.push(assetId);
   }
 

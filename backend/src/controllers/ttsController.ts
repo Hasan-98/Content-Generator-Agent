@@ -1,8 +1,9 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
-import { applyDictionary, generateTtsAudio, deleteAudioFile, TTS_VOICES, type TtsVoice } from '../services/ttsService';
+import { applyDictionary, generateTtsAudio, TTS_VOICES, type TtsVoice } from '../services/ttsService';
 import { getUserApiKey } from './apiConfigController';
+import { uploadAudioBufferToHeygen } from '../services/heygenService';
 
 const prisma = new PrismaClient();
 
@@ -31,14 +32,9 @@ export async function generateTts(req: AuthRequest, res: Response): Promise<void
   // Apply dictionary replacements
   const ttsNarration = applyDictionary(fullNarration, dictionary);
 
-  // Get user's OpenAI API key
-  const apiKey = (await getUserApiKey(req.user!.id, 'openaiApi')) || undefined;
-
-  // Delete old audio if regenerating
-  if (script.audioUrl) {
-    const oldFilename = script.audioUrl.split('/').pop();
-    if (oldFilename) deleteAudioFile(oldFilename);
-  }
+  // Get API keys
+  const openaiKey = (await getUserApiKey(req.user!.id, 'openaiApi')) || undefined;
+  const heygenKey = (await getUserApiKey(req.user!.id, 'heygenApi')) || undefined;
 
   // Update status to generating
   await prisma.videoScript.update({
@@ -48,8 +44,20 @@ export async function generateTts(req: AuthRequest, res: Response): Promise<void
 
   try {
     const voice = (TTS_VOICES.includes(script.voice as TtsVoice) ? script.voice : 'onyx') as TtsVoice;
-    const filename = await generateTtsAudio(ttsNarration, scriptId, apiKey, voice);
-    const audioUrl = `/audio/${filename}`;
+
+    // Generate TTS → get raw MP3 buffer (no local file)
+    const audioBuffer = await generateTtsAudio(ttsNarration, scriptId, openaiKey, voice);
+
+    // Upload buffer directly to HeyGen → get hosted URL + asset ID
+    const { assetId, hostedUrl } = await uploadAudioBufferToHeygen(audioBuffer, heygenKey);
+
+    if (!assetId) {
+      throw new Error('HeyGen audio upload returned no asset id');
+    }
+
+    // Store the HeyGen hosted URL for browser playback
+    // If HeyGen didn't return a URL, fall back to asset ID reference
+    const audioUrl = hostedUrl || `heygen-asset:${assetId}`;
 
     const updated = await prisma.videoScript.update({
       where: { id: scriptId },
@@ -83,22 +91,26 @@ export async function uploadAudio(req: AuthRequest, res: Response): Promise<void
     return;
   }
 
-  // Delete old custom audio if replacing
-  if (script.customAudioUrl) {
+  // Read the file buffer (works with both disk and memory storage)
+  let audioBuffer: Buffer;
+  if (file.buffer) {
+    audioBuffer = file.buffer;
+  } else {
     const fs = await import('fs');
-    const path = await import('path');
-    const oldPath = path.join(__dirname, '..', '..', script.customAudioUrl);
-    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    audioBuffer = fs.readFileSync(file.path);
   }
 
-  const customAudioUrl = `/uploads/${file.filename}`;
+  // Upload to HeyGen
+  const heygenKey = (await getUserApiKey(req.user!.id, 'heygenApi')) || undefined;
+  const { assetId, hostedUrl } = await uploadAudioBufferToHeygen(audioBuffer, heygenKey);
 
-  // Also set this as the main audioUrl so the HeyGen pipeline picks it up
+  const audioUrl = hostedUrl || `heygen-asset:${assetId}`;
+
   const updated = await prisma.videoScript.update({
     where: { id: scriptId },
     data: {
-      customAudioUrl,
-      audioUrl: customAudioUrl,
+      customAudioUrl: audioUrl,
+      audioUrl,
       audioStatus: 'done',
     },
     include: { sections: { orderBy: { sectionNumber: 'asc' } } },

@@ -203,20 +203,20 @@ model UploadMeta {
 model VideoScript {
   id              String               @id @default(cuid())
   title           String
-  audioUrl        String?
+  audioUrl        String?              @db.Text
   audioStatus     String               @default("pending")
   avatarId        String?
   orientation     String               @default("horizontal")
   theme           String               @default("modern-dark")
   pattern         String               @default("formal")
   voice           String               @default("onyx")
-  customAudioUrl  String?
+  customAudioUrl  String?              @db.Text
   heygenVideoId    String?
   heygenVideoUrl   String?              @db.Text
   previewVideoUrl  String?              @db.Text
   heygenStatus     String               @default("pending")
   remotionJobId   String?
-  remotionVideoUrl String?
+  remotionVideoUrl String?              @db.Text
   remotionStatus  String               @default("pending")
   articleId       String               @unique
   article         Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
