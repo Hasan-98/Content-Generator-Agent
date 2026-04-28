@@ -214,17 +214,25 @@ export async function uploadAudioToHeygen(
 
 export async function uploadAudioBufferToHeygen(
   audioBuffer: Buffer,
-  userApiKey?: string
+  userApiKey?: string,
+  contentType: string = 'audio/mpeg'
 ): Promise<{ assetId: string; hostedUrl: string }> {
   const apiKey = resolveApiKey(userApiKey);
-  const response = await axios.post('https://upload.heygen.com/v1/asset', audioBuffer, {
-    headers: {
-      'X-Api-Key': apiKey,
-      'Content-Type': 'audio/mpeg',
-    },
-    maxBodyLength: Infinity,
-    timeout: 120000,
-  });
+  console.log(`[heygenService] uploadAudioBuffer: ${audioBuffer.length} bytes, contentType=${contentType}`);
+  let response;
+  try {
+    response = await axios.post('https://upload.heygen.com/v1/asset', audioBuffer, {
+      headers: {
+        'X-Api-Key': apiKey,
+        'Content-Type': contentType,
+      },
+      maxBodyLength: Infinity,
+      timeout: 120000,
+    });
+  } catch (err: any) {
+    console.error('[heygenService] uploadAudioBuffer failed:', err?.response?.status, JSON.stringify(err?.response?.data).slice(0, 500));
+    throw err;
+  }
   const data = response.data?.data || {};
   console.log('[heygenService] uploadAudioBuffer response:', JSON.stringify(data).slice(0, 500));
   const assetId = data.id || data.asset_id || '';

@@ -100,9 +100,9 @@ export async function uploadAudio(req: AuthRequest, res: Response): Promise<void
     audioBuffer = fs.readFileSync(file.path);
   }
 
-  // Upload to HeyGen
+  // Upload to HeyGen — force audio/mpeg for compatibility (HeyGen rejects webm)
   const heygenKey = (await getUserApiKey(req.user!.id, 'heygenApi')) || undefined;
-  const { assetId, hostedUrl } = await uploadAudioBufferToHeygen(audioBuffer, heygenKey);
+  const { assetId, hostedUrl } = await uploadAudioBufferToHeygen(audioBuffer, heygenKey, 'audio/mpeg');
 
   const audioUrl = hostedUrl || `heygen-asset:${assetId}`;
 

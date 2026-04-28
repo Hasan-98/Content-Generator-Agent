@@ -191,7 +191,8 @@ export default function VideoScriptCreator() {
   }
 
   function handleRecordingComplete(blob: Blob) {
-    const file = new File([blob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+    const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('webm') ? 'webm' : 'audio';
+    const file = new File([blob], `recording-${Date.now()}.${ext}`, { type: blob.type });
     handleUploadAudioFile(file);
   }
 
@@ -851,18 +852,17 @@ export default function VideoScriptCreator() {
                     <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsPattern')}</span>
                     <div className="grid grid-cols-4 gap-2 mt-1">
                       {[
-                        { id: 'formal',    label: 'Formal',    desc: t('vsPatternFormalDesc'),    active: true },
-                        { id: 'casual',    label: 'Casual',    desc: t('vsPatternCasualDesc'),    active: false },
-                        { id: 'minimal',   label: 'Minimal',   desc: t('vsPatternMinimalDesc'),   active: false },
-                        { id: 'corporate', label: 'Corporate', desc: t('vsPatternCorporateDesc'), active: false },
+                        { id: 'formal',    label: 'Formal',    desc: t('vsPatternFormalDesc') },
+                        { id: 'casual',    label: 'Casual',    desc: t('vsPatternCasualDesc') },
+                        { id: 'minimal',   label: 'Minimal',   desc: t('vsPatternMinimalDesc') },
+                        { id: 'corporate', label: 'Corporate', desc: t('vsPatternCorporateDesc') },
                       ].map((p) => (
                         <button
                           key={p.id}
-                          onClick={() => p.active && handleUpdateSettings({ pattern: p.id })}
-                          disabled={!p.active}
+                          onClick={() => handleUpdateSettings({ pattern: p.id })}
                           className={`rounded-lg border-2 p-2 transition-all text-left ${
                             selectedScript.pattern === p.id ? 'border-aB ring-1 ring-aB' : 'border-bd hover:border-aB/50'
-                          } ${!p.active ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          }`}
                           title={p.desc}
                         >
                           <div className="text-[11px] text-t1 font-semibold mb-0.5">{p.label}</div>

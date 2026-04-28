@@ -17,7 +17,10 @@ export default function VoiceRecorder({ onRecordingComplete, disabled }: Props) 
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      // Prefer mp4/m4a (HeyGen-compatible), fall back to webm
+      const preferredTypes = ['audio/mp4', 'audio/mpeg', 'audio/aac', 'audio/webm;codecs=opus', 'audio/webm'];
+      const mimeType = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -26,7 +29,7 @@ export default function VoiceRecorder({ onRecordingComplete, disabled }: Props) 
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         onRecordingComplete(blob);
         stream.getTracks().forEach((track) => track.stop());
       };

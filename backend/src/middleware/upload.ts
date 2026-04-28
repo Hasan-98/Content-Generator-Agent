@@ -35,9 +35,9 @@ export const uploadAvatarFile = multer({
   },
 });
 
-/** Accept audio up to 25 MB */
+/** Accept audio up to 25 MB in memory (no disk — uploaded directly to HeyGen) */
 export const uploadAudio = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('audio/') || file.mimetype === 'application/octet-stream') cb(null, true);
