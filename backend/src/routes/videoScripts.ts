@@ -9,7 +9,7 @@ import {
   setSectionBackground,
   deleteVideoScript,
 } from '../controllers/videoScriptController';
-import { generateTts, uploadAudio } from '../controllers/ttsController';
+import { generateTts, uploadAudio, voicePreview } from '../controllers/ttsController';
 import {
   listAvatars,
   updateVideoSettings,
@@ -30,6 +30,7 @@ router.use(authenticate);
 router.get('/', listVideoScripts);
 router.get('/avatars', listAvatars);
 router.post('/generate', generateVideoScriptHandler);
+router.post('/voice-preview', voicePreview);
 router.patch('/sections/:id', updateVideoScriptSection);
 router.post('/sections/:id/generate-image', generateSectionImage);
 router.post('/sections/:id/search-backgrounds', searchSectionBackgrounds);

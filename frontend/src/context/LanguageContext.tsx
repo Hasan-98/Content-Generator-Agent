@@ -731,6 +731,9 @@ const en = {
   heygenAvatarApiMissingTitle: 'HeyGen API Key Required',
   heygenAvatarApiMissingDesc: 'Please configure your HeyGen API key in Settings before creating an avatar.',
   heygenAvatarOpenSettings: 'Open Settings',
+  voicePreviewFailed: 'Failed to preview voice',
+  vsVoiceMale: 'Male',
+  vsVoiceFemale: 'Female',
 } as const;
 
 type TKey = keyof typeof en;
@@ -1463,6 +1466,9 @@ const ja: Record<TKey, string> = {
   heygenAvatarApiMissingTitle: 'HeyGen APIキーが必要です',
   heygenAvatarApiMissingDesc: 'アバターを作成する前に、設定でHeyGen APIキーを設定してください。',
   heygenAvatarOpenSettings: '設定を開く',
+  voicePreviewFailed: '音声プレビューに失敗しました',
+  vsVoiceMale: '男性',
+  vsVoiceFemale: '女性',
 };
 
 const translations: Record<Lang, Record<TKey, string>> = { en, ja };

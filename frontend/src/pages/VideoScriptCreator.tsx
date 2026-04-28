@@ -7,7 +7,7 @@ import {
   generateTtsApi, uploadCustomAudio, listTtsDictionary, addTtsDictionaryEntry, deleteTtsDictionaryEntry,
   generateHeygenVideoApi, checkHeygenStatusApi,
   generateRemotionVideoApi, checkRemotionStatusApi, buildVideoPreviewApi,
-  listAvatarsApi, updateVideoSettingsApi, generateSectionImageApi,
+  listAvatarsApi, updateVideoSettingsApi, generateSectionImageApi, previewVoiceApi,
 } from '../api/videoScripts';
 import { IMEInput, IMETextarea } from '../components/common/IMEInput';
 import VoiceRecorder from '../components/common/VoiceRecorder';
@@ -28,18 +28,23 @@ const VISUAL_TYPE_CONFIG: Record<string, { color: string; icon: string; label: s
   split:   { color: '#bc8cff', icon: '◧', label: 'Split' },
 };
 
-const TTS_VOICES = [
-  { id: 'alloy',   label: 'Alloy',   desc: 'Neutral, balanced' },
+const MALE_VOICES = [
   { id: 'ash',     label: 'Ash',     desc: 'Warm, conversational' },
   { id: 'ballad',  label: 'Ballad',  desc: 'Expressive, dramatic' },
-  { id: 'coral',   label: 'Coral',   desc: 'Smooth, clear' },
   { id: 'echo',    label: 'Echo',    desc: 'Soft, gentle' },
+  { id: 'onyx',    label: 'Onyx',    desc: 'Deep, authoritative' },
+] as const;
+
+const FEMALE_VOICES = [
+  { id: 'alloy',   label: 'Alloy',   desc: 'Neutral, balanced' },
+  { id: 'coral',   label: 'Coral',   desc: 'Smooth, clear' },
   { id: 'fable',   label: 'Fable',   desc: 'Story-like, warm' },
   { id: 'nova',    label: 'Nova',    desc: 'Energetic, bright' },
-  { id: 'onyx',    label: 'Onyx',    desc: 'Deep, authoritative' },
   { id: 'sage',    label: 'Sage',    desc: 'Wise, calm' },
   { id: 'shimmer', label: 'Shimmer', desc: 'Light, friendly' },
 ] as const;
+
+const TTS_VOICES = [...MALE_VOICES, ...FEMALE_VOICES] as const;
 
 const AUDIO_STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
   pending:    { color: '#8b949e', labelKey: 'vsStatusPending' },
@@ -95,6 +100,9 @@ export default function VideoScriptCreator() {
   const [dictEntries, setDictEntries] = useState<TtsDictionary[]>([]);
   const [newKanji, setNewKanji] = useState('');
   const [newReading, setNewReading] = useState('');
+  // Voice preview
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   // Section image generation
   const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
   const [imagePromptValues, setImagePromptValues] = useState<Record<string, string>>({});
@@ -289,6 +297,31 @@ export default function VideoScriptCreator() {
       updateScriptInState(updated);
     } catch {
       toast.error(t('settingsSaveFailed'));
+    }
+  }
+
+  async function handleVoicePreview(voiceId: string) {
+    if (previewingVoice) return;
+    // Stop any playing preview
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      URL.revokeObjectURL(previewAudioRef.current.src);
+      previewAudioRef.current = null;
+    }
+    setPreviewingVoice(voiceId);
+    try {
+      const blobUrl = await previewVoiceApi(voiceId);
+      const audio = new Audio(blobUrl);
+      previewAudioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(blobUrl);
+        previewAudioRef.current = null;
+        setPreviewingVoice(null);
+      };
+      await audio.play();
+    } catch {
+      toast.error(t('voicePreviewFailed'));
+      setPreviewingVoice(null);
     }
   }
 
@@ -593,74 +626,6 @@ export default function VideoScriptCreator() {
                   )}
                 </div>
 
-                {/* Voice Selector */}
-                <div>
-                  <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsVoice')}</span>
-                  <div className="grid grid-cols-5 gap-2 mt-1">
-                    {TTS_VOICES.map((v) => (
-                      <button
-                        key={v.id}
-                        onClick={() => handleUpdateSettings({ voice: v.id })}
-                        className={`rounded-lg border-2 p-1.5 transition-all text-left ${
-                          selectedScript.voice === v.id ? 'border-aP ring-1 ring-aP' : 'border-bd hover:border-aP/50'
-                        }`}
-                        title={v.desc}
-                      >
-                        <div className="text-[11px] text-t1 font-semibold">{v.label}</div>
-                        <div className="text-[9px] text-tM leading-tight truncate">{v.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Theme Selector */}
-                <div>
-                  <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsTheme')}</span>
-                  <div className="grid grid-cols-5 gap-2 mt-1">
-                    {THEMES.map((th) => (
-                      <button
-                        key={th.id}
-                        onClick={() => handleUpdateSettings({ theme: th.id })}
-                        className={`rounded-lg border-2 p-2 transition-all text-left ${
-                          selectedScript.theme === th.id ? 'border-aB ring-1 ring-aB' : 'border-bd hover:border-aB/50'
-                        }`}
-                        title={th.desc}
-                      >
-                        <div className="flex gap-1 mb-1">
-                          <span className="w-4 h-4 rounded-sm" style={{ backgroundColor: th.colors[0] }} />
-                          <span className="w-4 h-4 rounded-sm" style={{ backgroundColor: th.colors[1] }} />
-                        </div>
-                        <span className="text-[9px] text-t2 leading-tight block truncate">{th.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Pattern Selector (WF4b) */}
-                <div>
-                  <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsPattern')}</span>
-                  <div className="grid grid-cols-4 gap-2 mt-1">
-                    {[
-                      { id: 'formal',    label: 'Formal',    desc: t('vsPatternFormalDesc'),    active: true },
-                      { id: 'casual',    label: 'Casual',    desc: t('vsPatternCasualDesc'),    active: false },
-                      { id: 'minimal',   label: 'Minimal',   desc: t('vsPatternMinimalDesc'),   active: false },
-                      { id: 'corporate', label: 'Corporate', desc: t('vsPatternCorporateDesc'), active: false },
-                    ].map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => p.active && handleUpdateSettings({ pattern: p.id })}
-                        disabled={!p.active}
-                        className={`rounded-lg border-2 p-2 transition-all text-left ${
-                          selectedScript.pattern === p.id ? 'border-aB ring-1 ring-aB' : 'border-bd hover:border-aB/50'
-                        } ${!p.active ? 'opacity-40 cursor-not-allowed' : ''}`}
-                        title={p.desc}
-                      >
-                        <div className="text-[11px] text-t1 font-semibold mb-0.5">{p.label}</div>
-                        <div className="text-[9px] text-tM leading-tight line-clamp-2">{p.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -669,22 +634,68 @@ export default function VideoScriptCreator() {
               <div className="space-y-3 mb-4">
                 {/* Step 1: TTS Audio */}
                 <div className="bg-bg1 border border-bd rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-aP/20 text-aP flex items-center justify-center text-[10px] font-bold">1</span>
-                      <div>
-                        <span className="text-xs font-semibold text-t1">{t('ttsAudioTitle')}</span>
-                        <div className="mt-0.5">
-                          {(() => {
-                            const st = AUDIO_STATUS_CONFIG[selectedScript.audioStatus] || AUDIO_STATUS_CONFIG.pending;
-                            return <span className="text-[10px]" style={{ color: st.color }}>{t(st.labelKey as any)}</span>;
-                          })()}
-                        </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-aP/20 text-aP flex items-center justify-center text-[10px] font-bold">1</span>
+                    <div>
+                      <span className="text-xs font-semibold text-t1">{t('ttsAudioTitle')}</span>
+                      <div className="mt-0.5">
+                        {(() => {
+                          const st = AUDIO_STATUS_CONFIG[selectedScript.audioStatus] || AUDIO_STATUS_CONFIG.pending;
+                          return <span className="text-[10px]" style={{ color: st.color }}>{t(st.labelKey as any)}</span>;
+                        })()}
                       </div>
                     </div>
-                    <button onClick={handleGenerateTts} disabled={generatingTts || uploadingAudio} className="px-4 py-1.5 text-xs bg-aP text-white rounded hover:bg-aP/80 transition-colors disabled:opacity-50">
-                      {generatingTts ? t('ttsGenerating') : selectedScript.audioUrl ? t('ttsRegenerate') : t('ttsGenerate')}
-                    </button>
+                  </div>
+
+                  {/* Voice Selector */}
+                  <div className="mt-3 pt-3 border-t border-bd">
+                    <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsVoice')}</span>
+
+                    <div className="text-[9px] text-tM uppercase tracking-wider mt-2 mb-1">{t('vsVoiceMale')}</div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {MALE_VOICES.map((v) => (
+                        <button
+                          key={v.id}
+                          disabled={!!previewingVoice}
+                          onClick={() => { handleUpdateSettings({ voice: v.id }); handleVoicePreview(v.id); }}
+                          className={`rounded-lg border-2 p-1.5 transition-all text-left disabled:opacity-70 ${
+                            selectedScript.voice === v.id ? 'border-aP ring-1 ring-aP' : 'border-bd hover:border-aP/50'
+                          }`}
+                          title={v.desc}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="text-[11px] text-t1 font-semibold">{v.label}</div>
+                            {previewingVoice === v.id && (
+                              <span className="text-[9px] text-aP animate-pulse">...</span>
+                            )}
+                          </div>
+                          <div className="text-[9px] text-tM leading-tight truncate">{v.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="text-[9px] text-tM uppercase tracking-wider mt-3 mb-1">{t('vsVoiceFemale')}</div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {FEMALE_VOICES.map((v) => (
+                        <button
+                          key={v.id}
+                          disabled={!!previewingVoice}
+                          onClick={() => { handleUpdateSettings({ voice: v.id }); handleVoicePreview(v.id); }}
+                          className={`rounded-lg border-2 p-1.5 transition-all text-left disabled:opacity-70 ${
+                            selectedScript.voice === v.id ? 'border-aP ring-1 ring-aP' : 'border-bd hover:border-aP/50'
+                          }`}
+                          title={v.desc}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="text-[11px] text-t1 font-semibold">{v.label}</div>
+                            {previewingVoice === v.id && (
+                              <span className="text-[9px] text-aP animate-pulse">...</span>
+                            )}
+                          </div>
+                          <div className="text-[9px] text-tM leading-tight truncate">{v.desc}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Custom audio: record or upload */}
@@ -717,11 +728,14 @@ export default function VideoScriptCreator() {
                     )}
                   </div>
 
-                  {selectedScript.audioUrl && selectedScript.audioStatus === 'done' && (
-                    <div className="mt-3">
-                      <audio controls className="w-full h-8" src={selectedScript.audioUrl.startsWith('http') ? selectedScript.audioUrl : `${apiBaseUrl}${selectedScript.audioUrl}`} />
-                    </div>
-                  )}
+                  <div className="mt-3 pt-3 border-t border-bd flex items-center gap-3">
+                    {selectedScript.audioUrl && selectedScript.audioStatus === 'done' && (
+                      <audio controls className="flex-1 h-8" src={selectedScript.audioUrl.startsWith('http') ? selectedScript.audioUrl : `${apiBaseUrl}${selectedScript.audioUrl}`} />
+                    )}
+                    <button onClick={handleGenerateTts} disabled={generatingTts || uploadingAudio} className="px-4 py-1.5 text-xs bg-aP text-white rounded hover:bg-aP/80 transition-colors disabled:opacity-50 shrink-0">
+                      {generatingTts ? t('ttsGenerating') : selectedScript.audioUrl ? t('ttsRegenerate') : t('ttsGenerate')}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Step 2: HeyGen Avatar Video */}
@@ -810,6 +824,55 @@ export default function VideoScriptCreator() {
                       </button>
                     </div>
                   </div>
+                  {/* Theme Selector */}
+                  <div className="mt-3 pt-3 border-t border-bd">
+                    <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsTheme')}</span>
+                    <div className="grid grid-cols-5 gap-2 mt-1">
+                      {THEMES.map((th) => (
+                        <button
+                          key={th.id}
+                          onClick={() => handleUpdateSettings({ theme: th.id })}
+                          className={`rounded-lg border-2 p-2 transition-all text-left ${
+                            selectedScript.theme === th.id ? 'border-aB ring-1 ring-aB' : 'border-bd hover:border-aB/50'
+                          }`}
+                          title={th.desc}
+                        >
+                          <div className="flex gap-1 mb-1">
+                            <span className="w-4 h-4 rounded-sm" style={{ backgroundColor: th.colors[0] }} />
+                            <span className="w-4 h-4 rounded-sm" style={{ backgroundColor: th.colors[1] }} />
+                          </div>
+                          <span className="text-[9px] text-t2 leading-tight block truncate">{th.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pattern Selector */}
+                  <div className="mt-3 pt-3 border-t border-bd">
+                    <span className="text-[10px] text-tM uppercase tracking-wider">{t('vsPattern')}</span>
+                    <div className="grid grid-cols-4 gap-2 mt-1">
+                      {[
+                        { id: 'formal',    label: 'Formal',    desc: t('vsPatternFormalDesc'),    active: true },
+                        { id: 'casual',    label: 'Casual',    desc: t('vsPatternCasualDesc'),    active: false },
+                        { id: 'minimal',   label: 'Minimal',   desc: t('vsPatternMinimalDesc'),   active: false },
+                        { id: 'corporate', label: 'Corporate', desc: t('vsPatternCorporateDesc'), active: false },
+                      ].map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => p.active && handleUpdateSettings({ pattern: p.id })}
+                          disabled={!p.active}
+                          className={`rounded-lg border-2 p-2 transition-all text-left ${
+                            selectedScript.pattern === p.id ? 'border-aB ring-1 ring-aB' : 'border-bd hover:border-aB/50'
+                          } ${!p.active ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          title={p.desc}
+                        >
+                          <div className="text-[11px] text-t1 font-semibold mb-0.5">{p.label}</div>
+                          <div className="text-[9px] text-tM leading-tight line-clamp-2">{p.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {selectedScript.remotionVideoUrl && selectedScript.remotionStatus === 'done' && (
                     <div className="mt-3 flex items-center gap-3">
                       <a href={selectedScript.remotionVideoUrl} target="_blank" rel="noreferrer" className="px-4 py-2 text-xs bg-aG text-white rounded hover:bg-aG/80 transition-colors inline-flex items-center gap-2">

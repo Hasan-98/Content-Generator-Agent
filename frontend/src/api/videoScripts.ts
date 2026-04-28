@@ -47,6 +47,15 @@ export async function deleteVideoScript(id: string): Promise<void> {
   await client.delete(`/video-scripts/${id}`);
 }
 
+// Voice preview
+export async function previewVoiceApi(voice: string): Promise<string> {
+  const res = await client.post('/video-scripts/voice-preview', { voice }, {
+    responseType: 'blob',
+    timeout: 30000,
+  });
+  return URL.createObjectURL(res.data);
+}
+
 // Avatars
 export async function listAvatarsApi(): Promise<HeygenAvatar[]> {
   const res = await client.get('/video-scripts/avatars');

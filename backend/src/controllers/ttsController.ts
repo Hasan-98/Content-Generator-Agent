@@ -119,6 +119,31 @@ export async function uploadAudio(req: AuthRequest, res: Response): Promise<void
   res.json(updated);
 }
 
+// POST /api/video-scripts/voice-preview — generate a short voice sample
+export async function voicePreview(req: AuthRequest, res: Response): Promise<void> {
+  const { voice } = req.body;
+  if (!voice || !TTS_VOICES.includes(voice as TtsVoice)) {
+    res.status(400).json({ error: 'Invalid voice' });
+    return;
+  }
+
+  const openaiKey = (await getUserApiKey(req.user!.id, 'openaiApi')) || undefined;
+
+  try {
+    const sampleText = 'こんにちは、この声で動画のナレーションを作成します。いかがでしょうか。';
+    const audioBuffer = await generateTtsAudio(sampleText, 'preview', openaiKey, voice as TtsVoice);
+
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': audioBuffer.length.toString(),
+      'Cache-Control': 'public, max-age=86400',
+    });
+    res.send(audioBuffer);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Voice preview failed' });
+  }
+}
+
 // --- TTS Dictionary CRUD ---
 
 // GET /api/tts-dictionary — list all dictionary entries for user
