@@ -44,7 +44,6 @@ const FEMALE_VOICES = [
   { id: 'shimmer', label: 'Shimmer', desc: 'Light, friendly' },
 ] as const;
 
-const TTS_VOICES = [...MALE_VOICES, ...FEMALE_VOICES] as const;
 
 const AUDIO_STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
   pending:    { color: '#8b949e', labelKey: 'vsStatusPending' },
