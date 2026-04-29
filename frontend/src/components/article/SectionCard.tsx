@@ -121,13 +121,25 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
   }
 
   return (
-    <div className="rounded-lg border border-bd bg-bg1 overflow-hidden mb-3">
-      {/* Header */}
+    <div className={`bg-bg0 border rounded-lg overflow-hidden mb-3 transition-all ${
+      collapsed ? 'border-bd' : 'border-aB/40 shadow-[0_0_0_1px_rgba(88,166,255,0.05)]'
+    }`}>
+      {/* Header — matches Topic keyword card header style */}
       <div
-        className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-bg2 transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-2 cursor-pointer hover:bg-bg2 transition-colors group"
         onClick={() => setCollapsed(!collapsed)}
       >
-        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: `${color}22`, color }}>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className={`w-4 h-4 text-tM shrink-0 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+
+        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ background: `${color}22`, color }}>
           {typeLabel}
         </span>
 
@@ -142,11 +154,11 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
               if (e.key === 'Escape') { setEditingHeading(false); setHeadingDraft(section.heading); }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 text-sm text-t1 font-medium bg-bg0 border border-aB rounded px-2 py-0.5 focus:outline-none"
+            className="flex-1 text-xs text-t1 font-medium bg-bg1 border border-aB rounded px-2 py-0.5 focus:outline-none"
           />
         ) : (
           <span
-            className="text-sm text-t1 font-medium flex-1 truncate cursor-text hover:text-aB transition-colors"
+            className="flex-1 text-xs font-medium text-t1 truncate cursor-text hover:text-aB transition-colors"
             onClick={startEditingHeading}
             title={t('sectionHeadingClickToEdit')}
           >
@@ -154,8 +166,8 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
           </span>
         )}
 
-        {/* Save status indicator */}
-        <span className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+        {/* Save status badge */}
+        <span className={`text-[9px] px-1.5 py-0.5 rounded-full shrink-0 ${
           saveStatus === 'saved' ? 'bg-aG/15 text-aG' :
           saveStatus === 'saving' ? 'bg-aO/15 text-aO' :
           'bg-aR/15 text-aR'
@@ -169,7 +181,7 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
         <button
           onClick={(e) => { e.stopPropagation(); handleHeadingRegen(); }}
           disabled={headingLoading}
-          className="p-1 rounded hover:bg-bg2 text-tM hover:text-aP disabled:opacity-50 transition-colors"
+          className="hidden group-hover:flex w-5 h-5 items-center justify-center rounded text-tM hover:bg-aP/15 hover:text-aP disabled:opacity-50 transition-colors border-0 bg-transparent"
           title={t('sectionHeadingRegenBtn')}
         >
           {headingLoading ? (
@@ -183,87 +195,105 @@ export default function SectionCard({ section, onRegenerate, onContentChange, on
             </svg>
           )}
         </button>
-
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className={`w-4 h-4 text-tM transition-transform ${collapsed ? '-rotate-90' : ''}`}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
       </div>
 
+      {/* Expandable body — matches Topic keyword card body style */}
       {!collapsed && (
-        <div className="px-4 pb-4 border-t border-bd/50">
-          {/* Content textarea */}
-          <IMETextarea
-            value={localContent}
-            onValueChange={(val) => {
-              setLocalContent(val);
-              debouncedContentChange(val);
-            }}
-            rows={expanded ? undefined : 4}
-            className="w-full mt-3 bg-bg0 border border-bd rounded-lg px-3 py-2 text-xs text-t1 focus:outline-none focus:border-aB transition-colors"
-            style={{ minHeight: expanded ? 200 : 80, height: expanded ? 'auto' : undefined, resize: expanded ? 'vertical' : 'none' }}
-          />
-
-          {/* Expand/Collapse toggle */}
-          <div className="flex justify-end mt-1">
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-[10px] text-tM hover:text-aB transition-colors"
-            >
-              {expanded ? t('sectionCollapseBtn') : t('sectionExpandBtn')}
-            </button>
+        <div className="px-2.5 pb-2.5 space-y-2">
+          {/* Content field with label */}
+          <div className="space-y-1">
+            <label className="flex items-center gap-1.5 text-tM text-[10px] font-mono uppercase tracking-wider">
+              {t('sectionContentLabel') || 'CONTENT'}
+              <span className="text-[8px] px-1 rounded bg-aB/15 text-aB normal-case tracking-normal">
+                {localContent.length.toLocaleString()} 文字
+              </span>
+            </label>
+            <IMETextarea
+              value={localContent}
+              onValueChange={(val) => {
+                setLocalContent(val);
+                debouncedContentChange(val);
+              }}
+              rows={expanded ? undefined : 4}
+              className="w-full bg-bg1 border border-bd rounded px-2 py-1.5 text-t1 text-xs focus:outline-none focus:border-aB transition-colors leading-relaxed"
+              style={{ minHeight: expanded ? 200 : 80, height: expanded ? 'auto' : undefined, resize: expanded ? 'vertical' : 'none' }}
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-[10px] text-tM hover:text-aB transition-colors"
+              >
+                {expanded ? t('sectionCollapseBtn') : t('sectionExpandBtn')}
+              </button>
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 mt-1">
+          {/* Action buttons — gradient primary button like Topic generate */}
+          <div className="flex gap-1.5">
             <button
               onClick={() => handleRegen(false)}
               disabled={loading}
-              className="text-xs px-3 py-1.5 rounded border border-aP/50 text-aP hover:bg-aP/10 disabled:opacity-50 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-semibold text-white bg-gradient-to-r from-aB to-aP hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(88,166,255,0.3)] active:translate-y-0"
             >
-              {loading ? t('detailRegenerating') : t('sectionRegenBtn')}
-            </button>
-            <button
-              onClick={() => setShowInstruction(!showInstruction)}
-              className="text-xs px-3 py-1.5 rounded border border-bd text-t2 hover:border-t2 hover:text-t1 transition-colors"
-            >
-              {t('sectionRegenWithInstruction')}
+              {loading ? (
+                <><span className="animate-spin inline-block">⟳</span> {t('detailRegenerating')}</>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path d="M1 4v6h6M23 20v-6h-6" />
+                    <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+                  </svg>
+                  {t('sectionRegenBtn')}
+                </>
+              )}
             </button>
             {/* Save button */}
             <button
               onClick={handleManualSave}
               disabled={saveStatus !== 'unsaved'}
-              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+              className={`px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
                 saveStatus === 'unsaved'
-                  ? 'border-aG/50 text-aG hover:bg-aG/10'
-                  : 'border-bd text-tM cursor-default opacity-50'
+                  ? 'text-aG bg-aG/10 hover:bg-aG/20 border border-aG/30'
+                  : 'text-tM bg-bg2 border border-bd opacity-50 cursor-default'
               }`}
             >
               {t('sectionSaveBtn')}
             </button>
           </div>
 
+          {/* Instruction regen — secondary button like Topic view results */}
+          <button
+            onClick={() => setShowInstruction(!showInstruction)}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] text-t1 bg-bg2 border border-bd hover:bg-bg2 transition-colors cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            {t('sectionRegenWithInstruction')}
+          </button>
+
           {showInstruction && (
-            <div className="mt-2 flex gap-2">
-              <IMEInput
-                value={instruction}
-                onValueChange={setInstruction}
-                placeholder={t('sectionInstructionPlaceholder')}
-                className="flex-1 bg-bg0 border border-bd rounded px-2 py-1.5 text-xs text-t1 focus:outline-none focus:border-aB"
-                onKeyDown={(e) => { if (e.key === 'Enter' && !loading) handleRegen(true); }}
-              />
-              <button
-                onClick={() => handleRegen(true)}
-                disabled={loading || !instruction.trim()}
-                className="text-xs px-3 py-1.5 rounded bg-aP/20 text-aP hover:bg-aP/30 disabled:opacity-50 transition-colors"
-              >
-                実行
-              </button>
+            <div className="space-y-1">
+              <label className="block text-tM text-[10px] font-mono uppercase tracking-wider">
+                {t('sectionInstructionPlaceholder')}
+              </label>
+              <div className="flex gap-1.5">
+                <IMEInput
+                  value={instruction}
+                  onValueChange={setInstruction}
+                  placeholder={t('sectionInstructionPlaceholder')}
+                  className="flex-1 bg-bg1 border border-bd rounded px-2 py-1.5 text-xs text-t1 focus:outline-none focus:border-aB transition-colors"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !loading) handleRegen(true); }}
+                />
+                <button
+                  onClick={() => handleRegen(true)}
+                  disabled={loading || !instruction.trim()}
+                  className="px-2.5 py-1.5 rounded-md text-[11px] font-semibold text-white bg-gradient-to-r from-aP to-aB hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+                >
+                  実行
+                </button>
+              </div>
             </div>
           )}
         </div>
