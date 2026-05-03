@@ -1,8 +1,13 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { ARTICLE_BASE_PROMPT_SUMMARY } from '../services/claudeService';
 
 const prisma = new PrismaClient();
+
+export async function getBasePrompt(_req: AuthRequest, res: Response): Promise<void> {
+  res.json({ content: ARTICLE_BASE_PROMPT_SUMMARY });
+}
 
 export async function listPromptTemplates(req: AuthRequest, res: Response): Promise<void> {
   const templates = await prisma.promptTemplate.findMany({

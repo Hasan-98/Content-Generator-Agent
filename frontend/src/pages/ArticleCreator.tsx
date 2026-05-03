@@ -7,8 +7,9 @@ import { generateImagesBulk } from '../api/generate';
 import { getArticle, updateImage } from '../api/articles';
 import { updateResult } from '../api/results';
 import { IMEInput } from '../components/common/IMEInput';
-import { listPromptTemplates, type PromptTemplate } from '../api/promptTemplates';
+import { listPromptTemplates } from '../api/promptTemplates';
 import PromptTemplatesModal from '../components/modals/PromptTemplatesModal';
+import PromptPicker from '../components/article/PromptPicker';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import ArticleTree from '../components/article/ArticleTree';
@@ -36,19 +37,51 @@ export default function ArticleCreator() {
   const [regeneratingTitle, setRegeneratingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
-  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [promptTplModalOpen, setPromptTplModalOpen] = useState(false);
+  const [promptPickerRefresh, setPromptPickerRefresh] = useState(0);
+  const [regenPickerOpen, setRegenPickerOpen] = useState(false);
+  const [regenTemplateId, setRegenTemplateId] = useState<string>('');
+  const [regeneratingArticle, setRegeneratingArticle] = useState(false);
 
+  // Auto-pick the user's default template (if any) on first load
   useEffect(() => {
     listPromptTemplates()
       .then((tpls) => {
-        setPromptTemplates(tpls);
         const def = tpls.find((p) => p.isDefault);
         if (def) setSelectedTemplateId(def.id);
       })
       .catch(() => { /* silent — feature is optional */ });
-  }, []);
+  }, [promptPickerRefresh]);
+
+  async function handleRegenerateArticle() {
+    if (!selectedResult || !article) return;
+    if (!confirm(t('articleRegenConfirm'))) return;
+    setRegeneratingArticle(true);
+    setRegenPickerOpen(false);
+    toast.loading(t('toastArticleRegenerating'), { id: 'regen-article' });
+    try {
+      const newArticle = await generateArticle(selectedResult.id, regenTemplateId || undefined, true);
+      setArticle(newArticle);
+      setTopLevels(prev =>
+        prev.map(tl => ({
+          ...tl,
+          keywords: tl.keywords.map(kw => ({
+            ...kw,
+            results: kw.results.map(r =>
+              r.id === selectedResult.id ? { ...r, article: newArticle } : r
+            ),
+          })),
+        }))
+      );
+      setSelectedResult(prev => prev ? { ...prev, article: newArticle } : prev);
+      toast.success(t('toastArticleRegenDone'), { id: 'regen-article' });
+    } catch {
+      toast.error(t('toastArticleFailed'), { id: 'regen-article' });
+    } finally {
+      setRegeneratingArticle(false);
+    }
+  }
 
   async function handleCommitTitleEdit() {
     if (!selectedResult) return;
@@ -259,31 +292,14 @@ export default function ArticleCreator() {
               <div className="text-sm text-t2 mb-2">{selectedResult.title}</div>
               <p className="text-xs text-tM mb-4">記事がまだ生成されていません</p>
 
-              {/* Prompt template selector */}
-              <div className="w-full max-w-md mb-4 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-tM text-[10px] font-mono uppercase tracking-wider">
-                    {t('promptTplPickLabel')}
-                  </label>
-                  <button
-                    onClick={() => setPromptTplModalOpen(true)}
-                    className="text-[10px] px-2 py-0.5 rounded border border-bd text-t2 hover:border-aB/50 hover:text-aB transition-colors"
-                  >
-                    {t('promptTplManage')}
-                  </button>
-                </div>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  className="w-full bg-bg1 border border-bd rounded px-2 py-1.5 text-t1 text-xs focus:outline-none focus:border-aB transition-colors"
-                >
-                  <option value="">{t('promptTplPickNone')}</option>
-                  {promptTemplates.map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name}{tpl.isDefault ? ` ★` : ''}
-                    </option>
-                  ))}
-                </select>
+              {/* Prompt template picker — card-based panel */}
+              <div className="w-full max-w-2xl mb-4">
+                <PromptPicker
+                  selectedId={selectedTemplateId}
+                  onSelect={setSelectedTemplateId}
+                  onManage={() => setPromptTplModalOpen(true)}
+                  refreshKey={promptPickerRefresh}
+                />
               </div>
 
               <button
@@ -313,6 +329,8 @@ export default function ArticleCreator() {
               }}
               onNext={() => setPhase('image')}
               onOpenRef={() => setRefResult(selectedResult)}
+              onRegenerateArticle={() => { setRegenTemplateId(selectedTemplateId); setRegenPickerOpen(true); }}
+              regeneratingArticle={regeneratingArticle}
             />
           ) : phase === 'image' ? (
             <div className="flex flex-col h-full overflow-hidden">
@@ -428,17 +446,55 @@ export default function ArticleCreator() {
         <ReferenceModal result={refResult} onClose={() => setRefResult(null)} />
       )}
 
+      {/* Regenerate Article — pick a prompt template before regenerating */}
+      {regenPickerOpen && selectedResult && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setRegenPickerOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="bg-bg1 border border-bd rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-bd shrink-0">
+              <div>
+                <h2 className="text-sm font-semibold text-t1">{t('articleRegenModalTitle')}</h2>
+                <p className="text-[11px] text-aR mt-0.5">{t('articleRegenWarning')}</p>
+              </div>
+              <button onClick={() => setRegenPickerOpen(false)} className="text-tM hover:text-t1 transition-colors text-xl leading-none">×</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              <PromptPicker
+                selectedId={regenTemplateId}
+                onSelect={setRegenTemplateId}
+                onManage={() => { setRegenPickerOpen(false); setPromptTplModalOpen(true); }}
+                refreshKey={promptPickerRefresh}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-bd shrink-0">
+              <button
+                onClick={() => setRegenPickerOpen(false)}
+                className="text-[11px] px-3 py-1.5 rounded border border-bd text-t2 hover:text-t1 transition-colors"
+              >
+                {t('promptTplCancel')}
+              </button>
+              <button
+                onClick={handleRegenerateArticle}
+                disabled={regeneratingArticle}
+                className="text-[11px] px-3 py-1.5 rounded bg-gradient-to-r from-aO to-aR text-white hover:opacity-90 disabled:opacity-50 transition-all font-semibold"
+              >
+                {regeneratingArticle ? t('articleRegenerating') : t('articleRegenConfirmBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Prompt Templates Modal */}
       {promptTplModalOpen && (
         <PromptTemplatesModal
           onClose={() => setPromptTplModalOpen(false)}
           onChanged={(tpls) => {
-            setPromptTemplates(tpls);
-            // If the currently selected template was deleted, fall back
+            // If the currently selected template was deleted, fall back to the new default
             if (selectedTemplateId && !tpls.find((p) => p.id === selectedTemplateId)) {
               const def = tpls.find((p) => p.isDefault);
               setSelectedTemplateId(def?.id || '');
             }
+            setPromptPickerRefresh((n) => n + 1);
           }}
         />
       )}

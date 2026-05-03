@@ -15,9 +15,11 @@ interface Props {
   onResultUpdate: (result: GeneratedResult) => void;
   onNext: () => void;
   onOpenRef: () => void;
+  onRegenerateArticle: () => void;
+  regeneratingArticle: boolean;
 }
 
-export default function ArticleEditor({ article, result, onArticleUpdate, onResultUpdate, onNext, onOpenRef }: Props) {
+export default function ArticleEditor({ article, result, onArticleUpdate, onResultUpdate, onNext, onOpenRef, onRegenerateArticle, regeneratingArticle }: Props) {
   const { t } = useLanguage();
   const [regeneratingTitle, setRegeneratingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -149,6 +151,18 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onResu
             className="text-xs px-3 py-1.5 rounded border border-aP/50 text-aP hover:bg-aP/10 transition-colors"
           >
             {t('articleReferenceBtn')}
+          </button>
+          <button
+            onClick={onRegenerateArticle}
+            disabled={regeneratingArticle}
+            className="text-xs px-3 py-1.5 rounded border border-aO/50 text-aO hover:bg-aO/10 disabled:opacity-50 transition-colors font-medium flex items-center gap-1.5"
+            title={t('articleRegenTooltip')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`w-3 h-3 ${regeneratingArticle ? 'animate-spin' : ''}`}>
+              <path d="M1 4v6h6M23 20v-6h-6" />
+              <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+            </svg>
+            {regeneratingArticle ? t('articleRegenerating') : t('articleRegenBtn')}
           </button>
           <button
             onClick={onNext}

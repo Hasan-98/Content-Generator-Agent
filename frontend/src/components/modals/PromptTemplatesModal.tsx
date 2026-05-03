@@ -6,6 +6,7 @@ import {
   createPromptTemplate,
   updatePromptTemplate,
   deletePromptTemplate,
+  getBasePrompt,
 } from '../../api/promptTemplates';
 import type { PromptTemplate } from '../../api/promptTemplates';
 import { IMEInput, IMETextarea } from '../common/IMEInput';
@@ -18,6 +19,8 @@ interface Props {
 export default function PromptTemplatesModal({ onClose, onChanged }: Props) {
   const { t } = useLanguage();
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [basePrompt, setBasePrompt] = useState('');
+  const [showBase, setShowBase] = useState(true);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PromptTemplate | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -30,6 +33,7 @@ export default function PromptTemplatesModal({ onClose, onChanged }: Props) {
       .then(setTemplates)
       .catch(() => toast.error(t('promptTplLoadFailed')))
       .finally(() => setLoading(false));
+    getBasePrompt().then(({ content }) => setBasePrompt(content)).catch(() => { /* silent */ });
   }, []);
 
   function notifyChange(next: PromptTemplate[]) {
@@ -160,9 +164,39 @@ export default function PromptTemplatesModal({ onClose, onChanged }: Props) {
           {/* Editor */}
           <div className="flex-1 overflow-y-auto p-5">
             {!editing ? (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <div className="text-3xl mb-3">📝</div>
-                <p className="text-sm text-tM">{t('promptTplPickPrompt')}</p>
+              <div className="space-y-3">
+                {/* Base prompt — read-only reference */}
+                <div className="rounded-lg border border-aP/30 bg-aP/5 overflow-hidden">
+                  <button
+                    onClick={() => setShowBase(!showBase)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-aP/10 transition-colors"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-aP shrink-0">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span className="flex-1 text-[11px] font-semibold text-aP">{t('promptTplBaseTitle')}</span>
+                    <span className="text-[9px] text-aP/70 uppercase tracking-wider">{t('promptTplBaseReadonly')}</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className={`w-3.5 h-3.5 text-aP/70 transition-transform ${showBase ? '' : '-rotate-90'}`}
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  {showBase && (
+                    <div className="px-3 pb-3 pt-1 max-h-72 overflow-y-auto">
+                      <pre className="text-[10px] text-t2 leading-relaxed whitespace-pre-wrap font-mono">{basePrompt || t('appLoading')}</pre>
+                    </div>
+                  )}
+                </div>
+                <div className="text-center pt-4">
+                  <p className="text-sm text-tM">{t('promptTplPickPrompt')}</p>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

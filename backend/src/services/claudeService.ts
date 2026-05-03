@@ -187,6 +187,44 @@ Output ONLY the new value as plain text (no JSON wrapper, no quotes).`;
   return text.trim() || currentValue;
 }
 
+/**
+ * Human-readable summary of the base article-generation prompt.
+ * Shown in the prompt-templates UI so users can see what their custom
+ * instructions are being added on top of.
+ */
+export const ARTICLE_BASE_PROMPT_SUMMARY = `# Base prompt — applied to every article
+
+**Role**: Expert Japanese blog writer and SEO specialist.
+
+**Inputs used automatically**:
+- Target keyword
+- Article title
+- Demographic and personas
+- 8-section structure guidance (intro, nayami, point×3, common, cta, matome)
+
+**Length requirement**:
+- Each section: 1,500–2,500 Japanese characters
+- Total article: 12,000–20,000 characters
+
+**Writing style**:
+1. Journalist-quality depth — no surface-level summaries
+2. 2–3 specific examples / statistics / data points per section (with concrete numbers)
+3. "point" sections: detailed step-by-step, real scenarios, actionable tips
+4. "nayami" sections: empathize with reader pain points, validate feelings
+5. "common" sections: address 3–4 misconceptions with corrections
+6. "intro": hook the reader, preview the article
+7. "matome": recap key takeaways with action items
+8. Natural conversational Japanese — like advice from a knowledgeable friend
+9. Naturally incorporate the keyword + related terms for SEO
+10. 4–6 paragraphs per section, separated by \\n\\n
+11. Concrete language — avoid 「様々な」「いろいろな」「たくさんの」
+
+**Output format**: JSON array of 8 sections (intro, nayami, point, point, point, common, cta, matome).
+
+---
+
+Your custom instructions below will be appended to the base prompt above and followed in addition to all rules.`;
+
 export async function generateArticle(result: {
   keywordText: string;
   title: string;

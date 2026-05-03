@@ -143,7 +143,7 @@ export async function regenerateFieldHandler(req: AuthRequest, res: Response): P
 
 // STEP A — Generate article sections and image scaffolding
 export async function generateArticleHandler(req: AuthRequest, res: Response): Promise<void> {
-  const { resultId, promptTemplateId } = req.body;
+  const { resultId, promptTemplateId, force } = req.body;
   if (!resultId) { res.status(400).json({ error: 'resultId is required' }); return; }
 
   const existing = await prisma.generatedResult.findFirst({
@@ -155,9 +155,14 @@ export async function generateArticleHandler(req: AuthRequest, res: Response): P
     return;
   }
 
-  if (existing.article) {
+  if (existing.article && !force) {
     res.status(400).json({ error: 'Article already exists' });
     return;
+  }
+
+  // Regeneration: drop the existing article so we can create a fresh one
+  if (existing.article && force) {
+    await prisma.article.delete({ where: { id: existing.article.id } });
   }
 
   // Resolve optional prompt template — explicit pick first, then user default

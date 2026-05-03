@@ -22,9 +22,10 @@ export async function regenerateField(
 
 export async function generateArticle(
   resultId: string,
-  promptTemplateId?: string
+  promptTemplateId?: string,
+  force?: boolean
 ): Promise<Article> {
-  const res = await client.post('/generate/article', { resultId, promptTemplateId });
+  const res = await client.post('/generate/article', { resultId, promptTemplateId, force });
   return res.data;
 }
 

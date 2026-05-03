@@ -35,3 +35,8 @@ export async function updatePromptTemplate(
 export async function deletePromptTemplate(id: string): Promise<void> {
   await client.delete(`/prompt-templates/${id}`);
 }
+
+export async function getBasePrompt(): Promise<{ content: string }> {
+  const res = await client.get('/prompt-templates/base');
+  return res.data;
+}
