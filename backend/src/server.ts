@@ -17,6 +17,7 @@ import videoScriptRoutes from './routes/videoScripts';
 import shopifyConfigRoutes from './routes/shopifyConfig';
 import ttsDictionaryRoutes from './routes/ttsDictionary';
 import heygenAvatarRoutes from './routes/heygenAvatars';
+import promptTemplateRoutes from './routes/promptTemplates';
 import path from 'path';
 import fs from 'fs';
 
@@ -50,6 +51,7 @@ app.use('/api/video-scripts', videoScriptRoutes);
 app.use('/api/shopify-config', shopifyConfigRoutes);
 app.use('/api/tts-dictionary', ttsDictionaryRoutes);
 app.use('/api/heygen-avatars', heygenAvatarRoutes);
+app.use('/api/prompt-templates', promptTemplateRoutes);
 
 // Serve audio files
 app.use('/audio', express.static(path.join(__dirname, '..', 'audio')));

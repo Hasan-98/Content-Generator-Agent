@@ -5,6 +5,10 @@ import { getTopLevels } from '../api/topics';
 import { generateArticle, regenerateTitle } from '../api/generate';
 import { generateImagesBulk } from '../api/generate';
 import { getArticle, updateImage } from '../api/articles';
+import { updateResult } from '../api/results';
+import { IMEInput } from '../components/common/IMEInput';
+import { listPromptTemplates, type PromptTemplate } from '../api/promptTemplates';
+import PromptTemplatesModal from '../components/modals/PromptTemplatesModal';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import ArticleTree from '../components/article/ArticleTree';
@@ -30,6 +34,44 @@ export default function ArticleCreator() {
   const [masterPrompt, setMasterPrompt] = useState('');
   const [applyingMaster, setApplyingMaster] = useState(false);
   const [regeneratingTitle, setRegeneratingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [promptTplModalOpen, setPromptTplModalOpen] = useState(false);
+
+  useEffect(() => {
+    listPromptTemplates()
+      .then((tpls) => {
+        setPromptTemplates(tpls);
+        const def = tpls.find((p) => p.isDefault);
+        if (def) setSelectedTemplateId(def.id);
+      })
+      .catch(() => { /* silent — feature is optional */ });
+  }, []);
+
+  async function handleCommitTitleEdit() {
+    if (!selectedResult) return;
+    setEditingTitle(false);
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === selectedResult.title) return;
+    try {
+      const updated = await updateResult(selectedResult.id, { title: trimmed });
+      setSelectedResult(updated);
+      setTopLevels(prev =>
+        prev.map(tl => ({
+          ...tl,
+          keywords: tl.keywords.map(kw => ({
+            ...kw,
+            results: kw.results.map(r => r.id === updated.id ? { ...r, ...updated } : r),
+          })),
+        }))
+      );
+      toast.success(t('toastTitleUpdated'));
+    } catch {
+      toast.error(t('toastUpdateFailed'));
+    }
+  }
 
   async function handleRegenTitle() {
     if (!selectedResult) return;
@@ -81,7 +123,7 @@ export default function ArticleCreator() {
     setGeneratingArticle(true);
     toast.loading(t('toastArticleGenerating'), { id: 'gen-article' });
     try {
-      const newArticle = await generateArticle(selectedResult.id);
+      const newArticle = await generateArticle(selectedResult.id, selectedTemplateId || undefined);
       setArticle(newArticle);
       // Update result in topLevels to have article reference
       setTopLevels(prev =>
@@ -216,6 +258,34 @@ export default function ArticleCreator() {
               <div className="text-4xl mb-3">📝</div>
               <div className="text-sm text-t2 mb-2">{selectedResult.title}</div>
               <p className="text-xs text-tM mb-4">記事がまだ生成されていません</p>
+
+              {/* Prompt template selector */}
+              <div className="w-full max-w-md mb-4 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-tM text-[10px] font-mono uppercase tracking-wider">
+                    {t('promptTplPickLabel')}
+                  </label>
+                  <button
+                    onClick={() => setPromptTplModalOpen(true)}
+                    className="text-[10px] px-2 py-0.5 rounded border border-bd text-t2 hover:border-aB/50 hover:text-aB transition-colors"
+                  >
+                    {t('promptTplManage')}
+                  </button>
+                </div>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  className="w-full bg-bg1 border border-bd rounded px-2 py-1.5 text-t1 text-xs focus:outline-none focus:border-aB transition-colors"
+                >
+                  <option value="">{t('promptTplPickNone')}</option>
+                  {promptTemplates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.name}{tpl.isDefault ? ` ★` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 onClick={handleGenerateArticle}
                 disabled={generatingArticle}
@@ -253,7 +323,27 @@ export default function ArticleCreator() {
                 <div className="flex-1 min-w-0 mx-3">
                   <div className="text-[11px] text-t2 font-mono truncate">{selectedResult.keywordText}</div>
                   <div className="flex items-center gap-2">
-                    <div className="text-sm text-t1 font-semibold truncate">{selectedResult.title}</div>
+                    {editingTitle ? (
+                      <IMEInput
+                        autoFocus
+                        value={titleDraft}
+                        onValueChange={setTitleDraft}
+                        onBlur={handleCommitTitleEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleCommitTitleEdit();
+                          if (e.key === 'Escape') { setEditingTitle(false); }
+                        }}
+                        className="flex-1 text-sm text-t1 font-semibold bg-bg0 border border-aB rounded px-2 py-0.5 focus:outline-none"
+                      />
+                    ) : (
+                      <div
+                        onClick={() => { setTitleDraft(selectedResult.title); setEditingTitle(true); }}
+                        className="text-sm text-t1 font-semibold truncate cursor-text hover:text-aB transition-colors"
+                        title={t('titleClickToEdit')}
+                      >
+                        {selectedResult.title}
+                      </div>
+                    )}
                     <button
                       onClick={handleRegenTitle}
                       disabled={regeneratingTitle}
@@ -336,6 +426,21 @@ export default function ArticleCreator() {
       {/* Reference Modal */}
       {refResult && (
         <ReferenceModal result={refResult} onClose={() => setRefResult(null)} />
+      )}
+
+      {/* Prompt Templates Modal */}
+      {promptTplModalOpen && (
+        <PromptTemplatesModal
+          onClose={() => setPromptTplModalOpen(false)}
+          onChanged={(tpls) => {
+            setPromptTemplates(tpls);
+            // If the currently selected template was deleted, fall back
+            if (selectedTemplateId && !tpls.find((p) => p.id === selectedTemplateId)) {
+              const def = tpls.find((p) => p.isDefault);
+              setSelectedTemplateId(def?.id || '');
+            }
+          }}
+        />
       )}
     </div>
   );

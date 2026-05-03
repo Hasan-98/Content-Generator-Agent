@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Article, GeneratedResult } from '../../types';
 import SectionCard from './SectionCard';
 import { regenerateSection, regenerateSectionHeading, regenerateTitle } from '../../api/generate';
 import { updateSection } from '../../api/articles';
+import { updateResult } from '../../api/results';
+import { IMEInput } from '../common/IMEInput';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -18,6 +20,9 @@ interface Props {
 export default function ArticleEditor({ article, result, onArticleUpdate, onResultUpdate, onNext, onOpenRef }: Props) {
   const { t } = useLanguage();
   const [regeneratingTitle, setRegeneratingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(result.title);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   async function handleRegenTitle() {
     setRegeneratingTitle(true);
@@ -29,6 +34,25 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onResu
       toast.error(t('toastTitleRegenFailed'));
     } finally {
       setRegeneratingTitle(false);
+    }
+  }
+
+  function startEditTitle() {
+    setTitleDraft(result.title);
+    setEditingTitle(true);
+    setTimeout(() => titleInputRef.current?.focus(), 0);
+  }
+
+  async function commitTitleEdit() {
+    setEditingTitle(false);
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === result.title) return;
+    try {
+      const updated = await updateResult(result.id, { title: trimmed });
+      onResultUpdate(updated);
+      toast.success(t('toastTitleUpdated'));
+    } catch {
+      toast.error(t('toastUpdateFailed'));
     }
   }
 
@@ -87,7 +111,27 @@ export default function ArticleEditor({ article, result, onArticleUpdate, onResu
         <div className="flex-1 min-w-0">
           <div className="text-[11px] text-t2 font-mono truncate">{result.keywordText}</div>
           <div className="flex items-center gap-2">
-            <div className="text-sm text-t1 font-semibold truncate">{result.title}</div>
+            {editingTitle ? (
+              <IMEInput
+                ref={titleInputRef}
+                value={titleDraft}
+                onValueChange={setTitleDraft}
+                onBlur={commitTitleEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitTitleEdit();
+                  if (e.key === 'Escape') { setEditingTitle(false); setTitleDraft(result.title); }
+                }}
+                className="flex-1 text-sm text-t1 font-semibold bg-bg0 border border-aB rounded px-2 py-0.5 focus:outline-none"
+              />
+            ) : (
+              <div
+                onClick={startEditTitle}
+                className="text-sm text-t1 font-semibold truncate cursor-text hover:text-aB transition-colors"
+                title={t('titleClickToEdit')}
+              >
+                {result.title}
+              </div>
+            )}
             <button
               onClick={handleRegenTitle}
               disabled={regeneratingTitle}

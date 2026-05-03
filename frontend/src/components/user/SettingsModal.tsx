@@ -6,8 +6,31 @@ import toast from 'react-hot-toast';
 
 interface Props {
   onClose: () => void;
-  initialSection?: 'password' | ApiKeyName;
+  initialSection?: 'password' | 'features' | ApiKeyName;
 }
+
+const FEATURE_API_MAP: {
+  feature: string;
+  api: string;
+  configKey: ApiKeyName | 'env' | 'wpConfig' | 'shopifyConfig';
+  envVar?: string;
+  warning?: string;
+}[] = [
+  { feature: 'Topic ideas / SERP search', api: 'ValueSERP', configKey: 'env', envVar: 'VALUESERP_API_KEY' },
+  { feature: 'Article generation', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
+  { feature: 'Title regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
+  { feature: 'Section regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
+  { feature: 'Persona / structure generation', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
+  { feature: 'Article image generation', api: 'Kie.ai (nano-banana-pro)', configKey: 'kieApi' },
+  { feature: 'Stock photo backgrounds', api: 'Pexels', configKey: 'env', envVar: 'PEXELS_API_KEY' },
+  { feature: 'Stock photo fallback', api: 'Pixabay', configKey: 'env', envVar: 'PIXABAY_API_KEY' },
+  { feature: 'Fact checking', api: 'Google Custom Search', configKey: 'env', envVar: 'GOOGLE_SEARCH_API_KEY + GOOGLE_SEARCH_CX' },
+  { feature: 'TTS narration', api: 'OpenAI (tts-1-hd)', configKey: 'openaiApi' },
+  { feature: 'Avatar training & video', api: 'HeyGen', configKey: 'heygenApi' },
+  { feature: 'Final video render', api: 'Remotion (VPS)', configKey: 'env', envVar: 'REMOTION_RENDER_URL', warning: '⚠ Not allowed in SaaS — replace with rendervid' },
+  { feature: 'WordPress publish', api: 'WordPress REST API', configKey: 'wpConfig' },
+  { feature: 'Shopify publish', api: 'Shopify Admin API', configKey: 'shopifyConfig' },
+];
 
 const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; placeholder: string }[] = [
   { key: 'claudeApi', label: 'Claude API', labelJa: 'Claude API', placeholder: 'sk-ant-...' },
@@ -22,7 +45,7 @@ const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; place
 
 export default function SettingsModal({ onClose, initialSection }: Props) {
   const { t } = useLanguage();
-  const [activeSection, setActiveSection] = useState<'password' | ApiKeyName>(initialSection || 'password');
+  const [activeSection, setActiveSection] = useState<'password' | 'features' | ApiKeyName>(initialSection || 'password');
   const [config, setConfig] = useState<ApiConfigStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -122,7 +145,7 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
     }
   }
 
-  const sections: { id: 'password' | ApiKeyName; label: string; icon: React.ReactNode; isSet?: boolean }[] = [
+  const sections: { id: 'password' | 'features' | ApiKeyName; label: string; icon: React.ReactNode; isSet?: boolean }[] = [
     {
       id: 'password',
       label: t('settingsPassword'),
@@ -130,6 +153,15 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      ),
+    },
+    {
+      id: 'features',
+      label: t('settingsFeatureMap'),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+          <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
         </svg>
       ),
     },
@@ -233,6 +265,70 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
                     >
                       {savingPassword ? t('settingsSaving') : t('settingsChangePassword')}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSection === 'features' && (
+                <div className="space-y-3">
+                  <p className="text-[11px] text-tM leading-relaxed">{t('settingsFeatureMapDesc')}</p>
+                  <div className="border border-bd rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-bg2">
+                        <tr>
+                          <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsFeatureCol')}</th>
+                          <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsApiCol')}</th>
+                          <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsStatusCol')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {FEATURE_API_MAP.map((row, i) => {
+                          let configured: boolean | null = null;
+                          let configLabel = '';
+                          if (row.configKey === 'env') {
+                            configured = null;
+                            configLabel = `env: ${row.envVar}`;
+                          } else if (row.configKey === 'wpConfig') {
+                            configured = null;
+                            configLabel = 'per-topic config';
+                          } else if (row.configKey === 'shopifyConfig') {
+                            configured = null;
+                            configLabel = 'per-topic config';
+                          } else {
+                            configured = config?.[row.configKey] ?? false;
+                            configLabel = configured ? t('settingsKeyConfigured') : t('settingsApiNotConfigured');
+                          }
+                          return (
+                            <tr key={i} className="border-t border-bd/50">
+                              <td className="px-2.5 py-2 text-t1">
+                                {row.feature}
+                                {row.warning && (
+                                  <div className="mt-0.5 text-[10px] text-aR font-medium">{row.warning}</div>
+                                )}
+                              </td>
+                              <td className="px-2.5 py-2 text-t2 font-mono text-[11px]">{row.api}</td>
+                              <td className="px-2.5 py-2">
+                                {configured === true && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-aG/15 text-aG font-medium">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-aG" />
+                                    {configLabel}
+                                  </span>
+                                )}
+                                {configured === false && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-aR/15 text-aR font-medium">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-aR" />
+                                    {configLabel}
+                                  </span>
+                                )}
+                                {configured === null && (
+                                  <span className="text-[10px] text-tM font-mono">{configLabel}</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}

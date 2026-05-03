@@ -20,8 +20,11 @@ export async function regenerateField(
   return res.data;
 }
 
-export async function generateArticle(resultId: string): Promise<Article> {
-  const res = await client.post('/generate/article', { resultId });
+export async function generateArticle(
+  resultId: string,
+  promptTemplateId?: string
+): Promise<Article> {
+  const res = await client.post('/generate/article', { resultId, promptTemplateId });
   return res.data;
 }
 

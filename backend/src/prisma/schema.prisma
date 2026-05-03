@@ -21,6 +21,20 @@ model User {
   apiConfig       ApiConfig?
   sentInvites     Invite[]
   heygenAvatars   HeygenTrainedAvatar[]
+  promptTemplates PromptTemplate[]
+}
+
+model PromptTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  content   String   @db.Text
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Invite {

@@ -204,8 +204,13 @@ export async function generateArticle(result: {
   structMatome?: string | null;
   structH2?: string | null;
 },
-  apiKey?: string
+  apiKey?: string,
+  additionalInstruction?: string
 ): Promise<ArticleSection[]> {
+  const customInstructionsBlock = additionalInstruction?.trim()
+    ? `\n\nIMPORTANT — User-provided custom instructions (follow these in addition to the rules above):\n${additionalInstruction.trim()}\n`
+    : '';
+
   const prompt = `You are an expert Japanese blog writer and SEO specialist. Your goal is to write a comprehensive, in-depth article that provides real value to readers.
 
 Article context:
@@ -270,7 +275,7 @@ Output ONLY valid JSON array with exactly 8 objects:
   { "type": "matome", "heading": "...", "content": "..." }
 ]
 
-Write all content in Japanese. CRITICAL REMINDER: each section MUST be 1500-2500 characters. If a section is under 1500 characters, expand it with more examples, details, and explanations until it reaches the target length. A 500-character section is a failure.`;
+Write all content in Japanese. CRITICAL REMINDER: each section MUST be 1500-2500 characters. If a section is under 1500 characters, expand it with more examples, details, and explanations until it reaches the target length. A 500-character section is a failure.${customInstructionsBlock}`;
 
   const text = await chat(getClient(apiKey), 'gpt-4o', null, prompt, 16384);
   const jsonMatch = text.match(/\[[\s\S]*\]/);

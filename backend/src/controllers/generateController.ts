@@ -143,7 +143,7 @@ export async function regenerateFieldHandler(req: AuthRequest, res: Response): P
 
 // STEP A — Generate article sections and image scaffolding
 export async function generateArticleHandler(req: AuthRequest, res: Response): Promise<void> {
-  const { resultId } = req.body;
+  const { resultId, promptTemplateId } = req.body;
   if (!resultId) { res.status(400).json({ error: 'resultId is required' }); return; }
 
   const existing = await prisma.generatedResult.findFirst({
@@ -160,8 +160,22 @@ export async function generateArticleHandler(req: AuthRequest, res: Response): P
     return;
   }
 
+  // Resolve optional prompt template — explicit pick first, then user default
+  let additionalInstruction: string | undefined;
+  if (promptTemplateId) {
+    const pt = await prisma.promptTemplate.findFirst({
+      where: { id: promptTemplateId, userId: req.user!.id },
+    });
+    if (pt) additionalInstruction = pt.content;
+  } else {
+    const defaultPt = await prisma.promptTemplate.findFirst({
+      where: { userId: req.user!.id, isDefault: true },
+    });
+    if (defaultPt) additionalInstruction = defaultPt.content;
+  }
+
   const { claudeApi } = await getUserKeys(req.user!.id);
-  const sections = await generateArticle(existing, claudeApi);
+  const sections = await generateArticle(existing, claudeApi, additionalInstruction);
 
   // Resolve campaign-level default image taste
   const campaignDefaults = await prisma.campaignDefaults.findUnique({
