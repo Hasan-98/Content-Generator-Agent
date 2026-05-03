@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import {
-  PromptTemplate,
   listPromptTemplates,
   createPromptTemplate,
   updatePromptTemplate,
   deletePromptTemplate,
 } from '../../api/promptTemplates';
+import type { PromptTemplate } from '../../api/promptTemplates';
 import { IMEInput, IMETextarea } from '../common/IMEInput';
 
 interface Props {
