@@ -5,7 +5,7 @@ import { getTopLevels } from '../api/topics';
 import { generateArticle, regenerateTitle } from '../api/generate';
 import { generateImagesBulk } from '../api/generate';
 import { getArticle, updateImage } from '../api/articles';
-import { updateResult } from '../api/results';
+import { updateResult, deleteResult } from '../api/results';
 import { IMEInput } from '../components/common/IMEInput';
 import { listPromptTemplates } from '../api/promptTemplates';
 import PromptTemplatesModal from '../components/modals/PromptTemplatesModal';
@@ -39,6 +39,7 @@ export default function ArticleCreator() {
   const [titleDraft, setTitleDraft] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [promptTplModalOpen, setPromptTplModalOpen] = useState(false);
+  const [promptTplInitialMode, setPromptTplInitialMode] = useState<'list' | 'create' | { editId: string }>('list');
   const [promptPickerRefresh, setPromptPickerRefresh] = useState(0);
   const [regenPickerOpen, setRegenPickerOpen] = useState(false);
   const [regenTemplateId, setRegenTemplateId] = useState<string>('');
@@ -103,6 +104,49 @@ export default function ArticleCreator() {
       toast.success(t('toastTitleUpdated'));
     } catch {
       toast.error(t('toastUpdateFailed'));
+    }
+  }
+
+  async function handleTreeRename(id: string, newTitle: string) {
+    try {
+      const updated = await updateResult(id, { title: newTitle });
+      setTopLevels(prev =>
+        prev.map(tl => ({
+          ...tl,
+          keywords: tl.keywords.map(kw => ({
+            ...kw,
+            results: kw.results.map(r => r.id === updated.id ? { ...r, ...updated } : r),
+          })),
+        }))
+      );
+      if (selectedResult?.id === id) setSelectedResult(prev => prev ? { ...prev, ...updated } : prev);
+      toast.success(t('toastTitleUpdated'));
+    } catch {
+      toast.error(t('toastUpdateFailed'));
+      throw new Error('rename failed');
+    }
+  }
+
+  async function handleTreeDelete(id: string) {
+    try {
+      await deleteResult(id);
+      setTopLevels(prev =>
+        prev.map(tl => ({
+          ...tl,
+          keywords: tl.keywords.map(kw => ({
+            ...kw,
+            results: kw.results.filter(r => r.id !== id),
+          })),
+        }))
+      );
+      if (selectedResult?.id === id) {
+        setSelectedResult(null);
+        setArticle(null);
+      }
+      toast.success(t('toastResultDeleted'));
+    } catch {
+      toast.error(t('toastDeleteFailed'));
+      throw new Error('delete failed');
     }
   }
 
@@ -244,6 +288,8 @@ export default function ArticleCreator() {
         selectedResultId={selectedResult?.id ?? null}
         onSelect={handleSelectResult}
         onOpenRef={setRefResult}
+        onRename={handleTreeRename}
+        onDelete={handleTreeDelete}
       />
 
       {/* Main area */}
@@ -287,28 +333,30 @@ export default function ArticleCreator() {
               <p className="text-xs text-tM/60 mt-1">{t('articleNoItemsHint')}</p>
             </div>
           ) : !article ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8">
-              <div className="text-4xl mb-3">📝</div>
-              <div className="text-sm text-t2 mb-2">{selectedResult.title}</div>
-              <p className="text-xs text-tM mb-4">記事がまだ生成されていません</p>
+            <div className="h-full overflow-y-auto p-8">
+              <div className="max-w-2xl mx-auto flex flex-col items-start">
+                <div className="text-4xl mb-3">📝</div>
+                <div className="text-sm text-t2 mb-2">{selectedResult.title}</div>
+                <p className="text-xs text-tM mb-4">記事がまだ生成されていません</p>
 
-              {/* Prompt template picker — card-based panel */}
-              <div className="w-full max-w-2xl mb-4">
-                <PromptPicker
-                  selectedId={selectedTemplateId}
-                  onSelect={setSelectedTemplateId}
-                  onManage={() => setPromptTplModalOpen(true)}
-                  refreshKey={promptPickerRefresh}
-                />
+                {/* Prompt template picker — card-based panel */}
+                <div className="w-full mb-4">
+                  <PromptPicker
+                    selectedId={selectedTemplateId}
+                    onSelect={setSelectedTemplateId}
+                    onManage={(mode) => { setPromptTplInitialMode(mode ?? 'list'); setPromptTplModalOpen(true); }}
+                    refreshKey={promptPickerRefresh}
+                  />
+                </div>
+
+                <button
+                  onClick={handleGenerateArticle}
+                  disabled={generatingArticle}
+                  className="px-6 py-2.5 rounded-lg bg-aB/20 text-aB border border-aB/40 hover:bg-aB/30 disabled:opacity-50 transition-colors font-medium text-sm"
+                >
+                  {generatingArticle ? t('articleGenerating') : t('articleGenerateBtn')}
+                </button>
               </div>
-
-              <button
-                onClick={handleGenerateArticle}
-                disabled={generatingArticle}
-                className="px-6 py-2.5 rounded-lg bg-aB/20 text-aB border border-aB/40 hover:bg-aB/30 disabled:opacity-50 transition-colors font-medium text-sm"
-              >
-                {generatingArticle ? t('articleGenerating') : t('articleGenerateBtn')}
-              </button>
             </div>
           ) : phase === 'edit' ? (
             <ArticleEditor
@@ -461,7 +509,7 @@ export default function ArticleCreator() {
               <PromptPicker
                 selectedId={regenTemplateId}
                 onSelect={setRegenTemplateId}
-                onManage={() => { setRegenPickerOpen(false); setPromptTplModalOpen(true); }}
+                onManage={(mode) => { setRegenPickerOpen(false); setPromptTplInitialMode(mode ?? 'list'); setPromptTplModalOpen(true); }}
                 refreshKey={promptPickerRefresh}
               />
             </div>
@@ -488,6 +536,7 @@ export default function ArticleCreator() {
       {promptTplModalOpen && (
         <PromptTemplatesModal
           onClose={() => setPromptTplModalOpen(false)}
+          initialMode={promptTplInitialMode}
           onChanged={(tpls) => {
             // If the currently selected template was deleted, fall back to the new default
             if (selectedTemplateId && !tpls.find((p) => p.id === selectedTemplateId)) {

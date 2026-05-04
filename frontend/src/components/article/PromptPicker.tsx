@@ -9,7 +9,7 @@ import type { PromptTemplate } from '../../api/promptTemplates';
 interface Props {
   selectedId: string;
   onSelect: (id: string) => void;
-  onManage: () => void;
+  onManage: (mode?: 'list' | 'create' | { editId: string }) => void;
   refreshKey?: number; // bump to refetch after a save in the manage modal
 }
 
@@ -39,12 +39,24 @@ export default function PromptPicker({ selectedId, onSelect, onManage, refreshKe
         <span className="text-tM text-[10px] font-mono uppercase tracking-wider">
           {t('promptTplPickLabel')}
         </span>
-        <button
-          onClick={onManage}
-          className="text-[10px] px-2 py-0.5 rounded border border-bd text-t2 hover:border-aB/50 hover:text-aB transition-colors"
-        >
-          {t('promptTplManage')}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onManage('create')}
+            className="text-[10px] px-2 py-0.5 rounded border border-aG/40 text-aG hover:bg-aG/10 transition-colors flex items-center gap-1"
+            title={t('promptTplCreateNew')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-2.5 h-2.5">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            {t('promptTplCreateNew')}
+          </button>
+          <button
+            onClick={() => onManage()}
+            className="text-[10px] px-2 py-0.5 rounded border border-bd text-t2 hover:border-aB/50 hover:text-aB transition-colors"
+          >
+            {t('promptTplManage')}
+          </button>
+        </div>
       </div>
 
       {/* Base prompt — read-only, expandable */}
@@ -97,6 +109,8 @@ export default function PromptPicker({ selectedId, onSelect, onManage, refreshKe
             isDefault={tpl.isDefault}
             expanded={expandedTplId === tpl.id}
             onToggleExpand={() => setExpandedTplId(expandedTplId === tpl.id ? null : tpl.id)}
+            onEdit={() => onManage({ editId: tpl.id })}
+            editTitle={t('promptTplEditScenario')}
             accent="aG"
           />
         ))}
@@ -117,10 +131,12 @@ interface CardProps {
   isDefault?: boolean;
   expanded?: boolean;
   onToggleExpand?: () => void;
+  onEdit?: () => void;
+  editTitle?: string;
   accent: 'aB' | 'aG';
 }
 
-function PickerCard({ selected, onClick, title, subtitle, isDefault, expanded, onToggleExpand, accent }: CardProps) {
+function PickerCard({ selected, onClick, title, subtitle, isDefault, expanded, onToggleExpand, onEdit, editTitle, accent }: CardProps) {
   const accentClasses = accent === 'aB'
     ? 'border-aB/40 ring-2 ring-aB/30 bg-aB/5'
     : 'border-aG/40 ring-2 ring-aG/30 bg-aG/5';
@@ -149,6 +165,18 @@ function PickerCard({ selected, onClick, title, subtitle, isDefault, expanded, o
               <span className="text-[8px] px-1 py-0.5 rounded-full bg-aG/15 text-aG font-medium uppercase tracking-wider shrink-0">
                 ★
               </span>
+            )}
+            {onEdit && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                title={editTitle}
+                className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-tM hover:text-aB hover:bg-aB/10 transition-colors"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+              </button>
             )}
           </div>
           <p className={`text-[10px] text-tM mt-1 leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>

@@ -74,6 +74,8 @@ const THEMES: { id: string; name: string; colors: [string, string]; desc: string
   { id: 'ice-blue',        name: 'Ice Blue',         colors: ['#0a1929', '#7dd3fc'], desc: 'Cool ice blue tones' },
 ];
 
+type VideoPhase = 'tts' | 'heygen' | 'remotion';
+
 export default function VideoScriptCreator() {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -81,6 +83,7 @@ export default function VideoScriptCreator() {
   const [scripts, setScripts] = useState<VideoScript[]>([]);
   const [selectedScript, setSelectedScript] = useState<VideoScript | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+  const [phase, setPhase] = useState<VideoPhase>('tts');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingTts, setGeneratingTts] = useState(false);
@@ -729,10 +732,34 @@ export default function VideoScriptCreator() {
               </div>
             )}
 
+            {/* Step flow cards — same pattern as ArticleCreator */}
+            {selectedScript && (
+              <div className="flex gap-2 mb-4">
+                {[
+                  { step: t('vsStepA'), label: t('vsStepALabel'), phase: 'tts' as VideoPhase, color: '#bc8cff' },
+                  { step: t('vsStepB'), label: t('vsStepBLabel'), phase: 'heygen' as VideoPhase, color: '#3fb950' },
+                  { step: t('vsStepC'), label: t('vsStepCLabel'), phase: 'remotion' as VideoPhase, color: '#d29922' },
+                ].map((s) => (
+                  <button
+                    key={s.phase}
+                    onClick={() => setPhase(s.phase)}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-left transition-all ${
+                      phase === s.phase ? 'bg-bg2' : 'bg-bg1 hover:bg-bg2'
+                    }`}
+                    style={{ borderTopWidth: 2, borderTopColor: s.color, borderColor: phase === s.phase ? s.color : undefined }}
+                  >
+                    <div className="text-xs font-mono font-semibold mb-0.5" style={{ color: s.color }}>{s.step}</div>
+                    <div className="text-xs text-t2">{s.label}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Video Pipeline */}
             {selectedScript && (
               <div className="space-y-3 mb-4">
                 {/* Step 1: TTS Audio */}
+                {phase === 'tts' && (
                 <div className="bg-bg1 border border-bd rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 rounded-full bg-aP/20 text-aP flex items-center justify-center text-[10px] font-bold">1</span>
@@ -837,8 +864,10 @@ export default function VideoScriptCreator() {
                     </button>
                   </div>
                 </div>
+                )}
 
                 {/* Step 2: HeyGen Avatar Video */}
+                {phase === 'heygen' && (
                 <div className="bg-bg1 border border-bd rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -881,8 +910,10 @@ export default function VideoScriptCreator() {
                     <p className="text-[10px] text-tM mt-2">{t('heygenNeedsTts')}</p>
                   )}
                 </div>
+                )}
 
                 {/* Step 3: Remotion Subtitle Rendering */}
+                {phase === 'remotion' && (
                 <div className="bg-bg1 border border-bd rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -984,6 +1015,7 @@ export default function VideoScriptCreator() {
                     <p className="text-[10px] text-tM mt-2">{t('remotionNeedsHeygen')}</p>
                   )}
                 </div>
+                )}
               </div>
             )}
 

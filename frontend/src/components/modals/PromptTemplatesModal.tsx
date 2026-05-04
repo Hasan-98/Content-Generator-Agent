@@ -14,9 +14,10 @@ import { IMEInput, IMETextarea } from '../common/IMEInput';
 interface Props {
   onClose: () => void;
   onChanged?: (templates: PromptTemplate[]) => void;
+  initialMode?: 'list' | 'create' | { editId: string };
 }
 
-export default function PromptTemplatesModal({ onClose, onChanged }: Props) {
+export default function PromptTemplatesModal({ onClose, onChanged, initialMode = 'list' }: Props) {
   const { t } = useLanguage();
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [basePrompt, setBasePrompt] = useState('');
@@ -30,10 +31,27 @@ export default function PromptTemplatesModal({ onClose, onChanged }: Props) {
 
   useEffect(() => {
     listPromptTemplates()
-      .then(setTemplates)
+      .then((tpls) => {
+        setTemplates(tpls);
+        if (initialMode === 'create') {
+          setEditing({ id: '', userId: '', name: '', content: '', isDefault: false, createdAt: '', updatedAt: '' });
+          setDraftName('');
+          setDraftContent('');
+          setDraftDefault(false);
+        } else if (typeof initialMode === 'object' && initialMode.editId) {
+          const tpl = tpls.find(p => p.id === initialMode.editId);
+          if (tpl) {
+            setEditing(tpl);
+            setDraftName(tpl.name);
+            setDraftContent(tpl.content);
+            setDraftDefault(tpl.isDefault);
+          }
+        }
+      })
       .catch(() => toast.error(t('promptTplLoadFailed')))
       .finally(() => setLoading(false));
     getBasePrompt().then(({ content }) => setBasePrompt(content)).catch(() => { /* silent */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function notifyChange(next: PromptTemplate[]) {

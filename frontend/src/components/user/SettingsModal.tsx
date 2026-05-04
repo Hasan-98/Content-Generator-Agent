@@ -4,32 +4,43 @@ import { getApiConfig, upsertApiConfig, deleteApiKey, changePassword } from '../
 import type { ApiConfigStatus, ApiKeyName } from '../../api/apiConfig';
 import toast from 'react-hot-toast';
 
+type CreatorId = 'topicCreator' | 'articleCreator' | 'movieCreator';
+
 interface Props {
   onClose: () => void;
-  initialSection?: 'password' | 'features' | ApiKeyName;
+  initialSection?: 'password' | 'features' | CreatorId | ApiKeyName;
 }
 
-const FEATURE_API_MAP: {
+interface FeatureRow {
   feature: string;
   api: string;
   configKey: ApiKeyName | 'env' | 'wpConfig' | 'shopifyConfig';
   envVar?: string;
   warning?: string;
-}[] = [
-  { feature: 'Topic ideas / SERP search', api: 'ValueSERP', configKey: 'env', envVar: 'VALUESERP_API_KEY' },
-  { feature: 'Article generation', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
-  { feature: 'Title regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
-  { feature: 'Section regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
-  { feature: 'Persona / structure generation', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi' },
-  { feature: 'Article image generation', api: 'Kie.ai (nano-banana-pro)', configKey: 'kieApi' },
-  { feature: 'Stock photo backgrounds', api: 'Pexels', configKey: 'env', envVar: 'PEXELS_API_KEY' },
-  { feature: 'Stock photo fallback', api: 'Pixabay', configKey: 'env', envVar: 'PIXABAY_API_KEY' },
-  { feature: 'Fact checking', api: 'Google Custom Search', configKey: 'env', envVar: 'GOOGLE_SEARCH_API_KEY + GOOGLE_SEARCH_CX' },
-  { feature: 'TTS narration', api: 'OpenAI (tts-1-hd)', configKey: 'openaiApi' },
-  { feature: 'Avatar training & video', api: 'HeyGen', configKey: 'heygenApi' },
-  { feature: 'Final video render', api: 'Remotion (VPS)', configKey: 'env', envVar: 'REMOTION_RENDER_URL', warning: '⚠ Not allowed in SaaS — replace with rendervid' },
-  { feature: 'WordPress publish', api: 'WordPress REST API', configKey: 'wpConfig' },
-  { feature: 'Shopify publish', api: 'Shopify Admin API', configKey: 'shopifyConfig' },
+  creators: CreatorId[];
+}
+
+const FEATURE_API_MAP: FeatureRow[] = [
+  { feature: 'Topic ideas / SERP search', api: 'ValueSERP', configKey: 'env', envVar: 'VALUESERP_API_KEY', creators: ['topicCreator'] },
+  { feature: 'Persona / structure generation', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi', creators: ['topicCreator', 'articleCreator'] },
+  { feature: 'Article generation', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi', creators: ['articleCreator'] },
+  { feature: 'Title regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi', creators: ['articleCreator'] },
+  { feature: 'Section regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi', creators: ['articleCreator'] },
+  { feature: 'Article image generation', api: 'Kie.ai (nano-banana-pro)', configKey: 'kieApi', creators: ['articleCreator'] },
+  { feature: 'Stock photo backgrounds', api: 'Pexels', configKey: 'env', envVar: 'PEXELS_API_KEY', creators: ['articleCreator'] },
+  { feature: 'Stock photo fallback', api: 'Pixabay', configKey: 'env', envVar: 'PIXABAY_API_KEY', creators: ['articleCreator'] },
+  { feature: 'Fact checking', api: 'Google Custom Search', configKey: 'env', envVar: 'GOOGLE_SEARCH_API_KEY + GOOGLE_SEARCH_CX', creators: ['articleCreator'] },
+  { feature: 'WordPress publish', api: 'WordPress REST API', configKey: 'wpConfig', creators: ['articleCreator'] },
+  { feature: 'Shopify publish', api: 'Shopify Admin API', configKey: 'shopifyConfig', creators: ['articleCreator'] },
+  { feature: 'TTS narration', api: 'OpenAI (tts-1-hd)', configKey: 'openaiApi', creators: ['movieCreator'] },
+  { feature: 'Avatar training & video', api: 'HeyGen', configKey: 'heygenApi', creators: ['movieCreator'] },
+  { feature: 'Final video render', api: 'Remotion (VPS)', configKey: 'env', envVar: 'REMOTION_RENDER_URL', warning: '⚠ Not allowed in SaaS — replace with rendervid', creators: ['movieCreator'] },
+];
+
+const CREATOR_SECTIONS: { id: CreatorId; labelKey: string }[] = [
+  { id: 'topicCreator', labelKey: 'settingsCreatorTopic' },
+  { id: 'articleCreator', labelKey: 'settingsCreatorArticle' },
+  { id: 'movieCreator', labelKey: 'settingsCreatorMovie' },
 ];
 
 const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; placeholder: string }[] = [
@@ -45,7 +56,7 @@ const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; place
 
 export default function SettingsModal({ onClose, initialSection }: Props) {
   const { t } = useLanguage();
-  const [activeSection, setActiveSection] = useState<'password' | 'features' | ApiKeyName>(initialSection || 'password');
+  const [activeSection, setActiveSection] = useState<'password' | 'features' | CreatorId | ApiKeyName>(initialSection || 'password');
   const [config, setConfig] = useState<ApiConfigStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -145,7 +156,40 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
     }
   }
 
-  const sections: { id: 'password' | 'features' | ApiKeyName; label: string; icon: React.ReactNode; isSet?: boolean }[] = [
+  const creatorIcons: Record<CreatorId, React.ReactNode> = {
+    topicCreator: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+        <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4" />
+        <path d="M12 2v13" />
+        <path d="m8 6 4-4 4 4" />
+      </svg>
+    ),
+    articleCreator: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="9" y1="13" x2="15" y2="13" />
+        <line x1="9" y1="17" x2="15" y2="17" />
+      </svg>
+    ),
+    movieCreator: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path d="m10 8 6 4-6 4Z" />
+      </svg>
+    ),
+  };
+
+  function creatorAllConfigured(id: CreatorId): boolean {
+    return FEATURE_API_MAP
+      .filter(r => r.creators.includes(id))
+      .every(r => {
+        if (r.configKey === 'env' || r.configKey === 'wpConfig' || r.configKey === 'shopifyConfig') return true;
+        return config?.[r.configKey] ?? false;
+      });
+  }
+
+  const sections: { id: 'password' | 'features' | CreatorId | ApiKeyName; label: string; icon: React.ReactNode; isSet?: boolean }[] = [
     {
       id: 'password',
       label: t('settingsPassword'),
@@ -165,6 +209,12 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
         </svg>
       ),
     },
+    ...CREATOR_SECTIONS.map(c => ({
+      id: c.id,
+      label: t(c.labelKey),
+      isSet: creatorAllConfigured(c.id),
+      icon: creatorIcons[c.id],
+    })),
     ...API_KEY_SECTIONS.map(s => ({
       id: s.key,
       label: s.label,
@@ -178,6 +228,7 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
   ];
 
   const currentApiSection = API_KEY_SECTIONS.find(s => s.key === activeSection);
+  const currentCreator = CREATOR_SECTIONS.find(c => c.id === activeSection);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
@@ -270,67 +321,16 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
               )}
 
               {activeSection === 'features' && (
-                <div className="space-y-3">
-                  <p className="text-[11px] text-tM leading-relaxed">{t('settingsFeatureMapDesc')}</p>
-                  <div className="border border-bd rounded-lg overflow-hidden">
-                    <table className="w-full text-xs">
-                      <thead className="bg-bg2">
-                        <tr>
-                          <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsFeatureCol')}</th>
-                          <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsApiCol')}</th>
-                          <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsStatusCol')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {FEATURE_API_MAP.map((row, i) => {
-                          let configured: boolean | null = null;
-                          let configLabel = '';
-                          if (row.configKey === 'env') {
-                            configured = null;
-                            configLabel = `env: ${row.envVar}`;
-                          } else if (row.configKey === 'wpConfig') {
-                            configured = null;
-                            configLabel = 'per-topic config';
-                          } else if (row.configKey === 'shopifyConfig') {
-                            configured = null;
-                            configLabel = 'per-topic config';
-                          } else {
-                            configured = config?.[row.configKey] ?? false;
-                            configLabel = configured ? t('settingsKeyConfigured') : t('settingsApiNotConfigured');
-                          }
-                          return (
-                            <tr key={i} className="border-t border-bd/50">
-                              <td className="px-2.5 py-2 text-t1">
-                                {row.feature}
-                                {row.warning && (
-                                  <div className="mt-0.5 text-[10px] text-aR font-medium">{row.warning}</div>
-                                )}
-                              </td>
-                              <td className="px-2.5 py-2 text-t2 font-mono text-[11px]">{row.api}</td>
-                              <td className="px-2.5 py-2">
-                                {configured === true && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-aG/15 text-aG font-medium">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-aG" />
-                                    {configLabel}
-                                  </span>
-                                )}
-                                {configured === false && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-aR/15 text-aR font-medium">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-aR" />
-                                    {configLabel}
-                                  </span>
-                                )}
-                                {configured === null && (
-                                  <span className="text-[10px] text-tM font-mono">{configLabel}</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <FeatureApiTable rows={FEATURE_API_MAP} config={config} t={t} description={t('settingsFeatureMapDesc')} />
+              )}
+
+              {currentCreator && (
+                <FeatureApiTable
+                  rows={FEATURE_API_MAP.filter(r => r.creators.includes(currentCreator.id))}
+                  config={config}
+                  t={t}
+                  description={t('settingsCreatorDesc').replace('{creator}', t(currentCreator.labelKey))}
+                />
               )}
 
               {currentApiSection && (
@@ -385,6 +385,76 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+interface FeatureApiTableProps {
+  rows: FeatureRow[];
+  config: ApiConfigStatus | null;
+  t: (key: string) => string;
+  description: string;
+}
+
+function FeatureApiTable({ rows, config, t, description }: FeatureApiTableProps) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] text-tM leading-relaxed">{description}</p>
+      <div className="border border-bd rounded-lg overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-bg2">
+            <tr>
+              <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsFeatureCol')}</th>
+              <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsApiCol')}</th>
+              <th className="px-2.5 py-2 text-left font-mono text-[10px] text-tM uppercase tracking-wider">{t('settingsStatusCol')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => {
+              let configured: boolean | null = null;
+              let configLabel = '';
+              if (row.configKey === 'env') {
+                configured = null;
+                configLabel = `env: ${row.envVar}`;
+              } else if (row.configKey === 'wpConfig' || row.configKey === 'shopifyConfig') {
+                configured = null;
+                configLabel = 'per-topic config';
+              } else {
+                configured = config?.[row.configKey] ?? false;
+                configLabel = configured ? t('settingsKeyConfigured') : t('settingsApiNotConfigured');
+              }
+              return (
+                <tr key={i} className="border-t border-bd/50">
+                  <td className="px-2.5 py-2 text-t1">
+                    {row.feature}
+                    {row.warning && (
+                      <div className="mt-0.5 text-[10px] text-aR font-medium">{row.warning}</div>
+                    )}
+                  </td>
+                  <td className="px-2.5 py-2 text-t2 font-mono text-[11px]">{row.api}</td>
+                  <td className="px-2.5 py-2">
+                    {configured === true && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-aG/15 text-aG font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-aG" />
+                        {configLabel}
+                      </span>
+                    )}
+                    {configured === false && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-aR/15 text-aR font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-aR" />
+                        {configLabel}
+                      </span>
+                    )}
+                    {configured === null && (
+                      <span className="text-[10px] text-tM font-mono">{configLabel}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
