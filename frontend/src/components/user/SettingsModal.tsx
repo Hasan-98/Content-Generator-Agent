@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import type { TKey } from '../../context/LanguageContext';
 import { getApiConfig, upsertApiConfig, deleteApiKey, changePassword } from '../../api/apiConfig';
 import type { ApiConfigStatus, ApiKeyName } from '../../api/apiConfig';
 import toast from 'react-hot-toast';
@@ -37,7 +38,7 @@ const FEATURE_API_MAP: FeatureRow[] = [
   { feature: 'Final video render', api: 'Remotion (VPS)', configKey: 'env', envVar: 'REMOTION_RENDER_URL', warning: '⚠ Not allowed in SaaS — replace with rendervid', creators: ['movieCreator'] },
 ];
 
-const CREATOR_SECTIONS: { id: CreatorId; labelKey: string }[] = [
+const CREATOR_SECTIONS: { id: CreatorId; labelKey: TKey }[] = [
   { id: 'topicCreator', labelKey: 'settingsCreatorTopic' },
   { id: 'articleCreator', labelKey: 'settingsCreatorArticle' },
   { id: 'movieCreator', labelKey: 'settingsCreatorMovie' },
@@ -393,7 +394,7 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
 interface FeatureApiTableProps {
   rows: FeatureRow[];
   config: ApiConfigStatus | null;
-  t: (key: string) => string;
+  t: (key: TKey) => string;
   description: string;
 }
 

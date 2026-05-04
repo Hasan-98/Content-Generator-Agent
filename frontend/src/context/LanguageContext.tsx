@@ -802,7 +802,7 @@ const en = {
   vsVoiceFemale: 'Female',
 } as const;
 
-type TKey = keyof typeof en;
+export type TKey = keyof typeof en;
 
 const ja: Record<TKey, string> = {
   // App
