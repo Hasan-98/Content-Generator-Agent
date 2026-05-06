@@ -44,6 +44,7 @@ import {
 } from '../components/banner-editor/RibbonStrips';
 import MediaPickerModal, { type PickedMedia } from '../components/modals/MediaPickerModal';
 import { resolveMediaUrl } from '../api/media';
+import { useLanguage } from '../context/LanguageContext';
 import {
   cancelPending,
   completePending,
@@ -186,6 +187,7 @@ function adaptProject(rec: BannerProject): ProjectStripItem {
 // ───── Component ────────────────────────────────────────────────────────────
 
 export default function ImageEditor() {
+  const { t } = useLanguage();
   const [sizeId, setSizeId] = useState<string>(BANNER_SIZES[0].id);
   const [inputs, setInputs] = useState<Required<BannerInputs>>(() => ({ ...DEFAULT_INPUTS }));
   const [bgLogoOpen, setBgLogoOpen] = useState(false);
@@ -374,7 +376,7 @@ export default function ImageEditor() {
   }
 
   async function createNewProject() {
-    const name = prompt('Project name', 'New project');
+    const name = prompt(t('iePromptProjectName'), t('iePromptNewProject'));
     if (!name) return;
     try {
       const rec = await apiCreateProject({
@@ -447,7 +449,7 @@ export default function ImageEditor() {
   }
 
   async function createNewTextTemplate() {
-    const name = prompt('Template name (current font/size/position/align will be saved)', 'New template');
+    const name = prompt(t('iePromptTemplateName'), t('iePromptNewTemplate'));
     if (!name) return;
     try {
       const rec = await apiCreateTextTemplate({
@@ -685,8 +687,8 @@ export default function ImageEditor() {
         </div>
       )}
       <header style={s.header}>
-        <h1 style={s.h1}>Image Editor</h1>
-        <span style={s.subtitle}>Live banner preview</span>
+        <h1 style={s.h1}>{t('iePageTitle')}</h1>
+        <span style={s.subtitle}>{t('ieSubtitle')}</span>
         <div style={s.headerRight}>
           <select
             value={sizeId}
@@ -710,7 +712,7 @@ export default function ImageEditor() {
               onClick={() => exportCurrent('png')}
               disabled={exporting}
               style={{ ...s.exportBtn, ...s.exportPrimary, ...(exporting ? s.btnBusy : {}) }}
-              title={`Render PNG of ${size.label}`}
+              title={`${t('ieRenderPng')} — ${size.label}`}
             >
               {exporting ? 'Rendering…' : 'PNG'}
             </button>
@@ -718,7 +720,7 @@ export default function ImageEditor() {
               onClick={() => exportCurrent('jpeg')}
               disabled={exporting}
               style={{ ...s.exportBtn, ...(exporting ? s.btnBusy : {}) }}
-              title={`Render JPEG of ${size.label}`}
+              title={`${t('ieRenderJpeg')} — ${size.label}`}
             >
               JPEG
             </button>
@@ -726,12 +728,12 @@ export default function ImageEditor() {
               onClick={exportToLibrary}
               disabled={exporting}
               style={{ ...s.exportBtn, ...(exporting ? s.btnBusy : {}) }}
-              title="Render and save to Media Library"
+              title={t('ieRenderToLibrary')}
             >
               Save to Library
             </button>
           </div>
-          <button onClick={() => setFontsOpen(true)} style={s.gearBtn} title="Custom fonts">
+          <button onClick={() => setFontsOpen(true)} style={s.gearBtn} title={t('ieCustomFonts')}>
             🔤 Fonts
           </button>
         </div>
@@ -822,18 +824,18 @@ export default function ImageEditor() {
           <div style={s.bgLogoBandGrid}>
             <div style={s.bgLogoCol}>
               <div style={{ ...s.bgLogoColHeader, ...s.bgLogoColHeaderBg }}>🖼 Background</div>
-              <Section title="🖼 Background image">
+              <Section title={`🖼 ${t('ieBackgroundImage')}`}>
                 <div style={s.row}>
-                  <span style={s.fieldLabel}>Image URL</span>
+                  <span style={s.fieldLabel}>{t('ieImageUrl')}</span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input
                       type="text"
                       value={inputs.backgroundImageUrl ?? ''}
                       onChange={(e) => patchBgImage(e.target.value)}
-                      placeholder="https://… or pick from library"
+                      placeholder={t('ieImageUrlPlaceholder')}
                       style={{ ...s.input, flex: 1 }}
                     />
-                    <button onClick={openBgPicker} style={s.searchBtn} title="Pick or search media">
+                    <button onClick={openBgPicker} style={s.searchBtn} title={t('iePickMedia')}>
                       🔍 Pick
                     </button>
                     {inputs.backgroundImageUrl && (
@@ -896,18 +898,18 @@ export default function ImageEditor() {
 
             <div style={s.bgLogoCol}>
               <div style={{ ...s.bgLogoColHeader, ...s.bgLogoColHeaderLogo }}>🏷 Logo</div>
-              <Section title="🏷 Logo">
+              <Section title={`🏷 ${t('ieLogo')}`}>
                 <div style={s.row}>
-                  <span style={s.fieldLabel}>Image URL</span>
+                  <span style={s.fieldLabel}>{t('ieImageUrl')}</span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input
                       type="text"
                       value={inputs.logoUrl ?? ''}
                       onChange={(e) => patchLogoUrl(e.target.value)}
-                      placeholder="https://… or pick from library"
+                      placeholder={t('ieImageUrlPlaceholder')}
                       style={{ ...s.input, flex: 1 }}
                     />
-                    <button onClick={openLogoPicker} style={s.searchBtn} title="Pick or search media">
+                    <button onClick={openLogoPicker} style={s.searchBtn} title={t('iePickMedia')}>
                       🔍 Pick
                     </button>
                     {inputs.logoUrl && (
@@ -1034,7 +1036,7 @@ export default function ImageEditor() {
         </main>
 
         <aside style={s.rightPanel}>
-          <Section title="📝 Text & per-element styling">
+          <Section title={`📝 ${t('ieTextStyling')}`}>
             {TEXT_FIELDS.map((f) => {
               const style = inputs[f.styleKey];
               const hidden = f.hideKey ? !!inputs[f.hideKey] : false;
@@ -1049,14 +1051,14 @@ export default function ImageEditor() {
                         value={colorValue}
                         onChange={(e) => patchStyle(f.styleKey, { ...style, color: e.target.value })}
                         style={s.inlineColor}
-                        title="Text color"
+                        title={t('ieTextColor')}
                         disabled={hidden}
                       />
                       {style.color && (
                         <button
                           onClick={() => patchStyle(f.styleKey, { ...style, color: '' })}
                           style={s.inlineResetBtn}
-                          title="Reset to theme color"
+                          title={t('ieResetThemeColor')}
                           disabled={hidden}
                         >
                           ⟲
@@ -1103,9 +1105,9 @@ export default function ImageEditor() {
             })}
           </Section>
 
-          <Section title="📐 Layout">
+          <Section title={`📐 ${t('ieLayout')}`}>
             <div style={s.row}>
-              <span style={s.fieldLabel}>Vertical position</span>
+              <span style={s.fieldLabel}>{t('ieVerticalPosition')}</span>
               <div style={s.btnGroup}>
                 {VERTICAL_LAYOUTS.map((v) => (
                   <button
@@ -1122,7 +1124,7 @@ export default function ImageEditor() {
               </div>
             </div>
             <div style={s.row}>
-              <span style={s.fieldLabel}>Writing direction</span>
+              <span style={s.fieldLabel}>{t('ieWritingDirection')}</span>
               <div style={s.btnGroup}>
                 {WRITING_MODES.map((w) => (
                   <button
@@ -1140,7 +1142,7 @@ export default function ImageEditor() {
             </div>
           </Section>
 
-          <Section title="🎨 Override colors (theme)">
+          <Section title={`🎨 ${t('ieOverrideColors')}`}>
             <div style={s.colorGrid}>
               {(['backgroundColor', 'textColor', 'badgeColor'] as const).map((k) => (
                 <label key={k} style={s.colorLabel}>
@@ -1159,7 +1161,7 @@ export default function ImageEditor() {
           </Section>
 
           <div style={s.bottomActions}>
-            <button onClick={createNewTextTemplate} style={s.saveTplBtn} title="Save current text styles as a template">
+            <button onClick={createNewTextTemplate} style={s.saveTplBtn} title={t('ieSaveTextTemplate')}>
               💾 Save text template
             </button>
             <button onClick={() => setInputs({ ...DEFAULT_INPUTS })} style={s.reset}>
@@ -1176,7 +1178,7 @@ export default function ImageEditor() {
           setPickerTarget(null);
         }}
         onPick={handlePicked}
-        title={pickerTarget === 'logo' ? 'Pick logo' : 'Pick background'}
+        title={pickerTarget === 'logo' ? t('iePickLogo') : t('iePickBackground')}
         contextSubtitle={inputs.title || undefined}
         imagesOnly={pickerTarget === 'logo'}
       />
@@ -1259,6 +1261,7 @@ function ToggleHideButton({
   inputs: Required<BannerInputs>;
   setInputs: React.Dispatch<React.SetStateAction<Required<BannerInputs>>>;
 }) {
+  const { t } = useLanguage();
   const hidden = !!inputs[hideKey];
   const ref = useRef<HTMLButtonElement>(null);
   return (
@@ -1269,7 +1272,7 @@ function ToggleHideButton({
         ...s.eyeBtn,
         ...(hidden ? s.eyeBtnHidden : {}),
       }}
-      title={hidden ? 'Hidden — click to show' : 'Click to hide'}
+      title={hidden ? t('ieHidden') : t('ieClickToHide')}
     >
       {hidden ? '🚫' : '👁'}
     </button>
