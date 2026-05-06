@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { subscribePendingIntent } from './lib/imageEditorBridge';
 import { LanguageProvider } from './context/LanguageContext';
 import LoginScreen from './components/auth/LoginScreen';
 import Titlebar from './components/layout/Titlebar';
@@ -11,6 +12,7 @@ import ArticleCreator from './pages/ArticleCreator';
 import InstagramPanel from './pages/InstagramPanel';
 import VideoScriptCreator from './pages/VideoScriptCreator';
 import HeygenAvatarsPage from './pages/HeygenAvatarsPage';
+import ImageEditor from './pages/ImageEditor';
 import UserModal from './components/user/UserModal';
 import UserSettingsModal from './components/user/UserSettingsModal';
 import SettingsModal from './components/user/SettingsModal';
@@ -23,11 +25,19 @@ function getInviteToken(): string | null {
 
 function AppShell() {
   const { user, loading, isImpersonating, isViewingAs, returnToAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'video' | 'avatars' | 'instagram'>('topic');
+  const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'video' | 'avatars' | 'banner' | 'instagram'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [userModalInvite, setUserModalInvite] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [apiSettingsModalOpen, setApiSettingsModalOpen] = useState(false);
+
+  // When ImageCard / CreateAvatarModal request a hand-off to the banner editor,
+  // subscribePendingIntent fires here and we switch tabs automatically.
+  useEffect(() => {
+    return subscribePendingIntent((p) => {
+      if (p) setActiveTab('banner');
+    });
+  }, []);
 
   if (loading) {
     return (
@@ -44,6 +54,7 @@ function AppShell() {
     activeTab === 'article' ? 'Article Creator' :
     activeTab === 'video' ? 'Video Script' :
     activeTab === 'avatars' ? 'HeyGen Avatars' :
+    activeTab === 'banner' ? 'Image Editor' :
     'Instagram Publisher';
 
   return (
@@ -78,11 +89,12 @@ function AppShell() {
       )}
       <Titlebar onOpenUsers={() => { setUserModalInvite(false); setUserModalOpen(true); }} onOpenSettings={() => setSettingsModalOpen(true)} onInviteUser={() => { setUserModalInvite(true); setUserModalOpen(true); }} />
       <div className="flex flex-1 overflow-hidden">
-        <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'video' | 'avatars' | 'instagram')} />
+        <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'video' | 'avatars' | 'banner' | 'instagram')} />
         {activeTab === 'topic' ? <TopicCreator />
           : activeTab === 'article' ? <ArticleCreator />
           : activeTab === 'video' ? <VideoScriptCreator />
           : activeTab === 'avatars' ? <HeygenAvatarsPage />
+          : activeTab === 'banner' ? <ImageEditor />
           : <InstagramPanel />}
       </div>
       <Statusbar section={sectionLabel} onOpenSettings={() => setApiSettingsModalOpen(true)} />

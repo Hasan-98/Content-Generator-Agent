@@ -22,6 +22,11 @@ model User {
   sentInvites     Invite[]
   heygenAvatars   HeygenTrainedAvatar[]
   promptTemplates PromptTemplate[]
+  mediaLibrary    MediaLibraryItem[]
+  bannerProjects  BannerProject[]
+  colorThemes     ColorTheme[]
+  textTemplates   TextTemplate[]
+  customFonts     CustomFont[]
 }
 
 model PromptTemplate {
@@ -276,10 +281,101 @@ model ApiConfig {
   kieApiEncrypted       String?  @db.Text
   pieapiEncrypted       String?  @db.Text
   heygenApiEncrypted    String?  @db.Text
+  pexelsApiEncrypted    String?  @db.Text
+  unsplashApiEncrypted  String?  @db.Text
+  runwayApiEncrypted    String?  @db.Text
   userId                String   @unique
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+// Media library — user-uploaded or AI-generated images/videos that can be
+// reused across the app (avatars, vlog images, banner backgrounds).
+model MediaLibraryItem {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder       String           @default("")            // virtual folder name; empty = root
+  kind         MediaKind        @default(IMAGE)
+  filename     String                                    // on-disk filename (uploads/media/<id>.<ext>)
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  durationSec  Int?
+  source       String           @default("upload")       // "upload" | "ai" | "pexels" | "unsplash"
+  sourceUrl    String?          @db.Text                 // remote URL when re-saved to library
+  createdAt    DateTime         @default(now())
+
+  @@index([userId, folder])
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+// Saved banner editor project — full snapshot of inputs, size, fonts, theme.
+model BannerProject {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  sizeId    String                                      // "instagram-square" etc.
+  /// JSON snapshot: { inputs, fontSelections, themeId, ribbons[], customLayers[], logo, backgroundUrl, ... }
+  data      Json
+  thumbUrl  String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// User-defined color theme (palette of strings).
+model ColorTheme {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  /// JSON: { backgroundColor, titleColor, subtitleColor, badgeBg, badgeText, bodyColor, ... }
+  colors    Json
+  isPreset  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// User-defined text style template (font + size + weight bundle for a layer).
+model TextTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  /// JSON: { title, subtitle, badge, body } each with { fontFamily, fontSize, fontWeight }
+  styles    Json
+  isPreset  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Custom font face uploaded by the user (woff2/ttf/otf).
+model CustomFont {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family     String                                    // CSS font-family name
+  filename   String                                    // on-disk filename (uploads/fonts/<id>.<ext>)
+  mimeType   String
+  weight     Int      @default(400)
+  style      String   @default("normal")
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
 }
 
 model HeygenTrainedAvatar {

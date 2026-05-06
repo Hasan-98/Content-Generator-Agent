@@ -3,6 +3,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import type { ArticleImage, ImageTaste } from '../../types';
 import { generateImage as generateImageApi, regenerateOverlayTitle as regenerateOverlayTitleApi } from '../../api/generate';
 import { updateImage, selectHistoryImage } from '../../api/articles';
+import MediaPickerModal, { type PickedMedia } from '../modals/MediaPickerModal';
+import { setPendingIntent } from '../../lib/imageEditorBridge';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -81,6 +83,35 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
   const [openDropdown, setOpenDropdown] = useState<ImageTaste | null>(null);
   const [customVariations, setCustomVariations] = useState<Record<ImageTaste, Variation[]>>(loadCustomVariations);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  async function applyImageUrl(url: string) {
+    try {
+      const updated = await updateImage(articleId, image.index, { imageUrl: url });
+      onUpdate(updated);
+      toast.success(t('imageSelected'));
+    } catch {
+      toast.error(t('toastUpdateFailed'));
+    }
+  }
+
+  async function handlePickMedia(picked: PickedMedia) {
+    if (picked.kind !== 'image') {
+      toast.error('Only images can be used here');
+      return;
+    }
+    await applyImageUrl(picked.url);
+  }
+
+  function handleOpenInEditor(picked: PickedMedia | null) {
+    setPendingIntent({
+      contextLabel: `${t('imageLabel')}${image.index + 1} — ${sectionHeading}`,
+      prefillBackgroundUrl: picked?.kind === 'image' ? picked.url : undefined,
+      initialTitle: image.overlayTitle || (image.index === 0 ? articleTitle : undefined),
+      onUse: (finalUrl) => { void applyImageUrl(finalUrl); },
+      onCancel: () => { /* nothing — user navigated away */ },
+    });
+  }
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -396,14 +427,23 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
               />
             </div>
 
-            {/* Generate button */}
-            <button
-              onClick={handleGenerate}
-              disabled={loading}
-              className="text-xs px-3 py-1.5 rounded bg-aP/20 text-aP border border-aP/40 hover:bg-aP/30 disabled:opacity-50 transition-colors"
-            >
-              {loading ? t('detailGenerating') : image.imageUrl ? t('imageRegenBtn') : t('imageGenBtn')}
-            </button>
+            {/* Generate + Pick buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleGenerate}
+                disabled={loading}
+                className="text-xs px-3 py-1.5 rounded bg-aP/20 text-aP border border-aP/40 hover:bg-aP/30 disabled:opacity-50 transition-colors"
+              >
+                {loading ? t('detailGenerating') : image.imageUrl ? t('imageRegenBtn') : t('imageGenBtn')}
+              </button>
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="text-xs px-3 py-1.5 rounded bg-aB/20 text-aB border border-aB/40 hover:bg-aB/30 transition-colors"
+                title="Pick from library, search Pexels/Unsplash, or AI generate"
+              >
+                📁 Pick / Search / AI
+              </button>
+            </div>
           </div>
 
           {/* Right: preview */}
@@ -453,6 +493,17 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
           </div>
         )}
       </div>
+
+      <MediaPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={handlePickMedia}
+        onOpenInEditor={handleOpenInEditor}
+        enabledTabs={['library', 'photo', 'ai-image']}
+        imagesOnly
+        title={`${t('imageLabel')}${image.index + 1} — Pick image`}
+        contextSubtitle={sectionHeading}
+      />
     </div>
   );
 }

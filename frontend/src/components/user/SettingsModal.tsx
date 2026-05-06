@@ -27,9 +27,11 @@ const FEATURE_API_MAP: FeatureRow[] = [
   { feature: 'Article generation', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi', creators: ['articleCreator'] },
   { feature: 'Title regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi', creators: ['articleCreator'] },
   { feature: 'Section regeneration', api: 'OpenAI (gpt-4o)', configKey: 'openaiApi', creators: ['articleCreator'] },
-  { feature: 'Article image generation', api: 'Kie.ai (nano-banana-pro)', configKey: 'kieApi', creators: ['articleCreator'] },
-  { feature: 'Stock photo backgrounds', api: 'Pexels', configKey: 'env', envVar: 'PEXELS_API_KEY', creators: ['articleCreator'] },
-  { feature: 'Stock photo fallback', api: 'Pixabay', configKey: 'env', envVar: 'PIXABAY_API_KEY', creators: ['articleCreator'] },
+  { feature: 'Article image generation (Kie nano-banana)', api: 'Kie.ai', configKey: 'kieApi', creators: ['articleCreator'] },
+  { feature: 'AI image generation (gpt-image-1/2)', api: 'OpenAI', configKey: 'openaiApi', creators: ['articleCreator', 'movieCreator'] },
+  { feature: 'Photo / video search', api: 'Pexels', configKey: 'pexelsApi', creators: ['articleCreator', 'movieCreator'] },
+  { feature: 'Photo search (alternative)', api: 'Unsplash', configKey: 'unsplashApi', creators: ['articleCreator', 'movieCreator'] },
+  { feature: 'Stock photo fallback (legacy)', api: 'Pixabay', configKey: 'env', envVar: 'PIXABAY_API_KEY', creators: ['articleCreator'] },
   { feature: 'Fact checking', api: 'Google Custom Search', configKey: 'env', envVar: 'GOOGLE_SEARCH_API_KEY + GOOGLE_SEARCH_CX', creators: ['articleCreator'] },
   { feature: 'WordPress publish', api: 'WordPress REST API', configKey: 'wpConfig', creators: ['articleCreator'] },
   { feature: 'Shopify publish', api: 'Shopify Admin API', configKey: 'shopifyConfig', creators: ['articleCreator'] },
@@ -53,6 +55,9 @@ const API_KEY_SECTIONS: { key: ApiKeyName; label: string; labelJa: string; place
   { key: 'kieApi', label: 'Kie API', labelJa: 'Kie API', placeholder: 'Enter API key...' },
   { key: 'pieapi', label: 'Pieapi', labelJa: 'Pieapi', placeholder: 'Enter API key...' },
   { key: 'heygenApi', label: 'HeyGen API', labelJa: 'HeyGen API', placeholder: 'sk_V2_hgu_...' },
+  { key: 'pexelsApi', label: 'Pexels API', labelJa: 'Pexels API', placeholder: 'Enter Pexels API key...' },
+  { key: 'unsplashApi', label: 'Unsplash API', labelJa: 'Unsplash API', placeholder: 'Enter Unsplash Access Key...' },
+  { key: 'runwayApi', label: 'Runway API', labelJa: 'Runway API', placeholder: 'Enter Runway API key...' },
 ];
 
 export default function SettingsModal({ onClose, initialSection }: Props) {
@@ -82,7 +87,7 @@ export default function SettingsModal({ onClose, initialSection }: Props) {
         setConfig({
           claudeApi: false, openaiApi: false, geminiApi: false,
           googleApi: false, metaApi: false, kieApi: false, pieapi: false,
-          heygenApi: false,
+          heygenApi: false, pexelsApi: false, unsplashApi: false, runwayApi: false,
         });
       } finally {
         setLoading(false);

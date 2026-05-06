@@ -3,6 +3,9 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { createHeygenAvatar } from '../../api/heygenAvatars';
 import type { HeygenTrainedAvatar, HeygenAvatarType } from '../../types';
+import MediaPickerModal, { type PickedMedia } from '../modals/MediaPickerModal';
+import { importFromUrl, resolveMediaUrl } from '../../api/media';
+import { setPendingIntent } from '../../lib/imageEditorBridge';
 
 interface Props {
   onClose: () => void;
@@ -22,7 +25,44 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handlePickMedia(picked: PickedMedia) {
+    // Avatars only support images of the matching type — videos in photo mode etc.
+    if (isPhoto && picked.kind !== 'image') {
+      toast.error('Photo avatars need an image, not a video.');
+      return;
+    }
+    if (!isPhoto && picked.kind !== 'video' && picked.kind !== 'image') {
+      toast.error('Pick a video for video avatars.');
+      return;
+    }
+    setImporting(true);
+    try {
+      // For non-library remote URLs, route through the backend so we always
+      // pull from a same-origin URL (avoids CORS on Pexels/Unsplash CDNs).
+      let fetchUrl = picked.url;
+      let originalName = picked.photographer ? `${picked.source}-${picked.photographer}` : `pick-${Date.now()}`;
+      const isRemote = !picked.libraryId && !picked.url.startsWith(window.location.origin) && !picked.url.startsWith('data:');
+      if (isRemote) {
+        const item = await importFromUrl(picked.url, 'Avatar source', originalName);
+        fetchUrl = resolveMediaUrl(`/uploads/media/${item.filename}`);
+        originalName = item.originalName;
+      }
+      const res = await fetch(fetchUrl);
+      const blob = await res.blob();
+      const ext = blob.type.split('/')[1] ?? 'png';
+      const f = new File([blob], `${originalName}.${ext}`, { type: blob.type });
+      handleFile(f);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Couldn't load that file: ${msg}`);
+    } finally {
+      setImporting(false);
+    }
+  }
 
   const isPhoto = avatarType === 'photo';
   const maxMB = isPhoto ? PHOTO_MAX_MB : VIDEO_MAX_MB;
@@ -149,7 +189,19 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
 
           {/* File upload area */}
           <div>
-            <label className="block text-[11px] text-t2 mb-1">{t('heygenAvatarFieldFile')}</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] text-t2">{t('heygenAvatarFieldFile')}</label>
+              {isPhoto && (
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(true)}
+                  className="text-[11px] text-aB hover:underline"
+                  disabled={importing}
+                >
+                  {importing ? 'Importing…' : '📁 Pick / Search / AI'}
+                </button>
+              )}
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -217,6 +269,34 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
           </div>
         </form>
       </div>
+
+      <MediaPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={handlePickMedia}
+        onOpenInEditor={isPhoto ? (picked) => {
+          setPendingIntent({
+            contextLabel: `Avatar — ${name || 'untitled'}`,
+            prefillBackgroundUrl: picked?.kind === 'image' ? picked.url : undefined,
+            onUse: async (finalUrl) => {
+              try {
+                const item = await importFromUrl(finalUrl, 'Avatar source', `avatar-${Date.now()}`);
+                const fetchUrl = resolveMediaUrl(`/uploads/media/${item.filename}`);
+                const res = await fetch(fetchUrl);
+                const blob = await res.blob();
+                const ext = blob.type.split('/')[1] ?? 'png';
+                const f = new File([blob], `${item.originalName}.${ext}`, { type: blob.type });
+                handleFile(f);
+              } catch (err) {
+                toast.error(`Couldn't load that file: ${err instanceof Error ? err.message : String(err)}`);
+              }
+            },
+          });
+        } : undefined}
+        enabledTabs={isPhoto ? ['library', 'photo', 'ai-image'] : ['library', 'video']}
+        imagesOnly={isPhoto}
+        title={`Pick avatar source — ${isPhoto ? 'photo' : 'video'}`}
+      />
     </div>
   );
 }

@@ -11,7 +11,8 @@ import {
 } from '../api/videoScripts';
 import { IMEInput, IMETextarea } from '../components/common/IMEInput';
 import VoiceRecorder from '../components/common/VoiceRecorder';
-import BackgroundPickerModal from '../components/modals/BackgroundPickerModal';
+import MediaPickerModal, { type PickedMedia } from '../components/modals/MediaPickerModal';
+import { setSectionBackgroundApi } from '../api/videoScripts';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -1291,16 +1292,26 @@ export default function VideoScriptCreator() {
       {bgPickerSection && selectedScript && (() => {
         const sec = selectedScript.sections.find(s => s.id === bgPickerSection);
         if (!sec) return null;
+        const handlePicked = async (picked: PickedMedia) => {
+          try {
+            const updated = await setSectionBackgroundApi(sec.id, picked.url);
+            updateScriptInState({
+              ...selectedScript,
+              sections: selectedScript.sections.map(s => s.id === updated.id ? updated : s),
+            });
+            toast.success(t('bgPickerSelected'));
+          } catch {
+            toast.error(t('bgPickerSelectFailed'));
+          }
+        };
         return (
-          <BackgroundPickerModal
-            section={sec}
+          <MediaPickerModal
+            open={true}
             onClose={() => setBgPickerSection(null)}
-            onPicked={(updated) => {
-              updateScriptInState({
-                ...selectedScript,
-                sections: selectedScript.sections.map(s => s.id === updated.id ? updated : s),
-              });
-            }}
+            onPick={handlePicked}
+            enabledTabs={['library', 'photo', 'video', 'ai-image']}
+            title={t('bgPickerTitle')}
+            contextSubtitle={sec.heading}
           />
         );
       })()}

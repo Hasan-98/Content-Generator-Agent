@@ -18,13 +18,15 @@ import shopifyConfigRoutes from './routes/shopifyConfig';
 import ttsDictionaryRoutes from './routes/ttsDictionary';
 import heygenAvatarRoutes from './routes/heygenAvatars';
 import promptTemplateRoutes from './routes/promptTemplates';
+import mediaRoutes from './routes/media';
+import bannerRoutes from './routes/banner';
 import path from 'path';
 import fs from 'fs';
 
 dotenv.config();
 
 // Ensure upload/audio directories exist on startup
-for (const dir of ['uploads', 'audio']) {
+for (const dir of ['uploads', 'audio', 'uploads/media', 'uploads/fonts']) {
   const dirPath = path.join(__dirname, '..', dir);
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
 }
@@ -52,6 +54,8 @@ app.use('/api/shopify-config', shopifyConfigRoutes);
 app.use('/api/tts-dictionary', ttsDictionaryRoutes);
 app.use('/api/heygen-avatars', heygenAvatarRoutes);
 app.use('/api/prompt-templates', promptTemplateRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/banner', bannerRoutes);
 
 // Serve audio files
 app.use('/audio', express.static(path.join(__dirname, '..', 'audio')));

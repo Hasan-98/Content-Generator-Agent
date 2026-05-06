@@ -14,6 +14,9 @@ const API_KEY_FIELDS = [
   'kieApi',
   'pieapi',
   'heygenApi',
+  'pexelsApi',
+  'unsplashApi',
+  'runwayApi',
 ] as const;
 
 type ApiKeyName = (typeof API_KEY_FIELDS)[number];

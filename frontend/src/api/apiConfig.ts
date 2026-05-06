@@ -9,6 +9,9 @@ export interface ApiConfigStatus {
   kieApi: boolean;
   pieapi: boolean;
   heygenApi: boolean;
+  pexelsApi: boolean;
+  unsplashApi: boolean;
+  runwayApi: boolean;
 }
 
 export type ApiKeyName = keyof ApiConfigStatus;
