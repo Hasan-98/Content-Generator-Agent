@@ -17,12 +17,22 @@
 export interface EditorPendingIntent {
   /** Display name shown in the editor banner ("Article image #2", "Photo avatar", etc.) */
   contextLabel: string;
-  /** Background image URL to prefill (optional) */
+  /** Background image URL to prefill (optional). Convenience shortcut for prefillInputs.backgroundImageUrl. */
   prefillBackgroundUrl?: string;
   /** Optional initial size id (e.g. "instagram-square") */
   initialSizeId?: string;
-  /** Optional title text the caller wants overlaid */
+  /** Optional title text the caller wants overlaid. Convenience shortcut for prefillInputs.title. */
   initialTitle?: string;
+  /**
+   * Full override of any inputs in the editor. Merged on top of editor defaults
+   * AFTER the convenience shortcuts above. Use this to clear unwanted defaults
+   * (e.g. `{ badge: '', hideBadge: true, subtitle: '', hideSubtitle: true }`)
+   * or set a complete starting state from a previous render.
+   *
+   * Typed as Record<string, unknown> here to avoid an import cycle with
+   * build-banner-template; the editor casts it back to Partial<BannerInputs>.
+   */
+  prefillInputs?: Record<string, unknown>;
   /** Called when the user clicks "Use this image" in the editor */
   onUse: (finalUrl: string) => void;
   /** Called if the user navigates away without picking */

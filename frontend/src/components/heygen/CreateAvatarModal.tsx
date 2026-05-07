@@ -278,6 +278,10 @@ export default function CreateAvatarModal({ onClose, onCreated }: Props) {
           setPendingIntent({
             contextLabel: `Avatar — ${name || 'untitled'}`,
             prefillBackgroundUrl: picked?.kind === 'image' ? picked.url : undefined,
+            prefillInputs: {
+              badge: '', subtitle: '', title: '', body: '',
+              hideBadge: true, hideSubtitle: true, hideBody: true,
+            },
             onUse: async (finalUrl) => {
               try {
                 const item = await importFromUrl(finalUrl, 'Avatar source', `avatar-${Date.now()}`);

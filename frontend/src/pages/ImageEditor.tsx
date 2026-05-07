@@ -225,10 +225,14 @@ export default function ImageEditor() {
   useEffect(() => {
     if (!pending || appliedPendingRef.current === pending) return;
     appliedPendingRef.current = pending;
-    setInputs((prev) => ({
-      ...prev,
-      backgroundImageUrl: pending.prefillBackgroundUrl ?? prev.backgroundImageUrl,
-      title: pending.initialTitle ?? prev.title,
+    // Start fresh from defaults so previous edits don't leak into the new context.
+    // Then layer on convenience shortcuts (prefillBackgroundUrl, initialTitle),
+    // and finally the caller's full prefillInputs for any other overrides.
+    setInputs(() => ({
+      ...DEFAULT_INPUTS,
+      ...(pending.prefillBackgroundUrl ? { backgroundImageUrl: pending.prefillBackgroundUrl } : {}),
+      ...(pending.initialTitle !== undefined ? { title: pending.initialTitle } : {}),
+      ...((pending.prefillInputs ?? {}) as Partial<BannerInputs>),
     }));
     if (pending.initialSizeId) setSizeId(pending.initialSizeId);
     setLastRenderedUrl(null);

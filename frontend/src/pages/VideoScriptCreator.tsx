@@ -13,6 +13,7 @@ import { IMEInput, IMETextarea } from '../components/common/IMEInput';
 import VoiceRecorder from '../components/common/VoiceRecorder';
 import MediaPickerModal, { type PickedMedia } from '../components/modals/MediaPickerModal';
 import { setSectionBackgroundApi } from '../api/videoScripts';
+import { setPendingIntent } from '../lib/imageEditorBridge';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -1218,6 +1219,39 @@ export default function VideoScriptCreator() {
                                     : sec.imageUrl
                                       ? t('vsImageRegenerate')
                                       : t('vsImageGenerate')}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setPendingIntent({
+                                      contextLabel: `Section: ${sec.heading}`,
+                                      prefillBackgroundUrl: sec.imageUrl ?? undefined,
+                                      initialTitle: sec.heading,
+                                      prefillInputs: {
+                                        badge: '', subtitle: '', body: '',
+                                        hideBadge: true, hideSubtitle: true, hideBody: true,
+                                      },
+                                      onUse: async (finalUrl) => {
+                                        try {
+                                          const updated = await setSectionBackgroundApi(sec.id, finalUrl);
+                                          if (selectedScript) {
+                                            updateScriptInState({
+                                              ...selectedScript,
+                                              sections: selectedScript.sections.map(s =>
+                                                s.id === updated.id ? updated : s,
+                                              ),
+                                            });
+                                          }
+                                          toast.success(t('bgPickerSelected'));
+                                        } catch {
+                                          toast.error(t('bgPickerSelectFailed'));
+                                        }
+                                      },
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 text-[10px] bg-aP/20 text-aP border border-aP/40 rounded hover:bg-aP/30 transition-colors whitespace-nowrap"
+                                  title="Open the banner editor for this section"
+                                >
+                                  🎨 Edit
                                 </button>
                               </div>
                             </div>

@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { subscribePendingIntent } from './lib/imageEditorBridge';
 import { LanguageProvider } from './context/LanguageContext';
 import LoginScreen from './components/auth/LoginScreen';
 import Titlebar from './components/layout/Titlebar';
@@ -14,7 +13,7 @@ import TwitterPanel from './pages/TwitterPanel';
 import YouTubePanel from './pages/YouTubePanel';
 import VideoScriptCreator from './pages/VideoScriptCreator';
 import HeygenAvatarsPage from './pages/HeygenAvatarsPage';
-import ImageEditor from './pages/ImageEditor';
+import ImageEditorOverlay from './components/banner-editor/ImageEditorOverlay';
 import UserModal from './components/user/UserModal';
 import UserSettingsModal from './components/user/UserSettingsModal';
 import SettingsModal from './components/user/SettingsModal';
@@ -27,19 +26,11 @@ function getInviteToken(): string | null {
 
 function AppShell() {
   const { user, loading, isImpersonating, isViewingAs, returnToAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'video' | 'avatars' | 'banner' | 'instagram' | 'twitter' | 'youtube'>('topic');
+  const [activeTab, setActiveTab] = useState<'topic' | 'article' | 'video' | 'avatars' | 'instagram' | 'twitter' | 'youtube'>('topic');
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [userModalInvite, setUserModalInvite] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [apiSettingsModalOpen, setApiSettingsModalOpen] = useState(false);
-
-  // When ImageCard / CreateAvatarModal request a hand-off to the banner editor,
-  // subscribePendingIntent fires here and we switch tabs automatically.
-  useEffect(() => {
-    return subscribePendingIntent((p) => {
-      if (p) setActiveTab('banner');
-    });
-  }, []);
 
   if (loading) {
     return (
@@ -56,7 +47,6 @@ function AppShell() {
     activeTab === 'article' ? 'Article Creator' :
     activeTab === 'video' ? 'Video Script' :
     activeTab === 'avatars' ? 'HeyGen Avatars' :
-    activeTab === 'banner' ? 'Image Editor' :
     activeTab === 'twitter' ? 'Twitter / X Publisher' :
     activeTab === 'youtube' ? 'YouTube Publisher' :
     'Instagram Publisher';
@@ -93,12 +83,11 @@ function AppShell() {
       )}
       <Titlebar onOpenUsers={() => { setUserModalInvite(false); setUserModalOpen(true); }} onOpenSettings={() => setSettingsModalOpen(true)} onInviteUser={() => { setUserModalInvite(true); setUserModalOpen(true); }} />
       <div className="flex flex-1 overflow-hidden">
-        <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'video' | 'avatars' | 'banner' | 'instagram' | 'twitter' | 'youtube')} />
+        <ActivityBar active={activeTab} onChange={(tab) => setActiveTab(tab as 'topic' | 'article' | 'video' | 'avatars' | 'instagram' | 'twitter' | 'youtube')} />
         {activeTab === 'topic' ? <TopicCreator />
           : activeTab === 'article' ? <ArticleCreator />
           : activeTab === 'video' ? <VideoScriptCreator />
           : activeTab === 'avatars' ? <HeygenAvatarsPage />
-          : activeTab === 'banner' ? <ImageEditor />
           : activeTab === 'twitter' ? <TwitterPanel />
           : activeTab === 'youtube' ? <YouTubePanel />
           : <InstagramPanel />}
@@ -107,6 +96,10 @@ function AppShell() {
       {userModalOpen && <UserModal onClose={() => setUserModalOpen(false)} defaultShowInvite={userModalInvite} />}
       {settingsModalOpen && <UserSettingsModal onClose={() => setSettingsModalOpen(false)} />}
       {apiSettingsModalOpen && <SettingsModal onClose={() => setApiSettingsModalOpen(false)} />}
+      {/* Banner editor opens as a fullscreen overlay whenever a caller (ImageCard
+          in STEP B / VideoScriptCreator section / CreateAvatarModal) sets a
+          pending intent on the bridge. No tab switching, no nav-away. */}
+      <ImageEditorOverlay />
     </div>
   );
 }

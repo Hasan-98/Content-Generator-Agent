@@ -104,10 +104,26 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
   }
 
   function handleOpenInEditor(picked: PickedMedia | null) {
+    // Background priority:
+    //   1. an image just picked in the modal (picked.url),
+    //   2. otherwise the image already on this card (image.imageUrl),
+    //   3. otherwise nothing (user starts from blank).
+    const bg = picked?.kind === 'image' ? picked.url : image.imageUrl ?? undefined;
+    const overlayTitle = image.overlayTitle || (image.index === 0 ? articleTitle : '') || '';
     setPendingIntent({
       contextLabel: `${t('imageLabel')}${image.index + 1} — ${sectionHeading}`,
-      prefillBackgroundUrl: picked?.kind === 'image' ? picked.url : undefined,
-      initialTitle: image.overlayTitle || (image.index === 0 ? articleTitle : undefined),
+      prefillBackgroundUrl: bg,
+      initialTitle: overlayTitle,
+      // Article images shouldn't carry over the demo banner's badge / subtitle /
+      // body. Start with just title + background; user can re-enable anything.
+      prefillInputs: {
+        badge: '',
+        subtitle: '',
+        body: '',
+        hideBadge: true,
+        hideSubtitle: true,
+        hideBody: true,
+      },
       onUse: (finalUrl) => { void applyImageUrl(finalUrl); },
       onCancel: () => { /* nothing — user navigated away */ },
     });
@@ -427,8 +443,8 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
               />
             </div>
 
-            {/* Generate + Pick buttons */}
-            <div className="flex gap-2">
+            {/* Generate + Pick + Edit buttons */}
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleGenerate}
                 disabled={loading}
@@ -442,6 +458,13 @@ export default function ImageCard({ image, sectionHeading, sectionType, articleI
                 title="Pick from library, search Pexels/Unsplash, or AI generate"
               >
                 📁 Pick / Search / AI
+              </button>
+              <button
+                onClick={() => handleOpenInEditor(null)}
+                className="text-xs px-3 py-1.5 rounded bg-aO/20 text-aO border border-aO/40 hover:bg-aO/30 transition-colors"
+                title="Open the full banner editor for this image (text overlays, fonts, colors)"
+              >
+                🎨 Edit in banner editor
               </button>
             </div>
           </div>
